@@ -7,7 +7,6 @@ class Relation(object):
 		return self.rtype in types_allowed
 
 
-
 	#self.type = []
 	#self.nprev
 

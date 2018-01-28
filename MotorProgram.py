@@ -4,7 +4,7 @@ import copy
 #motor program 
 
 
-class MotorProgram(object): #do i need to inherit from object??? sure, makes things easier
+class MotorProgram(object): 
 	def __init__(self, *args):
 		#set variables:
 		self.I = []
