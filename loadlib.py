@@ -2,9 +2,13 @@
 import scipy.io as io
 #a function which loads the library
 
-def loadlib(libtype=250):
+def loadlib(libtype=1250):
 	#filename = '/Users/Maxwell/Documents/BPL_inf/pylib250'
-	filename = '/Users/Maxwell/Documents/BPL_inf/pylib1250'
+	if libtype == 1250:
+		filename = '/Users/Maxwell/Documents/BPL_inf/pylib1250'
+	elif libtype ==250:
+		filename = '/Users/Maxwell/Documents/BPL_inf/pylib250'
+
 	lib = io.loadmat(filename)
 	#does not fix problem of everything being embedding in multiple arrays. Will need to squeeze it when put in tensor. 
 

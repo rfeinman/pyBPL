@@ -1,28 +1,34 @@
 #import statments 
 import copy
-
+import torch
+from torch.autograd import Variable
+from Stroke import Stroke
 #motor program 
 
 
 class MotorProgram(object): 
-	def __init__(self, *args):
+	def __init__(self, args):
 		#set variables:
 		self.I = []
 		self.S = []
 		self.parameters = []
 
-
 		if isinstance(args, int):
 			ns = args
 			for i in range(ns):
-				self.S[i] = Stroke()
+				self.S.append(Stroke())
+		elif isinstance(args,Variable):
+			assert args.data.shape == torch.Size([1])
+			ns = args.data[0]
+			for i in range(ns):
+				self.S.append(Stroke())
 		elif isinstance(args, MotorProgram):
 			Template = args
 			for i in range(Template.ns):
-				self.S[i] = Stroke(Template.S[i])
+				self.S.append(Stroke(Template.S[i]))
 			self.parameters = copy.copy(Template.parameters) #this might break if mcmc comes online
 		else: 
-			error('invalid constructor')
+			raise TypeError('invalid constructor')
 
 
 	#other methods:
