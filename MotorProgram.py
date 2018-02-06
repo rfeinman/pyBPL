@@ -56,12 +56,12 @@ class MotorProgram(object):
 
 	@property
 	def pimg(self):
-		return apply_render(self)[0] #hopefully this will work
+		return self.apply_render()[0] #hopefully this will work
 
 	#this is probably not the correct way to do this. May mess with rendering.
 	@property
 	def ink_off_page(self):
-		return apply_render(self)[1]
+		return self.apply_render()[1]
 
 
 

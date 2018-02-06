@@ -25,10 +25,11 @@ class RelationAttach(Relation):
 		assert self.validType
 
 class RelationAttachAlong(RelationAttach):
-	def __init__(self, rtype, nprev, attach_spot, subid_spot,ncpt):
+	def __init__(self, rtype, nprev, attach_spot, nsub, subid_spot, ncpt):
 		super(RelationAttachAlong,self).__init__(rtype, nprev, attach_spot) #hope this works
 		self.subid_spot = subid_spot
 		self.ncpt = ncpt
+		self.nsub = nsub
 		eval_spot_type = []
 		eval_spot_token = []
 

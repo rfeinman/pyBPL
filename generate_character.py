@@ -6,7 +6,7 @@ import torch
 import CPD
 from MotorProgram import MotorProgram
 from parameters import defaultps
-import generate_exemplar
+from generate_exemplar import generate_exemplar
 import loadlib as lb
 
 
@@ -14,10 +14,9 @@ def generate_character(libclass, ns=None):
 	if ns is None:
 		numstrokes = CPD.sample_number(libclass)
 		ns = numstrokes.data[0]
-		print 'ns:', ns
 	template = MotorProgram(ns)
 	template.parameters = defaultps() #need to deal with this - dealt with
-
+	print 'ns:', ns 
 	for i in range(ns):
 		template.S[i].R = CPD.sample_relation_type(libclass,template.S[0:i]) #oh god check this
 		template.S[i].ids = CPD.sample_sequence(libclass,ns)
@@ -28,7 +27,10 @@ def generate_character(libclass, ns=None):
 
 def main():
 	lib = lb.loadlib()
-	generate_character(lib)
+	x,y = generate_character(lib)
+	print 'generating exemplar:'
+	character = y()
+
 
 if __name__ == '__main__':
 	main()

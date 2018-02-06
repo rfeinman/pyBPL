@@ -28,13 +28,13 @@ def vectorized_bspline_coeff(vi,vs):
 	C[sel1] = (1/6.)*torch.pow((vs[sel1]-vi[sel1]),3)
 
 	sel2 = (vs >= vi+1) * (vs < vi+2)
-    C[sel2] = (1/6.)*(-3.*torch.pow((vs[sel2]-vi[sel2]-1),3) + 3.*torch.pow((vs[sel2]-vi[sel2]-1),2) + 3.*(vs[sel2]-vi[sel2]-1)+1)
+	C[sel2] = (1/6.)*(-3.*torch.pow((vs[sel2]-vi[sel2]-1),3) + 3.*torch.pow((vs[sel2]-vi[sel2]-1),2) + 3.*(vs[sel2]-vi[sel2]-1)+1)
 
-    sel3 = (vs >= vi+2) * (vs < vi+3)
-    C[sel3] = (1/6.)*(3*torch.pow((vs[sel3]-vi[sel3]-2),3) - 6*torch.pow((vs[sel3]-vi[sel3]-2),2) + 4)
+	sel3 = (vs >= vi+2) * (vs < vi+3)
+	C[sel3] = (1/6.)*(3*torch.pow((vs[sel3]-vi[sel3]-2),3) - 6*torch.pow((vs[sel3]-vi[sel3]-2),2) + 4)
 
-    sel4 = (vs >= vi+3) * (vs < vi+4)
-    C[sel4] = (1/6.)*torch.pow((1-(vs(sel4)-vi(sel4)-3)),3)
+	sel4 = (vs >= vi+3) * (vs < vi+4)
+	C[sel4] = (1/6.)*torch.pow((1-(vs(sel4)-vi(sel4)-3)),3)
 
 	return C
 
@@ -63,12 +63,15 @@ def bspline_eval(sval, cpts):
 	return y, Cof
 
 
-def bspline_gen_s(ncpt,neval=200):
+def bspline_gen_s(nland,neval=200):
 	lb = 2
 	ub = nland + 1
 	length = ub - lb
-	interval = length / float(neval - 1)
-	s = np.arange(lb,ub,interval)
+	try:
+		interval = length / float(neval - 1)
+		s = np.arange(lb,ub,interval)
+	except ZeroDivisionError:
+		s = []
 	return s, ub, lb
 
 
@@ -86,16 +89,16 @@ def get_stk_from_bspline(P,neval=200):
 	nland = P.size[0]
 
 	if neval is None:
-        # % set the number of evaluations adaptively,
-        # % based on the size of the stroke
-        # PM = defaultps;
-        # neval = PM.spline_min_neval;
-        # s = bspline_gen_s(nland,neval);
-        # stk = bspline_eval(s,P);
-        # sumdist = sum_pair_dist(stk);
-        # neval = max(neval,ceil(sumdist./PM.spline_grain));
-        # neval = min(neval,PM.spline_max_neval);
-        error('dynamic n evaluation not implemented')
+		# % set the number of evaluations adaptively,
+		# % based on the size of the stroke
+		# PM = defaultps;
+		# neval = PM.spline_min_neval;
+		# s = bspline_gen_s(nland,neval);
+		# stk = bspline_eval(s,P);
+		# sumdist = sum_pair_dist(stk);
+		# neval = max(neval,ceil(sumdist./PM.spline_grain));
+		# neval = min(neval,PM.spline_max_neval);
+		error('dynamic n evaluation not implemented')
 
 	s = bspline_gen_s(nland,neval)
 	stk = bspline_eval(s,P)
