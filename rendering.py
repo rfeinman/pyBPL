@@ -11,12 +11,53 @@ from torch.autograd import Variable
 
 #I think it is fine do to everything in pieces.
 
-def cpts_to_motor():
+def offset_stk(traj,offset):
+	n = traj.shape[0]
+	list_sub = [offset for _ in range(n)]
+	sub = torch.cat(list_sub,0)
+	stk = traj - sub
+	return stk
+
+
+def to_motor(shapes,invscales,first_pos):
+	vanilla_traj = []
+	motor = []
+	ncpt,_,n = shapes.shape
+	for i in range(n):
+		shapes[:,:,i] = invscales[i] * shapes[:,:,i]
+		vanilla_traj.append(get_stk_from_bspline(shapes[:,:,i]))
+
+		#calculate offset
+		if i == 0:
+			offset = vanilla_traj[i][0,:] - first_pos
+		else:
+			offset = vanilla_traj[i-1][0,:] - motor[i-1][-1,:]
+		motor.append(rendering.offset_stk(vanilla_traj[i],offset))
 	return motor
 
 
-def motor_to_pimg():
-	return pimg
+def apply_warp(MP):
+	motor_unwarped = MP.motor 
+	if MP.A == []:
+		return motor_unwarped
+	else:
+		#TODO
+	
+
+def space_motor_to_img(pt):
+	#TODO
+	return new_pt
+
+def render_image(cell_traj, epsilon, blur_sigma, PM):
+	traj_img = rendering.space_motor_to_img(cell_traj)
+
+	return prob_on, ink_off_page
+
+def motor_to_pimg(MP):
+	motor_warped = rendering.apply_warp(MP)
+
+	pimg, ink_off_page = render_image(motor_warped, MP.epsilon, MP.blur_sigma, MP.parameters)
+	return pimg, ink_off_page
 
 def vectorized_bspline_coeff(vi,vs):
 	#TODO 

@@ -15,7 +15,7 @@ class Stroke(object):
 		#other params
 		else:
 			#type level
-			print 'bad trigger'
+			#print 'bad trigger'
 			self.R = []
 			self.ids = []
 			self.invscales_type = []
@@ -31,5 +31,10 @@ class Stroke(object):
 	@property
 	def nsub(self):
 		return len(self.ids)
+
+	@property
+	def motor(self)		
+		return rendering.to_motor(self.shapes_token,self.invscales_token,self.pos_token)
+
 
 	#can consider computing motor, will skip for now

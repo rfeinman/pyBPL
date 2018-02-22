@@ -51,7 +51,7 @@ class MotorProgram(object):
 	#[pimg, ink_off_page] = apply_render(this) -- this is the thing that needs to be differentiable
 
 	def apply_render(self):
-		#apply the render, also skip the "motor" part
+		ping, ink_off_page = rendering.motor_to_pimg(stuff)
 		return pimg, ink_off_page
 
 	@property

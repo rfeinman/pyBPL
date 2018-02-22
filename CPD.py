@@ -144,13 +144,16 @@ def sample_relation_token(libclass, eval_spot_type):
 
 	sigma_attach = torch.squeeze(torch.Tensor(libclass['tokenvar']['sigma_attach'][0,0]))
 	print "sigma_attach", sigma_attach
-	eval_spot_token = eval_spot_type + sigma_attach * \
+	eval_spot_token = eval_spot_type + sigma_attach.numpy() * \
 	pyro.sample('randn_for_rtoken', dist.normal, Variable(torch.zeros(1)), Variable(torch.ones(1)))
 
 	ncpt = 5 #TODO
-	_,lb,ub = bspline_gen_s(ncpt,1); #need to fix
-	while eval_spot_token < lb or eval_spot_token > ub:
-		eval_spot_token = eval_spot_type + sigma_attach * \
+	_,ub,lb = bspline_gen_s(ncpt,1); #need to fix
+	while eval_spot_token.data[0] < lb or eval_spot_token.data[0] > ub:
+		print "lb:", lb
+		print "ub:", ub
+		print "eval_spot_token:", eval_spot_token
+		eval_spot_token = eval_spot_type + sigma_attach.numpy() * \
 		pyro.sample('randn_for_rtoken', dist.normal,Variable(torch.zeros(1)),Variable(torch.ones(1)))
 			
 	return eval_spot_token
