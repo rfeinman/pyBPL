@@ -41,8 +41,8 @@ def apply_warp(MP):
 	if MP.A == []:
 		return motor_unwarped
 	else:
-		#TODO
-	
+		#TODO - motor warped 
+
 
 def space_motor_to_img(pt):
 	#TODO
@@ -50,17 +50,20 @@ def space_motor_to_img(pt):
 
 def render_image(cell_traj, epsilon, blur_sigma, PM):
 	traj_img = rendering.space_motor_to_img(cell_traj)
+	#TODO
+	ink = PM.ink_pp
+	max_dist = PM.ink_max_dist
 
+	
 	return prob_on, ink_off_page
 
 def motor_to_pimg(MP):
 	motor_warped = rendering.apply_warp(MP)
 
-	pimg, ink_off_page = render_image(motor_warped, MP.epsilon, MP.blur_sigma, MP.parameters)
+	pimg, ink_off_page = rendering.render_image(motor_warped, MP.epsilon, MP.blur_sigma, MP.parameters)
 	return pimg, ink_off_page
 
 def vectorized_bspline_coeff(vi,vs):
-	#TODO 
 	assert vi.shape == vs.shape
 	C = torch.zeros(vi.shape)
 
