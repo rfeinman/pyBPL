@@ -152,7 +152,7 @@ def sample_relation_token(libclass, eval_spot_type):
 	while eval_spot_token.data[0] < lb or eval_spot_token.data[0] > ub:
 		print "lb:", lb
 		print "ub:", ub
-		print "eval_spot_token:", eval_spot_token
+		print "eval_spot_token.data[0]:", eval_spot_token.data[0]
 		eval_spot_token = eval_spot_type + sigma_attach.numpy() * \
 		pyro.sample('randn_for_rtoken', dist.normal,Variable(torch.zeros(1)),Variable(torch.ones(1)))
 			

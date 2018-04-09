@@ -33,7 +33,7 @@ class Stroke(object):
 		return len(self.ids)
 
 	@property
-	def motor(self)		
+	def motor(self):	
 		return rendering.to_motor(self.shapes_token,self.invscales_token,self.pos_token)
 
 

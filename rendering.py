@@ -42,10 +42,11 @@ def apply_warp(MP):
 		return motor_unwarped
 	else:
 		#TODO - motor warped 
+		return []
 
 
-def space_motor_to_img(pt):
-	#TODO
+def space_motor_to_img(pt): #TODO
+	error("not implemented yet")
 	return new_pt
 
 def render_image(cell_traj, epsilon, blur_sigma, PM):
