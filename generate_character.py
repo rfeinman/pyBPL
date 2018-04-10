@@ -1,7 +1,6 @@
 #generate_character 
 
-
-#import statements or whatever
+from __future__ import print_function, division
 import torch
 import CPD
 from MotorProgram import MotorProgram
@@ -16,7 +15,7 @@ def generate_character(libclass, ns=None):
 		ns = numstrokes.data[0]
 	template = MotorProgram(ns)
 	template.parameters = defaultps() #need to deal with this - dealt with
-	print 'ns:', ns 
+	print('ns: %i' % ns)
 	for i in range(ns):
 		template.S[i].R = CPD.sample_relation_type(libclass,template.S[0:i]) #oh god check this
 		template.S[i].ids = CPD.sample_sequence(libclass,ns)
@@ -28,7 +27,7 @@ def generate_character(libclass, ns=None):
 def main():
 	lib = lb.loadlib()
 	x,y = generate_character(lib)
-	print 'generating exemplar:'
+	print('generating exemplar:')
 	character = y()
 
 
