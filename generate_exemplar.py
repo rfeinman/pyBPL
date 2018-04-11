@@ -1,15 +1,18 @@
-#generate exemplar function
+"""
+generate exemplar function
+"""
+from __future__ import division, print_function
 from MotorProgram import MotorProgram
 import CPD
 
 
 def generate_exemplar(template,libclass):
 	M = MotorProgram(template)
-	print 'M.ns', M.ns
+	print('M.ns', M.ns)
 	#sample stroke params
 	for i in range(M.ns):
 		if M.S[i].R.rtype == 'mid':
-			print "M.S[i].R :", M.S[i].R
+			print("M.S[i].R :", M.S[i].R)
 			M.S[i].R.eval_spot_token = CPD.sample_relation_token(
 				libclass, M.S[i].R.eval_spot_type)
 

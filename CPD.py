@@ -1,4 +1,7 @@
-#CPD for motor programs
+"""
+CPD for motor programs
+"""
+from __future__ import division, print_function
 import torch
 from torch.autograd import Variable
 
@@ -109,7 +112,7 @@ def sample_shape_type(libclass,subid):
 		mu = torch.squeeze(torch.Tensor(libclass['shape']['mu'][0,0]))
 		Cov = torch.squeeze(torch.Tensor(libclass['shape']['Sigma'][0,0]))[:,:,i-1]
 
-		print 'Warning: pyro multivariatenormal unimplemented. using np.random instead '
+		print('Warning: pyro multivariatenormal unimplemented. using np.random instead ')
 		#repair because multivariate sample doesnt work:
 		mu = mu.numpy()
 		Cov = Cov.numpy()
@@ -143,16 +146,16 @@ def sample_invscales_type(libclass,subid):
 def sample_relation_token(libclass, eval_spot_type):
 
 	sigma_attach = torch.squeeze(torch.Tensor(libclass['tokenvar']['sigma_attach'][0,0]))
-	print "sigma_attach", sigma_attach
+	print("sigma_attach", sigma_attach)
 	eval_spot_token = eval_spot_type + sigma_attach.numpy() * \
 	pyro.sample('randn_for_rtoken', dist.normal, Variable(torch.zeros(1)), Variable(torch.ones(1)))
 
 	ncpt = 5 #TODO
 	_,ub,lb = bspline_gen_s(ncpt,1); #need to fix
 	while eval_spot_token.data[0] < lb or eval_spot_token.data[0] > ub:
-		print "lb:", lb
-		print "ub:", ub
-		print "eval_spot_token.data[0]:", eval_spot_token.data[0]
+		print("lb:", lb)
+		print("ub:", ub)
+		print("eval_spot_token.data[0]:", eval_spot_token.data[0])
 		eval_spot_token = eval_spot_type + sigma_attach.numpy() * \
 		pyro.sample('randn_for_rtoken', dist.normal,Variable(torch.zeros(1)),Variable(torch.ones(1)))
 			
@@ -199,12 +202,12 @@ def sample_affine(libclass):
 	m_scale = Variable(torch.Tensor([[1,1]]))
 	S_scale = Variable(torch.squeeze(torch.Tensor(libclass['affine']['Sigma_scale'][0,0])))
 
-	print 'Warning: pyro multivariatenormal unimplemented. using np.random instead'
+	print('Warning: pyro multivariatenormal unimplemented. using np.random instead')
 
 	m_s = m_scale.data.numpy()[0]
 	S_s = S_scale.data.numpy()
 
-	print 'm_s[0]:', m_s
+	print('m_s[0]:', m_s)
 	sample_A[:,0:2] = Variable(torch.Tensor(np.random.multivariate_normal(m_s,S_s)))
 
 	#the actual pyro sample statement:
@@ -233,7 +236,7 @@ def sample_image(pimg):
 
 
 def getAttachPoint(R,prev_strokes):
-	print "prev_strokes:", prev_strokes
+	print("prev_strokes:", prev_strokes)
 	if R.rtype == 'unihist':
 		pos = R.gpos #make sure this is okay
 
