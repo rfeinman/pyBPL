@@ -1,8 +1,27 @@
-#loadlib.py
+"""
+A function that loads the library.
+"""
+import os
 import scipy.io as io
-#a function which loads the library
 
-def loadlib(libtype=1250):
+
+def loadlib(lib_dir='./library'):
+	lib = {}
+	files = os.listdir(lib_dir)
+	for file in files:
+		data = io.loadmat(os.path.join(lib_dir, file))['value']
+		key = file.split('.')[0]
+		if '-' in key:
+			base, sub = key.split('-')
+			if base not in lib:
+				lib[base] = {}
+			lib[base][sub] = data
+		else:
+			lib[key] = data
+
+	return lib
+
+def loadlib_old(libtype=1250):
 	#filename = '/Users/Maxwell/Documents/BPL_inf/pylib250'
 	if libtype == 1250:
 		filename = '/Users/Maxwell/Documents/BPL_inf/pylib1250'
@@ -10,7 +29,8 @@ def loadlib(libtype=1250):
 		filename = '/Users/Maxwell/Documents/BPL_inf/pylib250'
 
 	lib = io.loadmat(filename)
-	#does not fix problem of everything being embedding in multiple arrays. Will need to squeeze it when put in tensor. 
+	# does not fix problem of everything being embedding in multiple arrays.
+	# Will need to squeeze it when put in tensor.
 
 	#cleanup, doing it manually for now
 	#shape
