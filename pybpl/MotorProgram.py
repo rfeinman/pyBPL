@@ -1,9 +1,10 @@
-#import statments 
+"""
+Motor program.
+"""
 import copy
 import torch
 from torch.autograd import Variable
-from Stroke import Stroke
-#motor program 
+from pybpl.Stroke import Stroke
 
 
 class MotorProgram(object): 
@@ -17,7 +18,7 @@ class MotorProgram(object):
             ns = args
             for i in range(ns):
                 self.S.append(Stroke())
-        elif isinstance(args,Variable):
+        elif isinstance(args, Variable):
             assert args.data.shape == torch.Size([1])
             ns = args.data[0]
             for i in range(ns):

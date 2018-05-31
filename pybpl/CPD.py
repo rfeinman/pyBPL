@@ -7,9 +7,10 @@ from torch.autograd import Variable
 
 import pyro
 import pyro.distributions as dist
-from relations import RelationIndependent, RelationAttach, RelationAttachAlong
+from pybpl.relations import (RelationIndependent, RelationAttach,
+                             RelationAttachAlong)
 import numpy as np
-from rendering import bspline_gen_s
+from pybpl.rendering import bspline_gen_s
 
 
 # CPD
@@ -70,13 +71,13 @@ def sample_relation_type(libclass, prev_strokes):
 
         nsub = prev_strokes[attach_spot.data[0] - 1].nsub
         subid_spot = pyro.sample(
-			'subid_spot', dist.categorical, Variable(torch.ones(nsub)),
-			one_hot=False
-		) + 1
+            'subid_spot', dist.categorical, Variable(torch.ones(nsub)),
+            one_hot=False
+        ) + 1
 
         R = RelationAttachAlong(
-			rtype, nprev, attach_spot, nsub, subid_spot, ncpt
-		)
+            rtype, nprev, attach_spot, nsub, subid_spot, ncpt
+        )
 
         # still to be fixed
         _, lb, ub = bspline_gen_s(ncpt, 1)
@@ -138,8 +139,8 @@ def sample_shape_type(libclass, subid):
         # m = torch.distributions.Normal(mu,Cov)
         # rows = m.sample()
         # rows = pyro.sample('sample_shape', dist.multivariatenormal,
-		# Variable(mu[i,:]), Variable(Cov))
-		# this is broken atm
+        #  Variable(mu[i,:]), Variable(Cov))
+        #  this is broken atm
 
         # print rows
 

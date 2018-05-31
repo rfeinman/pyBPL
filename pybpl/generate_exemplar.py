@@ -1,9 +1,9 @@
 """
-generate exemplar function
+Generate exemplar
 """
 from __future__ import division, print_function
-from MotorProgram import MotorProgram
-import CPD
+from pybpl.MotorProgram import MotorProgram
+from pybpl import CPD
 
 
 def generate_exemplar(template,libclass):

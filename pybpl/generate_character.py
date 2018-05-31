@@ -3,12 +3,11 @@ Generate character
 """
 
 from __future__ import print_function, division
-import torch
-import CPD
-from MotorProgram import MotorProgram
-from parameters import defaultps
-from generate_exemplar import generate_exemplar
-import loadlib as lb
+from pybpl import CPD
+from pybpl.MotorProgram import MotorProgram
+from pybpl.parameters import defaultps
+from pybpl.generate_exemplar import generate_exemplar
+import pybpl.loadlib as lb
 
 
 def generate_character(libclass, ns=None):
@@ -16,8 +15,9 @@ def generate_character(libclass, ns=None):
         numstrokes = CPD.sample_number(libclass)
         ns = numstrokes.data[0]
     template = MotorProgram(ns)
-    template.parameters = defaultps() #need to deal with this - dealt with
+    template.parameters = defaultps()
     print('ns: %i' % ns)
+    # for each stroke, sample its template
     for i in range(ns):
         # this needs to be checked
         template.S[i].R = CPD.sample_relation_type(libclass, template.S[0:i])
