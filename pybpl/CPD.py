@@ -17,16 +17,36 @@ from pybpl.rendering import bspline_gen_s
 # functions used in generate_character
 
 def sample_number(libclass):
+    """
+    Sample a stroke count.
+
+    :param libclass:
+    :return:
+    """
     pkappa = Variable(torch.squeeze(torch.Tensor(libclass['pkappa'])))
 
     return pyro.sample('ns', dist.categorical, pkappa, one_hot=False) + 1
 
 
-def score_number(libclass, ns):  # or multiple
+def score_number(libclass, ns):
+    """
+    Score the log-likelihood of a given stroke count.
+
+    :param libclass:
+    :param ns:
+    :return:
+    """
     raise ValueError('not implemented')
 
 
 def sample_nsub(libclass, ns):
+    """
+    Sample the substroke count? TODO - verify
+
+    :param libclass:
+    :param ns:
+    :return:
+    """
     ptensor = torch.squeeze(torch.Tensor(libclass['pmat_nsub']))
     pvec = Variable(ptensor[ns - 1, :])
 
@@ -88,8 +108,15 @@ def sample_relation_type(libclass, prev_strokes):
     return R
 
 
-def sample_sequence(libclass, ns, nsub=[]):  # gives template.S[i].ids
-    # for i in range(nsamp):
+def sample_sequence(libclass, ns, nsub=[]):
+    """
+    gives template.S[i].ids
+
+    :param libclass:
+    :param ns:
+    :param nsub:
+    :return:
+    """
 
     if nsub == []:
         nsub = sample_nsub(libclass, ns)
@@ -115,6 +142,13 @@ def sample_sequence(libclass, ns, nsub=[]):  # gives template.S[i].ids
 
 
 def sample_shape_type(libclass, subid):
+    """
+
+    :param libclass:
+    :param subid:
+    :return:
+    """
+
     # might want to prepare for when y = any(isnan(libclass.shape.mu))
     k = subid.shape[0]
     # assert type(k) is int
