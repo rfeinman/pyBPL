@@ -3,7 +3,7 @@ Pyro/pytorch implementation of BPL for omniglot. Not yet operational.
 
 ## Setup
 
-This code repository requires Torch and Pyro. A full list of requirements can
+This code repository requires PyTorch and Pyro. A full list of requirements can
 be found in `requirements.txt`. To install, run the following command to clone
 the repository into a folder of your choice:
 ```
