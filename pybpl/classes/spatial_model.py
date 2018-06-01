@@ -15,7 +15,7 @@ class SpatialModel(object):
 
     def __init__(
             self, data_start, data_id, clump_id, xlim, ylim,
-            nbin_per_slide, prior_count
+            nbin_per_side, prior_count
     ):
         """
         Initialize the SpatialModel class instance.
@@ -23,28 +23,28 @@ class SpatialModel(object):
         :param data_start:
         :param data_id:
         :param clump_id:
-        :param xlim:
-        :param ylim:
-        :param nbin_per_slide:
-        :param prior_count:
+        :param xlim: [1 x 2] range of x-dimension
+        :param ylim: [1 x 2] range of y-dimension
+        :param nbin_per_side: number of bins per dimension
+        :param prior_count: prior counts in each cell (not added to edge cells)
         """
 
-        n = len(data_start)
-        assert np.prod(data_id.shape) == n
+        assert np.prod(data_id.shape) == len(data_start)
 
         # Learn specific spatial models
-        self.list_SH = {}
-        for i in range(clump_id):
-            data = data_start[data_id==i,:] # TODO - update this
-            self.list_SH[i] = SpatialHist(
-                data, xlim, ylim, nbin_per_slide, prior_count
+        self.list_SH = []
+        for i in range(clump_id-1):
+            sh = SpatialHist(
+                data_start[data_id==i], xlim, ylim, nbin_per_side, prior_count
             )
+            self.list_SH.append(sh)
 
         # lump together datapoints from strokes after and including clump_id
-        sel = data >= clump_id
-        self.list_SH[clump_id] = SpatialHist(
-            data_start[sel], xlim, ylim, nbin_per_slide, prior_count
+        sh = SpatialHist(
+            data_start[data_id>=clump_id], xlim, ylim, nbin_per_side,
+            prior_count
         )
+        self.list_SH.append(sh)
 
     def get_last_model_id(self):
         """
