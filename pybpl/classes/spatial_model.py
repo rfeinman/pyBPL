@@ -4,7 +4,7 @@ Spatial model class definition.
 
 import numpy as np
 
-from pybpl.classes.SpatialHist import SpatialHist
+from .spatial_hist import SpatialHist
 
 
 class SpatialModel(object):
