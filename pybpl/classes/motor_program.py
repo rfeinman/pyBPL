@@ -2,9 +2,11 @@
 Motor program.
 """
 import copy
+
 import torch
 from torch.autograd import Variable
-from pybpl.Stroke import Stroke
+
+from pybpl.classes.stroke import Stroke
 
 
 class MotorProgram(object): 

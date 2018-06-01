@@ -1,7 +1,10 @@
-#stroke
+"""
+Stroke
+"""
 
-#import statements
 import copy
+
+from .. import rendering
 
 class Stroke(object):
     def __init__(self, args=None):
@@ -27,8 +30,6 @@ class Stroke(object):
         self.pos_token = []
         self.invscales_token = []
         self.shapes_token = []
-
-
 
     @property
     def nsub(self):

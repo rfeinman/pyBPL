@@ -2,11 +2,11 @@
 Generate exemplar
 """
 from __future__ import division, print_function
-from pybpl.MotorProgram import MotorProgram
-from pybpl import CPD
+
+from pybpl.classes import MotorProgram, CPD
 
 
-def generate_exemplar(template,libclass):
+def generate_exemplar(template, libclass):
     M = MotorProgram(template)
     print('M.ns', M.ns)
     #sample stroke params

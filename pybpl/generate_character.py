@@ -3,11 +3,11 @@ Generate character
 """
 
 from __future__ import print_function, division
-from pybpl import CPD
-from pybpl.MotorProgram import MotorProgram
-from pybpl.parameters import defaultps
-from pybpl.generate_exemplar import generate_exemplar
+
 import pybpl.loadlib as lb
+from pybpl.classes import MotorProgram, CPD
+from pybpl.generate_exemplar import generate_exemplar
+from pybpl.parameters import defaultps
 
 
 def generate_character(libclass, ns=None):
