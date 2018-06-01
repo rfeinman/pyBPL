@@ -4,7 +4,6 @@ Generate character
 
 from __future__ import print_function, division
 
-import pybpl.loadlib as lb
 from pybpl.classes import MotorProgram, CPD
 from pybpl.generate_exemplar import generate_exemplar
 from pybpl.parameters import defaultps
@@ -29,14 +28,3 @@ def generate_character(libclass, ns=None):
             libclass, template.S[i].ids
         )
     return template, lambda: generate_exemplar(template, libclass)
-
-
-def main():
-    lib = lb.loadlib()
-    x,y = generate_character(lib)
-    print('generating exemplar:')
-    character = y()
-
-
-if __name__ == '__main__':
-    main()
