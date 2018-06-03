@@ -1,4 +1,5 @@
 #relation stuff
+from __future__ import print_function, division
 
 class Relation(object):
     types_allowed = ['unihist','start','end','mid']

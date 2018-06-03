@@ -1,6 +1,7 @@
 """
 A function that loads the library.
 """
+from __future__ import print_function, division
 import os
 import scipy.io as io
 

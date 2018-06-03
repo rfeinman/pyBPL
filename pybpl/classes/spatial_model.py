@@ -1,7 +1,7 @@
 """
 Spatial model class definition.
 """
-
+from __future__ import print_function, division
 import numpy as np
 
 from .spatial_hist import SpatialHist

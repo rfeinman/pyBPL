@@ -7,10 +7,10 @@ from torch.autograd import Variable
 
 import pyro
 import pyro.distributions as dist
-from pybpl.relations import (RelationIndependent, RelationAttach,
+from ..relations import (RelationIndependent, RelationAttach,
                              RelationAttachAlong)
 import numpy as np
-from pybpl.rendering import bspline_gen_s
+from ..rendering import bspline_gen_s
 
 
 # CPD

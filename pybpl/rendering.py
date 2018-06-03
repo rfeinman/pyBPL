@@ -4,6 +4,7 @@ rendering.py
 all the functions and modules for differentiable rendering goes here
 
 """
+from __future__ import print_function, division
 import numpy as np
 import torch
 from torch.autograd import Variable
