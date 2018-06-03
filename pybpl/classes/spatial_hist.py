@@ -15,16 +15,16 @@ class SpatialHist(object):
         """
         Build a 2D histogram model of the data
 
-        :param data: [n x 2 scalar] data to model
-        :param xlim: [1 x 2] range of x-dimension
-        :param ylim: [1 x 2] range of y-dimension
-        :param nbin_per_slide: number of bins per dimension
+        :param data: (n x 2 array) data to model
+        :param xlim: [xmin, xmax] range of x-dimension
+        :param ylim: [ymin, ymax] range of y-dimension
+        :param nbin_per_slide: (int) number of bins per dimension
         :param prior_count: prior counts in each cell (not added to edge cells)
         """
 
         ndata, dim = data.shape
-        assert np.prod(xlim.shape) == 2
-        assert np.prod(ylim.shape) == 2
+        assert len(xlim) == 2
+        assert len(ylim) == 2
         assert dim == 2
 
         # compute the "edges" of the histogram
@@ -32,7 +32,7 @@ class SpatialHist(object):
         ytick = np.linspace(ylim[0], ylim[1], nbin_per_slide+1)
         assert len(xtick)-1 == nbin_per_slide
         assert len(ytick)-1 == nbin_per_slide
-        edges = {xtick, ytick}
+        edges = [xtick, ytick]
 
         # Store important information about the bins
         self.rg_bin = [
@@ -55,7 +55,7 @@ class SpatialHist(object):
 
         # Convert to probability distribution
         logpN = logN - logsumexp(logN)
-        assert aeq(np.sum(np.exp(logpN)),1) # TODO - what is "aeq"?
+        #assert aeq(np.sum(np.exp(logpN)),1) # TODO - what is "aeq"?
 
         self.logpYX = logpN
         self.xlab = xtick
@@ -134,10 +134,27 @@ def myhist3(data, edges):
     Modified histogram function, where datapoints on the edge are mapped to
     the last cell, not their own cell
 
-    :param data:
-    :param edges:
+    :param data: (n x 2 array) data to model
+    :param edges: [array, array] the x and y bins
     :return:
         N:
     """
+
+    # Cluster with histogram function
+    N, _, _ = np.histogram2d(data[:,0], data[:,1], bins=edges)
+    N = N.astype(np.int32)
+
+    # Move the last row/col to the second to last
+    lastcol = N[:,-1]
+    lastrow = N[-1,:]
+    last = N[-1,-1]
+    N[:,-2] = N[:,-2] + lastcol
+    N[-2,:] = N[-2,:] + lastrow
+    #N[-2,-2] = N[-2,-2] + last # <--- TODO: is this necessary?
+
+    # Delete last row and column
+    N = np.delete(N, -1, axis=0)
+    N = np.delete(N, -1, axis=1)
+
     return N
 
