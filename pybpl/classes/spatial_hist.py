@@ -106,6 +106,21 @@ class SpatialHist(object):
         :return:
             ll: [n x 1] log-likelihood scores
         """
+
+        # Compute bin in histogram
+        n, dim = data.shape
+        edges = [self.xlab, self.ylab]
+
+        mylogpYX = self.logpYX
+
+        # fast classification
+        ll = fast_hclassif(data, mylogpYX, edges)
+
+        # Adjust log-likelihoods to account for the uniform component
+        # of the data
+        ll = ll - n*np.log(self.rg_bin[0]) - n*np.log(self.rg_bin[1])
+        assert not np.any(np.isnan(ll))
+
         return ll
 
     def get_id(self, data):
@@ -117,7 +132,20 @@ class SpatialHist(object):
             id: [n x 2] x and y id of each point in bins
             ll: [n x 1] log-likelihood of each point
         """
-        return i_d, ll
+
+        n, dim = data.shape
+        edges = [self.xlab, self.ylab]
+        ll = np.zeros(n)
+        xid = np.zeros(n)
+        yid = np.zeros(n)
+        mylogpYX = self.logpYX
+        for i in range(n):
+            ll[i], xid[i], yid[i] = hclassif(data[i], mylogpYX, edges)
+        id = np.transpose(np.vstack([xid, yid]))
+        ll = ll - np.log(self.rg_bin[0]) - np.log(self.rg_bin[1])
+        assert not np.any(np.isnan(ll))
+
+        return id, ll
 
     def plot(self):
         """
