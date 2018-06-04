@@ -74,10 +74,10 @@ class SpatialHist(object):
         """
 
         # Pick which bins the samples are from
-        logpvec = self.logpYX
+        logpvec = self.logpYX.flatten()
         pvec = np.exp(logpvec)
         pvec = pvec / np.sum(pvec)
-        lin = np.zeros(nsamp)
+        lin = np.zeros(nsamp, dtype=int)
         for i in range(nsamp):
             x = np.random.multinomial(1, pvec)
             lin[i] = np.nonzero(x)[0][0]
