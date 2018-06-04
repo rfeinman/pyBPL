@@ -72,6 +72,30 @@ class SpatialHist(object):
             yi: [n x 1] y-bin index
             xi: [n x 1] x-bin index
         """
+
+        # Pick which bins the samples are from
+        logpvec = self.logpYX
+        pvec = np.exp(logpvec)
+        pvec = pvec / np.sum(pvec)
+        lin = np.zeros(nsamp)
+        for i in range(nsamp):
+            x = np.random.multinomial(1, pvec)
+            lin[i] = np.nonzero(x)[0][0]
+
+        # Retrieve the [y, x] indices of these bins
+        xi, yi = np.unravel_index(lin, self.logpYX.shape)
+
+        # Retrieve the edges for each of these bins
+        xmin = self.xlab[xi]
+        ymin = self.ylab[yi]
+        xmax = self.xlab[xi+1]
+        ymax = self.ylab[yi+1]
+
+        # Sample from a uniform distribution in each of the bins
+        xsamp = np.multiply(xmax-xmin, np.random.uniform(size=nsamp)) + xmin
+        ysamp = np.multiply(ymax-ymin, np.random.uniform(size=nsamp)) + ymin
+        samples = np.transpose(np.vstack([xsamp, ysamp]))
+
         return samples, yi, xi
 
     def score(self, data):
