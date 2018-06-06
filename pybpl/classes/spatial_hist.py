@@ -83,7 +83,7 @@ class SpatialHist(object):
             lin[i] = np.nonzero(x)[0][0]
 
         # Retrieve the [y, x] indices of these bins
-        xi, yi = np.unravel_index(lin, self.logpYX.shape)
+        yi, xi = np.unravel_index(lin, self.logpYX.shape)
 
         # Retrieve the edges for each of these bins
         xmin = self.xlab[xi]
