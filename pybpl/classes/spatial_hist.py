@@ -4,7 +4,8 @@ Spatial histogram class definition.
 from __future__ import print_function, division
 import warnings
 import numpy as np
-from scipy.misc import logsumexp
+from scipy.special import logsumexp
+
 
 class SpatialHist(object):
     """
@@ -155,6 +156,7 @@ class SpatialHist(object):
         """
         return
 
+
 def hclassif(pt, logpYX, edges):
     """
     Compute the log-likelihood of the point "pt"
@@ -167,7 +169,21 @@ def hclassif(pt, logpYX, edges):
         xid:
         yid:
     """
+
+    N = myhist3(pt, edges)
+    N = np.transpose(N)
+    N = N.astype(np.bool)
+    yid, xid = np.where(N)
+    if np.sum(N) == 0:
+        logprob = -np.inf
+        xid = 1
+        yid = 1
+    else:
+        logprob = logpYX[N]
+        assert not np.isnan(logprob)
+
     return logprob, xid, yid
+
 
 def fast_hclassif(pt, logpYX, edges):
     """
@@ -179,7 +195,20 @@ def fast_hclassif(pt, logpYX, edges):
     :return:
         logprob:
     """
+
+    npt = len(pt)
+    N = myhist3(pt, edges)
+    N = np.transpose(N)
+    sumN = np.sum(N)
+    MTPL = np.multiply(N, logpYX)
+    MTPL[N==0] = 0
+    logprob = np.sum(MTPL)
+    if sumN < npt:
+        logprob = -np.inf
+    assert not np.isnan(logprob)
+
     return logprob
+
 
 def myhist3(data, edges):
     """
@@ -209,4 +238,3 @@ def myhist3(data, edges):
     N = np.delete(N, -1, axis=1)
 
     return N
-
