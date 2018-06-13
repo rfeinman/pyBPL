@@ -20,16 +20,17 @@ class SpatialModel(object):
         """
         Initialize the SpatialModel class instance.
 
-        :param data_start:
-        :param data_id:
-        :param clump_id:
-        :param xlim: [1 x 2] range of x-dimension
-        :param ylim: [1 x 2] range of y-dimension
-        :param nbin_per_side: number of bins per dimension
-        :param prior_count: prior counts in each cell (not added to edge cells)
+        :param data_start: [(n,2) array] input data array
+        :param data_id: [(n,) array] index array
+        :param clump_id: [int] the id of...
+        :param xlim: [list of 2 ints] (xmin,xmax); range of x-dimension
+        :param ylim: [list of 2 ints] (ymin,ymax); range of y-dimension
+        :param nbin_per_side: [int] number of bins per dimension
+        :param prior_count: [float] prior counts in each cell (not added to
+                            edge cells)
         """
-
-        assert np.prod(data_id.shape) == len(data_start)
+        assert len(data_id) == len(data_start)
+        assert len(xlim) == 2 and len(ylim) == 2
 
         # Learn specific spatial models
         self.list_SH = []
@@ -46,45 +47,74 @@ class SpatialModel(object):
         )
         self.list_SH.append(sh)
 
-    def get_last_model_id(self):
+    @property
+    def last_model_id(self):
         """
         Stroke ids after this are given to the same model (inclusive)
 
         :return:
-            out: [scalar] id of the last model
+            out: [int] id of the last model
         """
+        out = len(self.list_SH)
+
         return out
 
     def score(self, data_start, data_id):
         """
         Compute log-likelihood of new points
 
-        :param data_start: [n x 2] positions
-        :param data_id: [n x 1] the stroke index of each position
+        :param data_start: [(n,2) array] positions
+        :param data_id: [(n,) array] the stroke index of each position
         :return:
-            ll: [scalar] total log-likelihood
+            ll: [float] total log-likelihood
         """
+        new_id = self.__map_indx(data_id)
+        ndat = len(data_start)
+
+        # for each stroke id
+        ll = 0
+        for sid in range(self.last_model_id):
+            data = data_start[new_id==sid]
+            ll += self.list_SH[sid].score(data)
+
         return ll
 
     def score_vec(self, data_start, data_id):
         """
         Compute log-likelihood of new points, and return breakdown for each one
 
-        :param data_start: [n x 2] positions
-        :param data_id: [n x 1] the stroke index of each position
+        :param data_start: [(n,2) array] positions
+        :param data_id: [(n,) array] the stroke index of each position
         :return:
-            ll: [n x 1] the log-likelihood of each position
+            ll: [(n,) array] the log-likelihood of each position
         """
+        new_id = self.__map_indx(data_id)
+        ndat = len(data_start)
+        ll = np.zeros(ndat)
+        for sid in range(self.last_model_id):
+            data = data_start[new_id==sid]
+            _, ll[new_id==sid] = self.list_SH[sid].get_id(data)
+
         return ll
 
     def sample(self, data_id):
         """
         Sample new stroke start positions
 
-        :param data_id: [nsamp x 1] the stroke index of each position
+        :param data_id: [(nsamp,) array] the stroke index of each position
         :return:
-            samples: [nsamp x 2] positions drawn from the model
+            samples: [(nsamp,2) array] positions drawn from the model
         """
+        assert len(data_id.shape) == 1
+        nsamp = len(data_id)
+        new_id = self.__map_indx(data_id)
+
+        # for each stroke id
+        samples = np.zeros((nsamp,2))
+        for sid in range(self.last_model_id):
+            nsel = np.sum(new_id==sid)
+            samples[new_id==sid] = self.list_SH[sid].sample(nsel)
+
         return samples
 
     def plot(self):
@@ -93,7 +123,7 @@ class SpatialModel(object):
 
         :return: None
         """
-        return
+        raise NotImplementedError('Plotting functionality not yet implemented.')
 
     def __map_indx(self, old_id):
         """
@@ -103,4 +133,7 @@ class SpatialModel(object):
         :return:
             new_id:
         """
+        new_id = old_id
+        new_id[new_id>self.last_model_id] = self.last_model_id
+
         return new_id
