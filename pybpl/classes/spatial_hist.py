@@ -16,13 +16,13 @@ class SpatialHist(object):
         """
         Build a 2D histogram model of the data
 
-        :param data: (n x 2 array) data to model
-        :param xlim: [xmin, xmax] range of x-dimension
-        :param ylim: [ymin, ymax] range of y-dimension
-        :param nbin_per_slide: (int) number of bins per dimension
-        :param prior_count: prior counts in each cell (not added to edge cells)
+        :param data: [(n,2) array] data to model
+        :param xlim: [list of 2 ints] (xmin,xmax); range of x-dimension
+        :param ylim: [list of 2 ints] (ymin,ymax); range of y-dimension
+        :param nbin_per_slide: [int] number of bins per dimension
+        :param prior_count: [float] prior counts in each cell (not added to
+                            edge cells)
         """
-
         ndata, dim = data.shape
         assert len(xlim) == 2
         assert len(ylim) == 2
@@ -69,11 +69,10 @@ class SpatialHist(object):
 
         :param nsamp: number of samples
         :return:
-            samples: [n x 2 scalar] samples
-            yi: [n x 1] y-bin index
-            xi: [n x 1] x-bin index
+            samples: [(n,2) array] samples
+            yi: [(n,) array] y-bin index
+            xi: [(n,) array] x-bin index
         """
-
         # Pick which bins the samples are from
         logpvec = self.logpYX.flatten()
         pvec = np.exp(logpvec)
@@ -103,11 +102,10 @@ class SpatialHist(object):
         """
         Compute the log-likelihood of data under a 2D histogram model
 
-        :param data: [n x 2 scalar] data to model
+        :param data: [(n,2) array] data to model
         :return:
-            ll: [n x 1] log-likelihood scores
+            ll: [(n,) array] log-likelihood scores
         """
-
         # Compute bin in histogram
         n, dim = data.shape
         edges = [self.xlab, self.ylab]
@@ -128,12 +126,11 @@ class SpatialHist(object):
         """
         TODO - description
 
-        :param data: [n x 2 scalar] data to model
+        :param data: [(n,2) array] data to model
         :return:
-            id: [n x 2] x and y id of each point in bins
-            ll: [n x 1] log-likelihood of each point
+            id: [(n,2) array] x and y id of each point in bins
+            ll: [(n,) array] log-likelihood of each point
         """
-
         n, dim = data.shape
         edges = [self.xlab, self.ylab]
         ll = np.zeros(n)
@@ -141,7 +138,7 @@ class SpatialHist(object):
         yid = np.zeros(n)
         mylogpYX = self.logpYX
         for i in range(n):
-            ll[i], xid[i], yid[i] = hclassif(data[i], mylogpYX, edges)
+            ll[i], xid[i], yid[i] = hclassif(data[i:i+1], mylogpYX, edges)
         id = np.transpose(np.vstack([xid, yid]))
         ll = ll - np.log(self.rg_bin[0]) - np.log(self.rg_bin[1])
         assert not np.any(np.isnan(ll))
@@ -154,7 +151,7 @@ class SpatialHist(object):
 
         :return: None
         """
-        return
+        raise NotImplementedError('Plotting functionality not yet implemented.')
 
 
 def hclassif(pt, logpYX, edges):
@@ -169,7 +166,6 @@ def hclassif(pt, logpYX, edges):
         xid:
         yid:
     """
-
     N = myhist3(pt, edges)
     N = np.transpose(N)
     N = N.astype(np.bool)
@@ -195,7 +191,6 @@ def fast_hclassif(pt, logpYX, edges):
     :return:
         logprob:
     """
-
     npt = len(pt)
     N = myhist3(pt, edges)
     N = np.transpose(N)
@@ -215,12 +210,11 @@ def myhist3(data, edges):
     Modified histogram function, where datapoints on the edge are mapped to
     the last cell, not their own cell
 
-    :param data: (n x 2 array) data to model
-    :param edges: [array, array] the x and y bins
+    :param data: [(n,2) array] data to model
+    :param edges: [list of 2 arrays] (array array); the x and y bins
     :return:
         N:
     """
-
     # Cluster with histogram function
     N, _, _ = np.histogram2d(data[:,0], data[:,1], bins=edges)
     N = N.astype(np.int32)
