@@ -110,11 +110,13 @@ class SpatialModel(object):
         nsamp = len(data_id)
         new_id = self.__map_indx(data_id)
 
+
         # for each stroke id
         samples = np.zeros((nsamp,2))
         for sid in range(self.last_model_id):
             nsel = np.sum(new_id==sid)
-            samples[new_id==sid] = self.list_SH[sid].sample(nsel)
+            this_sample, _, _ = self.list_SH[sid].sample(nsel)
+            samples[new_id==sid], _, _ = this_sample
 
         return samples
 
