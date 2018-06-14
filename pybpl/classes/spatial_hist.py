@@ -146,21 +146,20 @@ class SpatialHist(object):
 
         return id, ll
 
-    def plot(self, show=True):
+    def plot(self, subplot=False):
         """
         Visualize the learned position model
 
-        :param show: [bool] whether or not to show the plot
+        :param subplot: [bool] whether this is a subplot of a larger figure
         :return: None
         """
         pYX = np.exp(self.logpYX)
         img = pYX / np.max(pYX)
-        xlim = [self.xlab[0], self.xlab[-1]]
-        ylim = [self.ylab[0], self.ylab[-1]]
-        img = np.expand_dims(img, -1)
-        img = np.concatenate([img, img, img], axis=-1)
-        plt.imshow(img)
-        if show:
+        if subplot:
+            plt.imshow(img, cmap='gray')
+        else:
+            plt.figure(figsize=(10,8))
+            plt.imshow(img, cmap='gray')
             plt.show()
 
 

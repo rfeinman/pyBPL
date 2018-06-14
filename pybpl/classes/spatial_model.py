@@ -118,7 +118,7 @@ class SpatialModel(object):
 
         return samples
 
-    def plot(self, show=True):
+    def plot(self):
         """
         Plot the array of position models
 
@@ -129,10 +129,9 @@ class SpatialModel(object):
         plt.figure(figsize=(10,8))
         for sid in range(self.last_model_id):
             plt.subplot(nrow, nrow, sid+1)
-            self.list_SH[sid].plot(show=False)
+            self.list_SH[sid].plot(subplot=True)
             plt.title("%i" % sid)
-        if show:
-            plt.show()
+        plt.show()
 
     def __map_indx(self, old_id):
         """
