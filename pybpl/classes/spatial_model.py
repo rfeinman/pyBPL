@@ -115,8 +115,8 @@ class SpatialModel(object):
         samples = np.zeros((nsamp,2))
         for sid in range(self.last_model_id):
             nsel = np.sum(new_id==sid)
-            this_sample, _, _ = self.list_SH[sid].sample(nsel)
-            samples[new_id==sid], _, _ = this_sample
+            samp, _, _ = self.list_SH[sid].sample(nsel)
+            samples[new_id==sid] = samp
 
         return samples
 
