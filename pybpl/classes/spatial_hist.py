@@ -4,6 +4,7 @@ Spatial histogram class definition.
 from __future__ import print_function, division
 import warnings
 import numpy as np
+import matplotlib.pyplot as plt
 from scipy.special import logsumexp
 
 
@@ -145,13 +146,22 @@ class SpatialHist(object):
 
         return id, ll
 
-    def plot(self):
+    def plot(self, show=True):
         """
         Visualize the learned position model
 
+        :param show: [bool] whether or not to show the plot
         :return: None
         """
-        raise NotImplementedError('Plotting functionality not yet implemented.')
+        pYX = np.exp(self.logpYX)
+        img = pYX / np.max(pYX)
+        xlim = [self.xlab[0], self.xlab[-1]]
+        ylim = [self.ylab[0], self.ylab[-1]]
+        img = np.expand_dims(img, -1)
+        img = np.concatenate([img, img, img], axis=-1)
+        plt.imshow(img)
+        if show:
+            plt.show()
 
 
 def hclassif(pt, logpYX, edges):

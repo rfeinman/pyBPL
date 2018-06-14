@@ -3,6 +3,7 @@ Spatial model class definition.
 """
 from __future__ import print_function, division
 import numpy as np
+import matplotlib.pyplot as plt
 
 from .spatial_hist import SpatialHist
 
@@ -117,13 +118,21 @@ class SpatialModel(object):
 
         return samples
 
-    def plot(self):
+    def plot(self, show=True):
         """
         Plot the array of position models
 
         :return: None
         """
-        raise NotImplementedError('Plotting functionality not yet implemented.')
+        n = self.last_model_id
+        nrow = np.ceil(np.sqrt(n))
+        plt.figure(figsize=(10,8))
+        for sid in range(self.last_model_id):
+            plt.subplot(nrow, nrow, sid+1)
+            self.list_SH[sid].plot(show=False)
+            plt.title("%i" % sid)
+        if show:
+            plt.show()
 
     def __map_indx(self, old_id):
         """
