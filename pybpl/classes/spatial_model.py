@@ -35,7 +35,7 @@ class SpatialModel(object):
 
         # Learn specific spatial models
         self.list_SH = []
-        for i in range(clump_id-1):
+        for i in range(clump_id):
             sh = SpatialHist(
                 data_start[data_id==i], xlim, ylim, nbin_per_side, prior_count
             )

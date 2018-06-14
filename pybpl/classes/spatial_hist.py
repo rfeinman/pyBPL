@@ -156,10 +156,10 @@ class SpatialHist(object):
         pYX = np.exp(self.logpYX)
         img = pYX / np.max(pYX)
         if subplot:
-            plt.imshow(img, cmap='gray')
+            plt.imshow(img, cmap='gray', origin='lower')
         else:
             plt.figure(figsize=(10,8))
-            plt.imshow(img, cmap='gray')
+            plt.imshow(img, cmap='gray', origin='lower')
             plt.show()
 
 
