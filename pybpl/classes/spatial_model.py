@@ -126,7 +126,7 @@ class SpatialModel(object):
         """
         n = self.last_model_id
         nrow = np.ceil(np.sqrt(n))
-        plt.figure(figsize=(10,8))
+        plt.figure()
         for sid in range(self.last_model_id):
             plt.subplot(nrow, nrow, sid+1)
             self.list_SH[sid].plot(subplot=True)

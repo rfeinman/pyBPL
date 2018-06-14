@@ -158,7 +158,7 @@ class SpatialHist(object):
         if subplot:
             plt.imshow(img, cmap='gray', origin='lower')
         else:
-            plt.figure(figsize=(10,8))
+            plt.figure()
             plt.imshow(img, cmap='gray', origin='lower')
             plt.show()
 
