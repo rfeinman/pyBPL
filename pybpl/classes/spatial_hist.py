@@ -13,33 +13,46 @@ class SpatialHist(object):
     A 2D plane is divided into an evenly spaced grid, where a square is chosen
     randomly and then points are chosen uniformly from the square.
     """
-    def __init__(self, data, xlim, ylim, nbin_per_slide, prior_count=0):
+    def __init__(
+            self, data=None, xlim=None, ylim=None,
+            nbin_per_side=None, prior_count=None
+    ):
         """
         Build a 2D histogram model of the data
 
         :param data: [(n,2) array] data to model
         :param xlim: [list of 2 ints] (xmin,xmax); range of x-dimension
         :param ylim: [list of 2 ints] (ymin,ymax); range of y-dimension
-        :param nbin_per_slide: [int] number of bins per dimension
+        :param nbin_per_side: [int] number of bins per dimension
         :param prior_count: [float] prior counts in each cell (not added to
                             edge cells)
         """
+        # if params are empty, return; model properties will be set later
+        # using 'set_properties' method
+        params = [data, xlim, ylim, nbin_per_side]
+        if all([item is None for item in params]):
+            return
+
+        # set default value of 0 for prior_count
+        if prior_count is None:
+            prior_count = 0.
+
         ndata, dim = data.shape
         assert len(xlim) == 2
         assert len(ylim) == 2
         assert dim == 2
 
         # compute the "edges" of the histogram
-        xtick = np.linspace(xlim[0], xlim[1], nbin_per_slide+1)
-        ytick = np.linspace(ylim[0], ylim[1], nbin_per_slide+1)
-        assert len(xtick)-1 == nbin_per_slide
-        assert len(ytick)-1 == nbin_per_slide
+        xtick = np.linspace(xlim[0], xlim[1], nbin_per_side+1)
+        ytick = np.linspace(ylim[0], ylim[1], nbin_per_side+1)
+        assert len(xtick)-1 == nbin_per_side
+        assert len(ytick)-1 == nbin_per_side
         edges = [xtick, ytick]
 
         # Store important information about the bins
         self.rg_bin = [
-            (xlim[1] - xlim[0]) / nbin_per_slide,
-            (ylim[1] - ylim[0]) / nbin_per_slide
+            (xlim[1] - xlim[0]) / nbin_per_side,
+            (ylim[1] - ylim[0]) / nbin_per_side
         ] # length, in pixels, of a side of a bin
         self.xlab = xtick
         self.ylab = ytick
@@ -62,6 +75,13 @@ class SpatialHist(object):
         self.logpYX = logpN
         self.xlab = xtick
         self.ylab = ytick
+        self.prior_count = prior_count
+
+    def set_properties(self, logpYX, xlab, ylab, rg_bin, prior_count):
+        self.logpYX = logpYX
+        self.xlab = xlab
+        self.ylab = ylab
+        self.rg_bin = rg_bin
         self.prior_count = prior_count
 
     def sample(self, nsamp):
