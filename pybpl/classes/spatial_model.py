@@ -15,8 +15,8 @@ class SpatialModel(object):
     """
 
     def __init__(
-            self, data_start, data_id, clump_id, xlim, ylim,
-            nbin_per_side, prior_count
+            self, data_start=None, data_id=None, clump_id=None,
+            xlim=None, ylim=None, nbin_per_side=None, prior_count=None
     ):
         """
         Initialize the SpatialModel class instance.
@@ -30,6 +30,15 @@ class SpatialModel(object):
         :param prior_count: [float] prior counts in each cell (not added to
                             edge cells)
         """
+        # if params are empty, return; model properties will be set later
+        # using 'set_properties' method
+        params = [
+            data_start, data_id, clump_id, xlim, ylim, nbin_per_side,
+            prior_count
+        ]
+        if all([item is None for item in params]):
+            return
+
         assert len(data_id) == len(data_start)
         assert len(xlim) == 2 and len(ylim) == 2
 
@@ -47,6 +56,15 @@ class SpatialModel(object):
             prior_count
         )
         self.list_SH.append(sh)
+
+    def set_properties(self, list_SH):
+        """
+        Set the list_SH property of the model manually
+
+        :param list_SH: [list of SpatialHist instances]
+        :return:
+        """
+        self.list_SH = list_SH
 
     @property
     def last_model_id(self):
@@ -147,3 +165,6 @@ class SpatialModel(object):
         new_id[new_id>self.last_model_id] = self.last_model_id
 
         return new_id
+
+def spatial_model_from_list(list_SH):
+    return
