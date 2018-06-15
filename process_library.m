@@ -1,26 +1,54 @@
-library_folder = 'library/';
+save_dir = 'data_python1';
+lib = loadlib;
 fields = fieldnames(lib);
 
+% Make directories
+mkdir(save_dir);
+
+% Process basic fields
 for i=1:numel(fields)
-  name = fields{i}
+  name = fields{i};
+  if strcmp(name, 'endstate')
+      % if 'endstate' field, pass
+      continue;
+  end
   value = lib.(name);
-  save_file(name, 'value');
   if isstruct(value)
+    save_dir1 = strcat(save_dir, '/', name);
+    mkdir(save_dir1);
     fields1 = fieldnames(value);
     for j=1:numel(fields1)
         name1 = fields1{j};
         value1 = value.(name1);
-        name_total = strcat(name, '-', name1);
-        save_file(name_total, value1);
+        save_file(save_dir1, name1, 'value');
     end
   elseif isa(value, 'SpatialModel')
-      save_file('Spatial-last_model_id', value.last_model_id);
+      continue;
   else
-    save_file(name, value);
+      save_file(save_dir, name, 'value');
   end
 end
 
-function save_file(fname, value)
-    fname = strcat(library_folder, fname, '.mat');
+% Process SpatialModel
+save_dir1 = strcat(save_dir, '/histograms');
+mkdir(save_dir1);
+list_SH = lib.Spatial.list_SH;
+for i=1:numel(list_SH)
+    save_dir2 = strcat(save_dir1, '/H', int2str(i-1));
+    mkdir(save_dir2);
+    H = list_SH{i};
+    fields_H = fieldnames(H);
+    for j=1:numel(fields_H)
+        name = fields_H{j};
+        if strcmp(name, 'endstate')
+            continue;
+        end
+        value = H.(name);
+        save_file(save_dir2, name, 'value');
+    end
+end
+
+function save_file(base_folder, fname, value)
+    fname = strcat(base_folder, '/', fname, '.mat');
     save(fname, 'value');
 end
