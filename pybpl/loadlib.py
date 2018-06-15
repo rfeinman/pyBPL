@@ -5,50 +5,57 @@ from __future__ import print_function, division
 import os
 import scipy.io as io
 
+from pybpl.classes import SpatialHist, SpatialModel
+
+
+def load_hist(path):
+    # load all hist properties
+    logpYX = io.loadmat(os.path.join(path, 'logpYX'))['value']
+    xlab = io.loadmat(os.path.join(path, 'xlab'))['value']
+    ylab = io.loadmat(os.path.join(path, 'ylab'))['value']
+    rg_bin = io.loadmat(os.path.join(path, 'rg_bin'))['value']
+    prior_count = io.loadmat(os.path.join(path, 'prior_count'))['value']
+    # fix some of the properties
+    xlab = xlab[0]
+    ylab = ylab[0]
+    rg_bin = list(rg_bin[0])
+    prior_count = prior_count.item()
+    # build the SpatialHist instance
+    H = SpatialHist()
+    H.set_properties(logpYX, xlab, ylab, rg_bin, prior_count)
+
+    return H
 
 def loadlib(lib_dir='./library'):
     lib = {}
-    files = os.listdir(lib_dir)
-    for file in files:
-        data = io.loadmat(os.path.join(lib_dir, file))['value']
-        key = file.split('.')[0]
-        if '-' in key:
-            base, sub = key.split('-')
-            if base not in lib:
-                lib[base] = {}
-            lib[base][sub] = data
-        else:
+    contents = os.listdir(lib_dir)
+    # First, load everything except histograms
+    contents.remove('histograms')
+    for item in contents:
+        item_path = os.path.join(lib_dir, item)
+        if item_path.endswith('.mat'):
+            data = io.loadmat(item_path)['value']
+            key = item.split('.')[0]
             lib[key] = data
+        else:
+            if item not in lib:
+                lib[item] = {}
+            dir_content1 = os.listdir(item_path)
+            for item1 in dir_content1:
+                item_path1 = os.path.join(item_path, item1)
+                data = io.loadmat(item_path1)['value']
+                key = item1.split('.')[0]
+                lib[item][key] = data
 
-    return lib
+    # Finally, load histograms
+    hists_path = os.path.join(lib_dir, 'histograms')
+    hists = sorted(os.listdir(hists_path))
+    list_SH = []
+    for hist in hists:
+        SH = load_hist(os.path.join(hists_path, hist))
+        list_SH.append(SH)
+    SM = SpatialModel()
+    SM.set_properties(list_SH)
+    lib['Spatial'] = SM
 
-def loadlib_old(libtype=1250):
-    #filename = '/Users/Maxwell/Documents/BPL_inf/pylib250'
-    if libtype == 1250:
-        filename = '/Users/Maxwell/Documents/BPL_inf/pylib1250'
-    elif libtype ==250:
-        filename = '/Users/Maxwell/Documents/BPL_inf/pylib250'
-
-    lib = io.loadmat(filename)
-    # does not fix problem of everything being embedding in multiple arrays.
-    # Will need to squeeze it when put in tensor.
-
-    #cleanup, doing it manually for now
-    #shape
-    # lib['shape']['mu'] = lib['shape']['mu'][0,0]
-    # lib['shape']['Sigma'] = lib['shape']['Sigma'][0,0]
-    # lib['shape']['vsd'] = lib['shape']['vsd'][0,0]
-    # lib['shape']['mixprob'] = lib['shape']['mixprob'][0,0]
-    # lib['shape']['freq'] = lib['shape']['freq'][0,0]
-
-    # #scale
-    # lib['scale']['theta'] = lib['scale']['theta'][0,0]
-
-    # #rel
-    # lib['rel']['sigma_x'] = lib['rel']['sigma_x'][0,0] #still an array
-    # lib['rel']['sigma_y'] = lib['rel']['sigma_x'][0,0]
-    # lib['rel']['mixprob'] = lib['rel']['mixprob'][0,0]
-    #tokenvar
-
-    #for all of the library stuff, will need to sqeeze.
     return lib
