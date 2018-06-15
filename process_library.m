@@ -20,12 +20,12 @@ for i=1:numel(fields)
     for j=1:numel(fields1)
         name1 = fields1{j};
         value1 = value.(name1);
-        save_file(save_dir1, name1, 'value');
+        save_file(save_dir1, name1, value1);
     end
   elseif isa(value, 'SpatialModel')
       continue;
   else
-      save_file(save_dir, name, 'value');
+      save_file(save_dir, name, value);
   end
 end
 
@@ -44,7 +44,7 @@ for i=1:numel(list_SH)
             continue;
         end
         value = H.(name);
-        save_file(save_dir2, name, 'value');
+        save_file(save_dir2, name, value);
     end
 end
 
