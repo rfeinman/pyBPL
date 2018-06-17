@@ -7,7 +7,7 @@ import warnings
 import numpy as np
 import torch
 from torch.distributions.categorical import Categorical
-from torch.distributions.normal import Normal
+from torch.distributions.multivariate_normal import MultivariateNormal
 from torch.distributions.gamma import Gamma
 
 from ..relations import (RelationIndependent, RelationAttach,
@@ -19,13 +19,11 @@ def sample_number(libclass, nsamp=1):
     """
     Sample a stroke count.
 
-    :param libclass: [dict] the library dictionary
+    :param libclass: [dict] the library class instance
     :param nsamp: [int] the number of samples to draw
     :return:
     """
-    pkappa = torch.squeeze(
-        torch.tensor(libclass['pkappa'], requires_grad=True)
-    )
+    pkappa = libclass.pkappa
     # get vector of samples
     ns = Categorical(probs=pkappa).sample(torch.Size([nsamp])) + 1
 
@@ -35,7 +33,7 @@ def score_number(libclass, ns):
     """
     Score the log-likelihood of a given stroke count.
 
-    :param libclass: [dict] the library dictionary
+    :param libclass: [dict] the library class instance
     :param ns:
     :return:
     """
@@ -45,13 +43,12 @@ def sample_nsub(libclass, ns):
     """
     Sample the substroke count
 
-    :param libclass: [dict] the library dictionary
+    :param libclass: [dict] the library class instance
     :param ns:
     :return:
     """
     # TODO - verify this function
-    ptensor = torch.tensor(libclass['pmat_nsub'], requires_grad=True)
-    pvec = ptensor[ns-1]
+    pvec = libclass.pmat_nsub[ns-1]
     nsub = Categorical(probs=pvec).sample() + 1
 
     return nsub
@@ -59,27 +56,24 @@ def sample_nsub(libclass, ns):
 def sample_relation_type(libclass, prev_strokes):
     """
 
-    :param libclass: [dict] the library dictionary
+    :param libclass: [dict] the library class instance
     :param prev_strokes:
     :return:
     """
     nprev = len(prev_strokes)
     stroke_num = nprev + 1
     types = ['unihist', 'start', 'end', 'mid']
-    ncpt = libclass['ncpt'].item()
+    ncpt = libclass.ncpt
     if nprev == 0:
         indx = torch.tensor(0, dtype=torch.int64, requires_grad=True)
     else:
-        mixprob = torch.squeeze(
-            torch.tensor(libclass['rel']['mixprob'], requires_grad=True)
-        )
-        indx = Categorical(probs=mixprob).sample()
+        indx = Categorical(probs=libclass.rel['mixprob']).sample()
 
     rtype = types[indx.item()] # TODO - update; this is not great practice
 
     if rtype == 'unihist':
         # TODO - update SpatialModel class to use torch
-        gpos = libclass['Spatial'].sample(np.array([stroke_num]))
+        gpos = libclass.Spatial.sample(np.array([stroke_num]))
         R = RelationIndependent(rtype, nprev, gpos)
     elif rtype in ['start', 'end']:
         # sample random attach spot uniformly
@@ -124,11 +118,7 @@ def sample_sequence(libclass, ns, nsub=None, nsamp=1):
         nsub = sample_nsub(libclass, ns)
         nsub = nsub.item()
     # set pStart variable
-    pStart = torch.exp(
-        torch.squeeze(
-            torch.tensor(libclass['logStart'], requires_grad=True)
-        )
-    )
+    pStart = torch.exp(libclass.logStart)
     warnings.warn(
         'pTransition unimplemented; using uniform transition prob'
     )
@@ -138,7 +128,7 @@ def sample_sequence(libclass, ns, nsub=None, nsamp=1):
         for bid in range(1, nsub):
             prev = sq[-1]
             # pT = libclass.pT(prev) #TODO - need to implement
-            n = libclass['N'].item()
+            n = libclass.N
             pT = torch.ones(n, requires_grad=True) / n
             sq.append(Categorical(probs=pT).sample() + 1)
         sq = torch.tensor(sq)
@@ -151,12 +141,14 @@ def sample_sequence(libclass, ns, nsub=None, nsamp=1):
 def sample_shape_type(libclass, subid):
     """
 
-    :param libclass: [dict] the library dictionary
+    :param libclass: [dict] the library class instance
     :param subid: [(k,) array] vector of sub-stroke ids
     :return:
     """
-    k = subid.shape[0]
-    assert type(k) is int
+    # check that it is a vector
+    assert len(subid.shape) == 1
+    # record vector length
+    k = len(subid)
     if isunif(libclass):
         # TODO - update; handle this case
         #bspline_stack = CPDUnif.sample_shape_type(libclass, subid)
@@ -166,16 +158,14 @@ def sample_shape_type(libclass, subid):
             'isunif=False for now'
         )
 
-    Cov = torch.tensor(
-        libclass['shape']['Sigma'][:,:,subid], requires_grad=True
-    )
-    mu = torch.tensor(
-        libclass['shape']['mu'][subid], requires_grad=True
-    )
-    rows_bspline = Normal(mu, Cov).sample()
-    ncpt = libclass['ncpt'].item()
+    Cov = libclass.shape['Sigma'][:,:,subid].permute([2,0,1])
+    mu = libclass.shape['mu'][subid]
+    rows_bspline = MultivariateNormal(mu, Cov).sample()
+    ncpt = libclass.ncpt
     bspline_stack = torch.zeros((ncpt,2,k), requires_grad=True)
     for i in range(k):
+        #row = rows_bspline[i]
+        #print(row.shape)
         bspline_stack[:, :, i] = rows_bspline[i].view(ncpt, 2)
 
     return bspline_stack
@@ -184,7 +174,7 @@ def sample_shape_type(libclass, subid):
 def sample_invscale_type(libclass, subid):
     """
 
-    :param libclass: [dict] the library dictionary
+    :param libclass: [dict] the library class instance
     :param subid: [(k,) array] vector of sub-stroke ids
     :return:
     """
@@ -199,9 +189,7 @@ def sample_invscale_type(libclass, subid):
             'isunif=True but CPDUnif not yet implemented... treating as though '
             'isunif=False for now'
         )
-    theta = torch.tensor(
-        libclass['scale']['theta'][subid-1], requires_grad=True
-    )
+    theta = libclass.scale['theta'][subid]
     concentration = theta[:,0]
     # PyTorch gamma dist uses rate parameter, which is inverse of scale
     rate = 1/theta[:,1]
@@ -222,7 +210,7 @@ def sample_relation_token(libclass, eval_spot_type):
                                                    Variable(torch.zeros(1)),
                                                    Variable(torch.ones(1)))
 
-    ncpt = 5  # TODO
+    ncpt = libclass.ncpt
     _, ub, lb = bspline_gen_s(ncpt, 1);  # need to fix
     while eval_spot_token.data[0] < lb or eval_spot_token.data[0] > ub:
         print("lb:", lb)
@@ -361,4 +349,4 @@ def isunif(libclass):
     :return:
     """
 
-    return np.any(np.isnan(libclass['shape']['mu']))
+    return torch.isnan(libclass.shape['mu']).any()
