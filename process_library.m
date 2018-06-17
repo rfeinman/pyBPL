@@ -30,7 +30,7 @@ for i=1:numel(fields)
 end
 
 % Process SpatialModel
-save_dir1 = strcat(save_dir, '/histograms');
+save_dir1 = strcat(save_dir, '/Spatial');
 mkdir(save_dir1);
 list_SH = lib.Spatial.list_SH;
 for i=1:numel(list_SH)

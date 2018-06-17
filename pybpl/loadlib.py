@@ -29,8 +29,8 @@ def load_hist(path):
 def loadlib(lib_dir='./library'):
     lib = {}
     contents = os.listdir(lib_dir)
-    # First, load everything except histograms
-    contents.remove('histograms')
+    # First, load everything except SpatialModel
+    contents.remove('Spatial')
     for item in contents:
         item_path = os.path.join(lib_dir, item)
         if item_path.endswith('.mat'):
@@ -47,8 +47,8 @@ def loadlib(lib_dir='./library'):
                 key = item1.split('.')[0]
                 lib[item][key] = data
 
-    # Finally, load histograms
-    hists_path = os.path.join(lib_dir, 'histograms')
+    # Finally, load SpatialModel
+    hists_path = os.path.join(lib_dir, 'Spatial')
     hists = sorted(os.listdir(hists_path))
     list_SH = []
     for hist in hists:
