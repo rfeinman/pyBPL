@@ -1,105 +1,106 @@
 """
-CPD for motor programs
+Defines the conditional probability distributions that make up the
+BPL model
 """
 from __future__ import division, print_function
+import warnings
+import numpy as np
 import torch
-from torch.autograd import Variable
+from torch.distributions.categorical import Categorical
+from torch.distributions.normal import Normal
+from torch.distributions.gamma import Gamma
 
-import pyro
-import pyro.distributions as dist
 from ..relations import (RelationIndependent, RelationAttach,
                              RelationAttachAlong)
-import numpy as np
 from ..rendering import bspline_gen_s
 
 
-# CPD
-# functions used in generate_character
-
-def sample_number(libclass):
+def sample_number(libclass, nsamp=1):
     """
     Sample a stroke count.
 
-    :param libclass:
+    :param libclass: [dict] the library dictionary
+    :param nsamp: [int] the number of samples to draw
     :return:
     """
-    pkappa = Variable(torch.squeeze(torch.Tensor(libclass['pkappa'])))
+    pkappa = torch.squeeze(
+        torch.tensor(libclass['pkappa'], requires_grad=True)
+    )
+    # get vector of samples
+    ns = Categorical(probs=pkappa).sample(torch.Size([nsamp])) + 1
 
-    return pyro.sample('ns', dist.categorical, pkappa, one_hot=False) + 1
-
+    return ns
 
 def score_number(libclass, ns):
     """
     Score the log-likelihood of a given stroke count.
 
-    :param libclass:
+    :param libclass: [dict] the library dictionary
     :param ns:
     :return:
     """
-    raise ValueError('not implemented')
-
+    raise NotImplementedError('not implemented')
 
 def sample_nsub(libclass, ns):
     """
-    Sample the substroke count? TODO - verify
+    Sample the substroke count
 
-    :param libclass:
+    :param libclass: [dict] the library dictionary
     :param ns:
     :return:
     """
-    ptensor = torch.squeeze(torch.Tensor(libclass['pmat_nsub']))
-    pvec = Variable(ptensor[ns - 1, :])
+    # TODO - verify this function
+    ptensor = torch.tensor(libclass['pmat_nsub'], requires_grad=True)
+    pvec = ptensor[ns-1]
+    nsub = Categorical(probs=pvec).sample() + 1
 
-    return pyro.sample('nsub', dist.categorical, pvec, one_hot=False) + 1
-
+    return nsub
 
 def sample_relation_type(libclass, prev_strokes):
+    """
+
+    :param libclass: [dict] the library dictionary
+    :param prev_strokes:
+    :return:
+    """
     nprev = len(prev_strokes)
     stroke_num = nprev + 1
     types = ['unihist', 'start', 'end', 'mid']
-    ncpt = 5  # libclass['ncpt'] this may break
+    ncpt = libclass['ncpt'].item()
     if nprev == 0:
-        # ew. this makes it match with indexing
-        indx = Variable(torch.LongTensor([0]))
+        indx = torch.tensor(0, dtype=torch.int64, requires_grad=True)
     else:
-        mixprob = Variable(
-            torch.squeeze(torch.Tensor(libclass['rel']['mixprob'][0, 0]))
+        mixprob = torch.squeeze(
+            torch.tensor(libclass['rel']['mixprob'], requires_grad=True)
         )
-        indx = pyro.sample('rtype', dist.categorical, mixprob, one_hot=False)
+        indx = Categorical(probs=mixprob).sample()
 
-    rtype = types[indx.data[0]]  # not great practice but whatever
+    rtype = types[indx.item()] # TODO - update; this is not great practice
 
     if rtype == 'unihist':
-        # gpos = libclass.Spatial.sample(stroke_num) #TODO
-        print('Spatial is unimplemented')
-        gpos = Variable(torch.Tensor([4.2, -4.2])).view(-1, 2)
+        # TODO - update SpatialModel class to use torch
+        gpos = libclass['Spatial'].sample(np.array([stroke_num]))
         R = RelationIndependent(rtype, nprev, gpos)
-
-    elif rtype == 'start' or rtype == 'end':
-        attach_spot = pyro.sample(
-            'attach_spot', dist.categorical, Variable(torch.ones(nprev)),
-            one_hot=False
-        ) + 1
-
+    elif rtype in ['start', 'end']:
+        # sample random attach spot uniformly
+        probs = torch.ones(nprev, requires_grad=True) / nprev
+        attach_spot = Categorical(probs=probs).sample()
         R = RelationAttach(rtype, nprev, attach_spot)
-
     elif rtype == 'mid':
-        attach_spot = pyro.sample(
-            'attach_spot', dist.categorical, Variable(torch.ones(nprev)),
-            one_hot=False
-        ) + 1
-
-        nsub = prev_strokes[attach_spot.data[0] - 1].nsub
-        subid_spot = pyro.sample(
-            'subid_spot', dist.categorical, Variable(torch.ones(nsub)),
-            one_hot=False
-        ) + 1
+        # sample random attach spot uniformly
+        probs = torch.ones(nprev, requires_grad=True) / nprev
+        attach_spot = Categorical(probs=probs).sample()
+        # sample random subid spot uniformly
+        nsub = prev_strokes[attach_spot.item()].nsub
+        probs = torch.ones(nsub, requires_grad=True) / nsub
+        subid_spot = Categorical(probs=probs).sample()
 
         R = RelationAttachAlong(
             rtype, nprev, attach_spot, nsub, subid_spot, ncpt
         )
 
         # still to be fixed
+        warnings.warn('Setting relation eval_spot_type to be fixed...')
         _, lb, ub = bspline_gen_s(ncpt, 1)
         R.eval_spot_type = lb + np.random.uniform() * (ub - lb)  # TODO
     else:
@@ -108,93 +109,104 @@ def sample_relation_type(libclass, prev_strokes):
     return R
 
 
-def sample_sequence(libclass, ns, nsub=[]):
+def sample_sequence(libclass, ns, nsub=None, nsamp=1):
     """
     gives template.S[i].ids
 
-    :param libclass:
+    :param libclass: [dict] the library dictionary
     :param ns:
     :param nsub:
+    :param nsamp:
     :return:
     """
 
-    if nsub == []:
+    if nsub is None:
         nsub = sample_nsub(libclass, ns)
+        nsub = nsub.item()
+    # set pStart variable
+    pStart = torch.exp(
+        torch.squeeze(
+            torch.tensor(libclass['logStart'], requires_grad=True)
+        )
+    )
+    warnings.warn(
+        'pTransition unimplemented; using uniform transition prob'
+    )
+    samps = []
+    for _ in range(nsamp):
+        sq = [Categorical(probs=pStart).sample() + 1]
+        for bid in range(1, nsub):
+            prev = sq[-1]
+            # pT = libclass.pT(prev) #TODO - need to implement
+            n = libclass['N'].item()
+            pT = torch.ones(n, requires_grad=True) / n
+            sq.append(Categorical(probs=pT).sample() + 1)
+        sq = torch.tensor(sq)
+        samps.append(sq.view(1,-1))
+    samps = torch.cat(samps)
 
-    pStart = torch.exp(torch.squeeze(torch.Tensor(libclass['logStart'])))
-    sq = [pyro.sample('start_sid', dist.categorical, Variable(pStart),
-                      one_hot=False) + 1]
-
-    print('pTransition unimplemented, using uniform transition prob')
-    n = int(libclass['N'][0, 0])
-    pT = torch.ones(n)
-
-    for bid in range(1, nsub):
-        prev = sq[-1]
-        # pT = libclass.pT(prev) #need to implement #TODO
-
-        sq.append(pyro.sample('sids', dist.categorical, Variable(pT),
-                              one_hot=False) + 1)
-
-    seq = torch.cat(sq, 0)
-    # print seq
-    return seq
+    return samps
 
 
 def sample_shape_type(libclass, subid):
     """
 
-    :param libclass:
-    :param subid:
+    :param libclass: [dict] the library dictionary
+    :param subid: [(k,) array] vector of sub-stroke ids
     :return:
     """
-
-    # might want to prepare for when y = any(isnan(libclass.shape.mu))
     k = subid.shape[0]
-    # assert type(k) is int
-    ncpt = 5
-    bspline_stack = Variable(torch.zeros(5, 2, k))
+    assert type(k) is int
+    if isunif(libclass):
+        # TODO - update; handle this case
+        #bspline_stack = CPDUnif.sample_shape_type(libclass, subid)
+        #return bspline_stack
+        warnings.warn(
+            'isunif=True but CPDUnif not yet implemented... treating as though '
+            'isunif=False for now'
+        )
 
-    indx = 0
-    for i in subid.data:
-        mu = torch.squeeze(torch.Tensor(libclass['shape']['mu'][0, 0]))
-        Cov = torch.squeeze(torch.Tensor(libclass['shape']['Sigma'][0, 0]))[:,
-              :, i - 1]
+    Cov = torch.tensor(
+        libclass['shape']['Sigma'][:,:,subid], requires_grad=True
+    )
+    mu = torch.tensor(
+        libclass['shape']['mu'][subid], requires_grad=True
+    )
+    rows_bspline = Normal(mu, Cov).sample()
+    ncpt = libclass['ncpt'].item()
+    bspline_stack = torch.zeros((ncpt,2,k), requires_grad=True)
+    for i in range(k):
+        bspline_stack[:, :, i] = rows_bspline[i].view(ncpt, 2)
 
-        print(
-            'Warning: pyro multivariatenormal unimplemented. '
-            'using np.random instead ')
-        # repair because multivariate sample doesnt work:
-        mu = mu.numpy()
-        Cov = Cov.numpy()
-        rows = np.random.multivariate_normal(mu[i - 1, :], Cov)
-        rows = Variable(torch.Tensor(rows))
-
-        # m = torch.distributions.Normal(mu,Cov)
-        # rows = m.sample()
-        # rows = pyro.sample('sample_shape', dist.multivariatenormal,
-        #  Variable(mu[i,:]), Variable(Cov))
-        #  this is broken atm
-
-        # print rows
-
-        bspline_stack[:, :, indx] = torch.t(
-            rows.view([2, ncpt]))  # this gets the orientation correct
-        # print bspline_stack[:,:,indx]
-        indx = indx + 1
     return bspline_stack
 
 
-def sample_invscales_type(libclass, subid):
+def sample_invscale_type(libclass, subid):
+    """
+
+    :param libclass: [dict] the library dictionary
+    :param subid: [(k,) array] vector of sub-stroke ids
+    :return:
+    """
     # check that it is a vector
     assert len(subid.shape) == 1
 
-    theta = torch.squeeze(torch.Tensor(libclass['scale']['theta'][0, 0]))[
-        subid.data - 1]  # because indexing
+    if isunif(libclass):
+        # TODO - update; handle this case
+        #invscales = CPDUnif.sample_shape_type(libclass, subid)
+        #return invscales
+        warnings.warn(
+            'isunif=True but CPDUnif not yet implemented... treating as though '
+            'isunif=False for now'
+        )
+    theta = torch.tensor(
+        libclass['scale']['theta'][subid-1], requires_grad=True
+    )
+    concentration = theta[:,0]
+    # PyTorch gamma dist uses rate parameter, which is inverse of scale
+    rate = 1/theta[:,1]
+    invscales = Gamma(concentration, rate).sample()
 
-    # pyro gamma dist uses rate parameter, which is inverse of scale parameter
-    invscales = pyro.sample('invscales', dist.gamma, Variable(theta[:, 0]),
-                            Variable(1 / theta[:, 1]))
     return invscales
 
 
@@ -341,3 +353,12 @@ def getAttachPoint(R, prev_strokes):
     else:
         raise ValueError('invalid relation')
     return pos
+
+def isunif(libclass):
+    """
+
+    :param libclass:
+    :return:
+    """
+
+    return np.any(np.isnan(libclass['shape']['mu']))

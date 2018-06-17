@@ -1,4 +1,3 @@
 numpy
 scipy
-torch
-pyro
+torch >= 0.4.0
