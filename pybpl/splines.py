@@ -43,6 +43,8 @@ def bspline_gen_s(nland, neval):
     :param neval: [int] number of evaluations
     :return:
         s: the time points used to evaluate spline
+        lb: TODO
+        ub: TODO
     """
     warnings.warn("'bspline_gen_s' function not yet implemented")
     s = None
