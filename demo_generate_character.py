@@ -1,7 +1,7 @@
 from __future__ import division, print_function
 
 from pybpl.classes import Library
-from pybpl.generate_character import generate_character
+from pybpl.forward_model import generate_character
 
 
 def main():
