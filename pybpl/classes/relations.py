@@ -35,5 +35,16 @@ class RelationAttachAlong(RelationAttach):
         eval_spot_type = []
         eval_spot_token = []
 
+def get_attach_point(R, prev_strokes):
+    """
+    Get the mean attachment point of where the start of the next stroke should
+    be, given the previous ones and their relations
 
+    :param R: TODO
+    :param prev_strokes: TODO
+    :return:
+        pos: TODO
+    """
+    pos = None
 
+    return pos

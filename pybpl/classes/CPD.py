@@ -10,8 +10,7 @@ from torch.distributions.categorical import Categorical
 from torch.distributions.multivariate_normal import MultivariateNormal
 from torch.distributions.gamma import Gamma
 
-from ..relations import (RelationIndependent, RelationAttach,
-                             RelationAttachAlong)
+from .relations import RelationIndependent, RelationAttach, RelationAttachAlong
 from ..rendering import bspline_gen_s
 
 
