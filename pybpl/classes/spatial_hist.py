@@ -91,8 +91,9 @@ class SpatialHist(object):
         :param prior_count: [float] TODO
         :return: None
         """
-        for elt in [logpYX, xlab, ylab, rg_bin, prior_count]:
+        for elt in [logpYX, xlab, ylab, rg_bin]:
             assert isinstance(elt, torch.Tensor)
+        assert type(prior_count) is float
         self.logpYX = logpYX
         self.xlab = xlab
         self.ylab = ylab
