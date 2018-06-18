@@ -109,6 +109,7 @@ class SpatialHist(object):
             yi: [(n,) array] y-bin index
             xi: [(n,) array] x-bin index
         """
+        assert type(nsamp) is int
         # Pick which bins the samples are from
         logpvec = self.logpYX.view(-1)
         pvec = torch.exp(logpvec)

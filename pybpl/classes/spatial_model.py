@@ -4,6 +4,7 @@ Spatial model class definition.
 from __future__ import print_function, division
 import numpy as np
 import matplotlib.pyplot as plt
+import torch
 
 from .spatial_hist import SpatialHist
 
@@ -62,8 +63,11 @@ class SpatialModel(object):
         Set the list_SH property of the model manually
 
         :param list_SH: [list of SpatialHist instances]
-        :return:
+        :return: None
         """
+        assert type(list_SH) == list
+        for elt in list_SH:
+            assert isinstance(elt, SpatialHist)
         self.list_SH = list_SH
 
     @property
@@ -109,7 +113,7 @@ class SpatialModel(object):
         """
         new_id = self.__map_indx(data_id)
         ndat = len(data_start)
-        ll = np.zeros(ndat)
+        ll = torch.zeros(ndat)
         for sid in range(self.last_model_id):
             data = data_start[new_id==sid]
             _, ll[new_id==sid] = self.list_SH[sid].get_id(data)
@@ -120,20 +124,20 @@ class SpatialModel(object):
         """
         Sample new stroke start positions
 
-        :param data_id: [(nsamp,) array] the stroke index of each position
+        :param data_id: [(nsamp,) tensor] the stroke index of each position
         :return:
-            samples: [(nsamp,2) array] positions drawn from the model
+            samples: [(nsamp,2) tensor] positions drawn from the model
         """
+        assert isinstance(data_id, torch.Tensor)
         assert len(data_id.shape) == 1
         nsamp = len(data_id)
         new_id = self.__map_indx(data_id)
 
-
         # for each stroke id
-        samples = np.zeros((nsamp,2))
+        samples = torch.zeros(nsamp, 2)
         for sid in range(self.last_model_id):
-            nsel = np.sum(new_id==sid)
-            samp, _, _ = self.list_SH[sid].sample(nsel)
+            nsel = torch.sum(new_id==sid)
+            samp, _, _ = self.list_SH[sid].sample(nsel.item())
             samples[new_id==sid] = samp
 
         return samples
@@ -165,6 +169,3 @@ class SpatialModel(object):
         new_id[new_id>self.last_model_id] = self.last_model_id
 
         return new_id
-
-def spatial_model_from_list(list_SH):
-    return

@@ -1,6 +1,8 @@
 import unittest
 import numpy as np
 import matplotlib.pyplot as plt
+import torch
+from torch.distributions.multivariate_normal import MultivariateNormal
 
 from pybpl.classes import SpatialModel
 
@@ -20,22 +22,22 @@ class TestSpatialModel(unittest.TestCase):
         n_test = 1000 # number of test points
 
         # Shape of the distributions
-        mu1 = [-5, -5]
-        mu2 = [0, 0]
-        mu3 = [5, 5]
-        Sigma = np.eye(2)
+        mu1 = torch.tensor([-5., -5.])
+        mu2 = torch.tensor([0., 0.])
+        mu3 = torch.tensor([5., 5.])
+        Sigma = torch.eye(2)
 
         # Sample the data
-        data1 = np.random.multivariate_normal(mu1, Sigma, n_train)
-        data2 = np.random.multivariate_normal(mu2, Sigma, n_train)
-        data3 = np.random.multivariate_normal(mu3, Sigma, n_train)
-        data4 = np.random.multivariate_normal(mu3, Sigma, n_train_last)
+        data1 = MultivariateNormal(mu1, Sigma).sample(torch.Size([n_train]))
+        data2 = MultivariateNormal(mu2, Sigma).sample(torch.Size([n_train]))
+        data3 = MultivariateNormal(mu3, Sigma).sample(torch.Size([n_train]))
+        data4 = MultivariateNormal(mu3, Sigma).sample(torch.Size([n_train_last]))
 
         # Dataset to fit the histogram model to
-        data_train = np.vstack([data1, data2, data3, data4])
-        indx_train = np.concatenate(
-            [np.zeros(n_train), np.ones(n_train),
-             2*np.ones(n_train), 3*np.ones(n_train_last)]
+        data_train = torch.cat([data1, data2, data3, data4])
+        indx_train = torch.cat(
+            [torch.zeros(n_train), torch.ones(n_train),
+             2*torch.ones(n_train), 3*torch.ones(n_train_last)]
         )
 
         # Build the SpatialModel instance
@@ -62,8 +64,8 @@ class TestSpatialModel(unittest.TestCase):
     def test_selectionPosition(self):
         n = self.n_test
         # Create validation set
-        indx_test = np.concatenate(
-            [np.zeros(n), np.ones(n), 2*np.ones(n), 3*np.ones(n)]
+        indx_test = torch.cat(
+            [torch.zeros(n), torch.ones(n), 2*torch.ones(n), 3*torch.ones(n)]
         )
         data_test = self.GT.sample(indx_test)
         print('Ground truth parameters:');
