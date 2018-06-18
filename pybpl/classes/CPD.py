@@ -143,8 +143,8 @@ def sample_relation_type(libclass, prev_strokes):
     rtype = types[indx.item()] # TODO - update; this is not great practice
 
     if rtype == 'unihist':
-        # TODO - update SpatialModel class to use torch
-        gpos = libclass.Spatial.sample(np.array([stroke_num]))
+        data_id = torch.tensor([stroke_num])
+        gpos = libclass.Spatial.sample(data_id)
         R = RelationIndependent(rtype, nprev, gpos)
     elif rtype in ['start', 'end']:
         # sample random attach spot uniformly

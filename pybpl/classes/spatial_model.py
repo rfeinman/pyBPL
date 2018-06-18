@@ -22,8 +22,8 @@ class SpatialModel(object):
         """
         Initialize the SpatialModel class instance.
 
-        :param data_start: [(n,2) array] input data array
-        :param data_id: [(n,) array] index array
+        :param data_start: [(n,2) tensor] input data array
+        :param data_id: [(n,) tensor] index array
         :param clump_id: [int] the id of...
         :param xlim: [list of 2 ints] (xmin,xmax); range of x-dimension
         :param ylim: [list of 2 ints] (ymin,ymax); range of y-dimension
@@ -40,6 +40,8 @@ class SpatialModel(object):
         if all([item is None for item in params]):
             return
 
+        assert isinstance(data_start, torch.Tensor)
+        assert isinstance(data_id, torch.Tensor)
         assert len(data_id) == len(data_start)
         assert len(xlim) == 2 and len(ylim) == 2
 
@@ -86,11 +88,13 @@ class SpatialModel(object):
         """
         Compute log-likelihood of new points
 
-        :param data_start: [(n,2) array] positions
-        :param data_id: [(n,) array] the stroke index of each position
+        :param data_start: [(n,2) tensor] positions
+        :param data_id: [(n,) tensor] the stroke index of each position
         :return:
             ll: [float] total log-likelihood
         """
+        assert isinstance(data_start, torch.Tensor)
+        assert isinstance(data_id, torch.Tensor)
         new_id = self.__map_indx(data_id)
         ndat = len(data_start)
 
@@ -106,11 +110,13 @@ class SpatialModel(object):
         """
         Compute log-likelihood of new points, and return breakdown for each one
 
-        :param data_start: [(n,2) array] positions
-        :param data_id: [(n,) array] the stroke index of each position
+        :param data_start: [(n,2) tensor] positions
+        :param data_id: [(n,) tensor] the stroke index of each position
         :return:
             ll: [(n,) array] the log-likelihood of each position
         """
+        assert isinstance(data_start, torch.Tensor)
+        assert isinstance(data_id, torch.Tensor)
         new_id = self.__map_indx(data_id)
         ndat = len(data_start)
         ll = torch.zeros(ndat)
@@ -132,11 +138,15 @@ class SpatialModel(object):
         assert len(data_id.shape) == 1
         nsamp = len(data_id)
         new_id = self.__map_indx(data_id)
+        print('new_id: ', new_id)
 
         # for each stroke id
         samples = torch.zeros(nsamp, 2)
         for sid in range(self.last_model_id):
-            nsel = torch.sum(new_id==sid)
+            # TODO - fix this
+            sel = new_id == sid
+            print('sel: ', sel)
+            nsel = torch.sum(sel)
             samp, _, _ = self.list_SH[sid].sample(nsel.item())
             samples[new_id==sid] = samp
 
