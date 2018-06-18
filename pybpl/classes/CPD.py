@@ -29,7 +29,9 @@ def sample_number(libclass, nsamp=1):
     """
     # probability of each stroke count
     pkappa = libclass.pkappa
-    # get vector of samples
+    # make sure pkappa is a vector
+    assert len(pkappa.shape) == 1
+    # sample from the categorical distribution. Add 1 to 0-indexed samples
     ns = Categorical(probs=pkappa).sample(torch.Size([nsamp])) + 1
     # make sure ns is a vector
     assert len(ns.shape) == 1
@@ -72,7 +74,7 @@ def sample_nsub(libclass, ns):
     pvec = libclass.pmat_nsub[ns-1]
     # make sure pvec is a matrix
     assert len(pvec.shape) == 2
-    # sample from the categorical distribution
+    # sample from the categorical distribution. Add 1 to 0-indexed samples
     nsub = Categorical(probs=pvec).sample() + 1
     # make sure nsub is a vector
     assert len(nsub.shape) == 1
@@ -109,14 +111,13 @@ def sample_sequence(libclass, ns, nsub=None, nsamp=1):
         for bid in range(1, nsub):
             prev = sq[-1]
             # pT = libclass.pT(prev) #TODO - need to implement
-            pT = torch.ones(libclass.N, requires_grad=True) / libclass.N
+            pT = torch.ones(libclass.N, requires_grad=True)
             sq.append(Categorical(probs=pT).sample() + 1)
         sq = torch.tensor(sq)
         samps.append(sq.view(1,-1))
     samps = torch.cat(samps)
 
     return samps
-
 
 # ----
 # Relation model (R)
@@ -147,16 +148,16 @@ def sample_relation_type(libclass, prev_strokes):
         R = RelationIndependent(rtype, nprev, gpos)
     elif rtype in ['start', 'end']:
         # sample random attach spot uniformly
-        probs = torch.ones(nprev, requires_grad=True) / nprev
+        probs = torch.ones(nprev, requires_grad=True)
         attach_spot = Categorical(probs=probs).sample()
         R = RelationAttach(rtype, nprev, attach_spot)
     elif rtype == 'mid':
         # sample random attach spot uniformly
-        probs = torch.ones(nprev, requires_grad=True) / nprev
+        probs = torch.ones(nprev, requires_grad=True)
         attach_spot = Categorical(probs=probs).sample()
         # sample random subid spot uniformly
         nsub = prev_strokes[attach_spot.item()].nsub
-        probs = torch.ones(nsub, requires_grad=True) / nsub
+        probs = torch.ones(nsub, requires_grad=True)
         subid_spot = Categorical(probs=probs).sample()
 
         R = RelationAttachAlong(
