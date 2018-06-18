@@ -23,7 +23,7 @@ class SpatialHist(object):
         """
         Build a 2D histogram model of the data
 
-        :param data: [(n,2) array] data to model
+        :param data: [(n,2) tensor] data to model
         :param xlim: [list of 2 ints] (xmin,xmax); range of x-dimension
         :param ylim: [list of 2 ints] (ymin,ymax); range of y-dimension
         :param nbin_per_side: [int] number of bins per dimension
@@ -54,7 +54,8 @@ class SpatialHist(object):
 
         # length, in pixels, of a side of a bin
         rg_bin = torch.tensor(
-            [(xlim[1] - xlim[0]), (ylim[1] - ylim[0])]
+            [(xlim[1] - xlim[0]), (ylim[1] - ylim[0])],
+            dtype=torch.float32
         )
         rg_bin = rg_bin / nbin_per_side
 
@@ -83,11 +84,11 @@ class SpatialHist(object):
         """
         Set the properties of the SpatialHist instance manually
 
-        :param logpYX: [tensor]
-        :param xlab: [tensor]
-        :param ylab: [tensor]
-        :param rg_bin: [tensor]
-        :param prior_count: [tensor]
+        :param logpYX: [(m,n) tensor] TODO
+        :param xlab: [(m,) tensor] TODO
+        :param ylab: [(n,) tensor] TODO
+        :param rg_bin: [(2,) tensor] TODO
+        :param prior_count: [float] TODO
         :return: None
         """
         for elt in [logpYX, xlab, ylab, rg_bin, prior_count]:
@@ -136,9 +137,9 @@ class SpatialHist(object):
         """
         Compute the log-likelihood of data under a 2D histogram model
 
-        :param data: [(n,2) array] data to model
+        :param data: [(n,2) tensor] data to model
         :return:
-            ll: [(n,) array] log-likelihood scores
+            ll: [(n,) tensor] log-likelihood scores
         """
         # Compute bin in histogram
         n, dim = data.shape
@@ -160,10 +161,10 @@ class SpatialHist(object):
         """
         TODO - description
 
-        :param data: [(n,2) array] data to model
+        :param data: [(n,2) tensor] data to model
         :return:
-            id: [(n,2) array] x and y id of each point in bins
-            ll: [(n,) array] log-likelihood of each point
+            id: [(n,2) tensor] x and y id of each point in bins
+            ll: [(n,) tensor] log-likelihood of each point
         """
         n, dim = data.shape
         edges = [self.xlab, self.ylab]
@@ -254,10 +255,10 @@ def myhist3(data, edges):
     Modified histogram function, where datapoints on the edge are mapped to
     the last cell, not their own cell
 
-    :param data: [(n,2) array] data to model
-    :param edges: [list of 2 arrays] (array array); the x and y bins
+    :param data: [(n,2) tensor] data to model
+    :param edges: [list of 2 tensors] (array array); the x and y bins
     :return:
-        N: [(m,n) array] modified histogram
+        N: [(m,n) tensor] modified histogram
     """
     # TODO:     update this function to remain fully in torch, rather than
     # TODO:     converting back & forth to numpy
@@ -301,6 +302,15 @@ def unravel_index(index, shape):
     return xi, yi
 
 def logsumexp_t(tensor):
-    array = logsumexp(tensor.numpy())
+    """
+    TODO
 
-    return torch.tensor(array, dtype=torch.float32)
+    :param tensor: [(n,) tensor] TODO
+    :return:
+        tensor1: [(n,) tensor] TODO
+
+    """
+    array = logsumexp(tensor.numpy())
+    tensor1 = torch.tensor(array, dtype=torch.float32)
+
+    return tensor1

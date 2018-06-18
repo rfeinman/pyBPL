@@ -178,10 +178,11 @@ def load_hist(path):
     ylab = io.loadmat(os.path.join(path, 'ylab'))['value']
     rg_bin = io.loadmat(os.path.join(path, 'rg_bin'))['value']
     prior_count = io.loadmat(os.path.join(path, 'prior_count'))['value']
-    # fix some of the properties
-    xlab = xlab[0]
-    ylab = ylab[0]
-    rg_bin = list(rg_bin[0])
+    # fix some of the properties, convert to torch tensors
+    logpYX = torch.tensor(logpYX, requires_grad=True)
+    xlab = torch.tensor(xlab[0], requires_grad=True)
+    ylab = torch.tensor(ylab[0], requires_grad=True)
+    rg_bin = torch.tensor(rg_bin[0], requires_grad=True)
     prior_count = prior_count.item()
     # build the SpatialHist instance
     H = SpatialHist()

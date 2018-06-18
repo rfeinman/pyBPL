@@ -15,8 +15,8 @@ class TestSpatialHist(unittest.TestCase):
         # Parameters
         nbin_per_side = 50
         prior_count = 0.1
-        xlm = [-10., 10.]
-        ylm = [-10., 10.]
+        xlm = [-10, 10]
+        ylm = [-10, 10]
 
         n = 1000  # number of training points in each slice
 
