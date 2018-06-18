@@ -4,7 +4,6 @@ Motor program.
 from __future__ import print_function, division
 import copy
 import torch
-from torch.autograd import Variable
 
 from pybpl.classes.stroke import Stroke
 
@@ -16,13 +15,9 @@ class MotorProgram(object):
         self.S = []
         self.parameters = []
 
-        if isinstance(args, int):
+        if isinstance(args, torch.Tensor):
+            assert args.data.shape == torch.Size([])
             ns = args
-            for i in range(ns):
-                self.S.append(Stroke())
-        elif isinstance(args, Variable):
-            assert args.data.shape == torch.Size([1])
-            ns = args.data[0]
             for i in range(ns):
                 self.S.append(Stroke())
         elif isinstance(args, MotorProgram):
@@ -32,7 +27,8 @@ class MotorProgram(object):
             # this might break if mcmc comes online
             self.parameters = copy.copy(Template.parameters)
         else:
-            raise TypeError('invalid constructor')
+            raise TypeError("Invalid constructor pararmeter; must be either a "
+                            "torch.Tensor or MotorProgram")
 
 
     #other methods:

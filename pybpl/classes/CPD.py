@@ -14,50 +14,121 @@ from .relations import RelationIndependent, RelationAttach, RelationAttachAlong
 from ..rendering import bspline_gen_s
 
 
+# ----
+# Number of strokes model (Kappa)
+# ----
+
 def sample_number(libclass, nsamp=1):
     """
-    Sample a stroke count.
+    Sample a vector of stroke counts
 
-    :param libclass: [dict] the library class instance
-    :param nsamp: [int] the number of samples to draw
+    :param libclass: [Library] library class instance
+    :param nsamp: [int] number of samples to draw
     :return:
+        ns: [(nsamp,) tensor] vector of stroke counts
     """
+    # probability of each stroke count
     pkappa = libclass.pkappa
     # get vector of samples
     ns = Categorical(probs=pkappa).sample(torch.Size([nsamp])) + 1
+    # make sure ns is a vector
+    assert len(ns.shape) == 1
 
     return ns
 
 def score_number(libclass, ns):
     """
-    Score the log-likelihood of a given stroke count.
+    Score the log-likelihood of each stroke count in ns
 
-    :param libclass: [dict] the library class instance
-    :param ns:
+    :param libclass: [Library] library class instance
+    :param ns: [(n,) tensor] vector of stroke counts
     :return:
+        ll: [(n,) tensor] vector of log-likelihood scores
     """
+    # make sure ns is a vector
+    assert len(ns.shape) == 1
+
     raise NotImplementedError('not implemented')
+
+
+# ----
+# Sequence of sub-strokes model
+# ----
 
 def sample_nsub(libclass, ns):
     """
-    Sample the substroke count
+    Sample the substroke count for each stroke
 
-    :param libclass: [dict] the library class instance
-    :param ns:
+    :param libclass: [Library] library class instance
+    :param ns: [(n,) tensor] vector of stroke counts
     :return:
+        nsub: [(n,) tensor] vector of substroke counts
     """
-    # TODO - verify this function
+    # make sure ns is a vector
+    assert len(ns.shape) == 1
+    # probability of each sub-stroke count, conditioned on the number of strokes
+    # NOTE: there will be len(ns) probability vectors
+    # NOTE: subtract 1 from stroke counts to get Python index
     pvec = libclass.pmat_nsub[ns-1]
+    # make sure pvec is a matrix
+    assert len(pvec.shape) == 2
+    # sample from the categorical distribution
     nsub = Categorical(probs=pvec).sample() + 1
+    # make sure nsub is a vector
+    assert len(nsub.shape) == 1
 
     return nsub
+
+def sample_sequence(libclass, ns, nsub=None, nsamp=1):
+    """
+    Sample the sequence of substrokes
+
+    :param libclass: [Library] library class instance
+    :param ns: [tensor] scalar; stroke count
+    :param nsub: [tensor] scalar; substroke count
+    :param nsamp: [int] number of samples to draw
+    :return:
+    """
+    assert ns.shape == torch.Size([]), \
+        "only implemented for scalar 'ns' parameter at the moment"
+
+    if nsub is None:
+        # since sample_nsub takes a vector, convert the scalar to a length-1 vec
+        ns_vec = ns.view(-1)
+        # sample the nsub vector and then convert to scalar
+        nsub = sample_nsub(libclass, ns_vec)[0]
+    assert nsub.shape == torch.Size([])
+    # set pStart variable
+    pStart = torch.exp(libclass.logStart)
+    warnings.warn(
+        'pTransition unimplemented; using uniform transition prob'
+    )
+    samps = []
+    for _ in range(nsamp):
+        sq = [Categorical(probs=pStart).sample() + 1]
+        for bid in range(1, nsub):
+            prev = sq[-1]
+            # pT = libclass.pT(prev) #TODO - need to implement
+            pT = torch.ones(libclass.N, requires_grad=True) / libclass.N
+            sq.append(Categorical(probs=pT).sample() + 1)
+        sq = torch.tensor(sq)
+        samps.append(sq.view(1,-1))
+    samps = torch.cat(samps)
+
+    return samps
+
+
+# ----
+# Relation model (R)
+# ----
 
 def sample_relation_type(libclass, prev_strokes):
     """
 
-    :param libclass: [dict] the library class instance
-    :param prev_strokes:
+    :param libclass: [Library] library class instance
+    :param prev_strokes: [list of Strokes] list of previous strokes
     :return:
+        R: [Relation] relation
     """
     nprev = len(prev_strokes)
     stroke_num = nprev + 1
@@ -102,45 +173,14 @@ def sample_relation_type(libclass, prev_strokes):
     return R
 
 
-def sample_sequence(libclass, ns, nsub=None, nsamp=1):
-    """
-    gives template.S[i].ids
-
-    :param libclass: [dict] the library dictionary
-    :param ns:
-    :param nsub:
-    :param nsamp:
-    :return:
-    """
-
-    if nsub is None:
-        nsub = sample_nsub(libclass, ns)
-        nsub = nsub.item()
-    # set pStart variable
-    pStart = torch.exp(libclass.logStart)
-    warnings.warn(
-        'pTransition unimplemented; using uniform transition prob'
-    )
-    samps = []
-    for _ in range(nsamp):
-        sq = [Categorical(probs=pStart).sample() + 1]
-        for bid in range(1, nsub):
-            prev = sq[-1]
-            # pT = libclass.pT(prev) #TODO - need to implement
-            n = libclass.N
-            pT = torch.ones(n, requires_grad=True) / n
-            sq.append(Categorical(probs=pT).sample() + 1)
-        sq = torch.tensor(sq)
-        samps.append(sq.view(1,-1))
-    samps = torch.cat(samps)
-
-    return samps
-
+# ----
+# Shape model (x)
+# ----
 
 def sample_shape_type(libclass, subid):
     """
 
-    :param libclass: [dict] the library class instance
+    :param libclass: [Library] library class instance
     :param subid: [(k,) array] vector of sub-stroke ids
     :return:
     """
@@ -163,17 +203,20 @@ def sample_shape_type(libclass, subid):
     ncpt = libclass.ncpt
     bspline_stack = torch.zeros((ncpt,2,k), requires_grad=True)
     for i in range(k):
-        #row = rows_bspline[i]
-        #print(row.shape)
         bspline_stack[:, :, i] = rows_bspline[i].view(ncpt, 2)
 
     return bspline_stack
 
 
+# ----
+# Scale model (y)
+# ----
+
+
 def sample_invscale_type(libclass, subid):
     """
 
-    :param libclass: [dict] the library class instance
+    :param libclass: [Library] library class instance
     :param subid: [(k,) array] vector of sub-stroke ids
     :return:
     """
@@ -197,7 +240,11 @@ def sample_invscale_type(libclass, subid):
     return invscales
 
 
+
+
+
 # functions used in generate_exemplar
+# TODO - here downward
 
 def sample_relation_token(libclass, eval_spot_type):
     sigma_attach = torch.squeeze(
