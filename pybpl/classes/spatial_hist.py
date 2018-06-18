@@ -6,6 +6,9 @@ import warnings
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.special import logsumexp
+import torch
+from torch.distributions.uniform import Uniform
+from torch.distributions.categorical import Categorical
 
 
 class SpatialHist(object):
@@ -43,41 +46,52 @@ class SpatialHist(object):
         assert dim == 2
 
         # compute the "edges" of the histogram
-        xtick = np.linspace(xlim[0], xlim[1], nbin_per_side+1)
-        ytick = np.linspace(ylim[0], ylim[1], nbin_per_side+1)
+        xtick = torch.linspace(xlim[0], xlim[1], nbin_per_side+1)
+        ytick = torch.linspace(ylim[0], ylim[1], nbin_per_side+1)
         assert len(xtick)-1 == nbin_per_side
         assert len(ytick)-1 == nbin_per_side
         edges = [xtick, ytick]
 
-        # Store important information about the bins
-        self.rg_bin = [
-            (xlim[1] - xlim[0]) / nbin_per_side,
-            (ylim[1] - ylim[0]) / nbin_per_side
-        ] # length, in pixels, of a side of a bin
-        self.xlab = xtick
-        self.ylab = ytick
+        # length, in pixels, of a side of a bin
+        rg_bin = torch.tensor(
+            [(xlim[1] - xlim[0]), (ylim[1] - ylim[0])]
+        )
+        rg_bin = rg_bin / nbin_per_side
 
         # Compute the histogram
         N = myhist3(data, edges)
-        diff = ndata - np.sum(N)
+        diff = ndata - torch.sum(N)
         if diff > 0:
             warnings.warn('%i position points are out of bounds' % diff)
 
         # Add in the prior counts
-        N = np.transpose(N)
+        N = torch.transpose(N, 0, 1)
         N = N + prior_count
-        logN = np.log(N)
+        logN = torch.log(N)
 
         # Convert to probability distribution
-        logpN = logN - logsumexp(logN)
+        logpN = logN - logsumexp_t(logN)
         #assert aeq(np.sum(np.exp(logpN)),1) # TODO - what is "aeq"?
 
         self.logpYX = logpN
         self.xlab = xtick
         self.ylab = ytick
+        self.rg_bin = rg_bin
         self.prior_count = prior_count
 
     def set_properties(self, logpYX, xlab, ylab, rg_bin, prior_count):
+        """
+        Set the properties of the SpatialHist instance manually
+
+        :param logpYX: [tensor]
+        :param xlab: [tensor]
+        :param ylab: [tensor]
+        :param rg_bin: [tensor]
+        :param prior_count: [tensor]
+        :return: None
+        """
+        for elt in [logpYX, xlab, ylab, rg_bin, prior_count]:
+            assert isinstance(elt, torch.Tensor)
         self.logpYX = logpYX
         self.xlab = xlab
         self.ylab = ylab
@@ -95,27 +109,26 @@ class SpatialHist(object):
             xi: [(n,) array] x-bin index
         """
         # Pick which bins the samples are from
-        logpvec = self.logpYX.flatten()
-        pvec = np.exp(logpvec)
-        pvec = pvec / np.sum(pvec)
-        lin = np.zeros(nsamp, dtype=int)
-        for i in range(nsamp):
-            x = np.random.multinomial(1, pvec)
-            lin[i] = np.nonzero(x)[0][0]
+        logpvec = self.logpYX.view(-1)
+        pvec = torch.exp(logpvec)
+        pvec = pvec / torch.sum(pvec)
+        lin = Categorical(probs=pvec).sample(torch.Size([nsamp]))
 
-        # Retrieve the [y, x] indices of these bins
-        yi, xi = np.unravel_index(lin, self.logpYX.shape)
+        # Retrieve the [x, y] indices of these bins
+        xi, yi = unravel_index(lin, self.logpYX.shape)
 
         # Retrieve the edges for each of these bins
         xmin = self.xlab[xi]
         ymin = self.ylab[yi]
         xmax = self.xlab[xi+1]
         ymax = self.ylab[yi+1]
+        assert len(xmin) == len(xmax)
+        assert len(ymin) == len(ymax)
 
         # Sample from a uniform distribution in each of the bins
-        xsamp = np.multiply(xmax-xmin, np.random.uniform(size=nsamp)) + xmin
-        ysamp = np.multiply(ymax-ymin, np.random.uniform(size=nsamp)) + ymin
-        samples = np.transpose(np.vstack([xsamp, ysamp]))
+        xsamp = Uniform(low=xmin, high=xmax).sample(torch.Size([1]))
+        ysamp = Uniform(low=ymin, high=ymax).sample(torch.Size([1]))
+        samples = torch.transpose(torch.cat([xsamp, ysamp], 0), 0, 1)
 
         return samples, yi, xi
 
@@ -138,8 +151,8 @@ class SpatialHist(object):
 
         # Adjust log-likelihoods to account for the uniform component
         # of the data
-        ll = ll - n*np.log(self.rg_bin[0]) - n*np.log(self.rg_bin[1])
-        assert not np.any(np.isnan(ll))
+        ll = ll - n*torch.log(self.rg_bin[0]) - n*torch.log(self.rg_bin[1])
+        assert not torch.isnan(ll).any()
 
         return ll
 
@@ -154,14 +167,14 @@ class SpatialHist(object):
         """
         n, dim = data.shape
         edges = [self.xlab, self.ylab]
-        ll = np.zeros(n)
-        xid = np.zeros(n)
-        yid = np.zeros(n)
+        ll = torch.zeros(n)
+        xid = torch.zeros(n)
+        yid = torch.zeros(n)
         mylogpYX = self.logpYX
         for i in range(n):
             ll[i], xid[i], yid[i] = hclassif(data[i:i+1], mylogpYX, edges)
-        id = np.transpose(np.vstack([xid, yid]))
-        ll = ll - np.log(self.rg_bin[0]) - np.log(self.rg_bin[1])
+        id = torch.cat([xid.view(-1,1), yid.view(-1,1)], 1)
+        ll = ll - torch.log(self.rg_bin[0]) - torch.log(self.rg_bin[1])
         assert not np.any(np.isnan(ll))
 
         return id, ll
@@ -173,13 +186,13 @@ class SpatialHist(object):
         :param subplot: [bool] whether this is a subplot of a larger figure
         :return: None
         """
-        pYX = np.exp(self.logpYX)
-        img = pYX / np.max(pYX)
+        pYX = torch.exp(self.logpYX)
+        img = pYX / torch.max(pYX)
         if subplot:
-            plt.imshow(img, cmap='gray', origin='lower')
+            plt.imshow(img.numpy(), cmap='gray', origin='lower')
         else:
             plt.figure()
-            plt.imshow(img, cmap='gray', origin='lower')
+            plt.imshow(img.numpy(), cmap='gray', origin='lower')
             plt.show()
 
 
@@ -196,16 +209,18 @@ def hclassif(pt, logpYX, edges):
         yid:
     """
     N = myhist3(pt, edges)
-    N = np.transpose(N)
-    N = N.astype(np.bool)
-    yid, xid = np.where(N)
-    if np.sum(N) == 0:
-        logprob = -np.inf
+    N = torch.transpose(N, 0, 1)
+    N = N > 0
+    ind = torch.nonzero(N)
+    xid = ind[:,0]
+    yid = ind[:,1]
+    if torch.sum(N) == 0:
+        logprob = torch.tensor(-np.inf)
         xid = 1
         yid = 1
     else:
         logprob = logpYX[N]
-        assert not np.isnan(logprob)
+        assert not torch.isnan(logprob)
 
     return logprob, xid, yid
 
@@ -222,14 +237,14 @@ def fast_hclassif(pt, logpYX, edges):
     """
     npt = len(pt)
     N = myhist3(pt, edges)
-    N = np.transpose(N)
-    sumN = np.sum(N)
-    MTPL = np.multiply(N, logpYX)
+    N = torch.transpose(N, 0, 1)
+    sumN = torch.sum(N)
+    MTPL = N * logpYX
     MTPL[N==0] = 0
-    logprob = np.sum(MTPL)
+    logprob = torch.sum(MTPL)
     if sumN < npt:
-        logprob = -np.inf
-    assert not np.isnan(logprob)
+        logprob = torch.tensor(-np.inf)
+    assert not torch.isnan(logprob)
 
     return logprob
 
@@ -242,11 +257,15 @@ def myhist3(data, edges):
     :param data: [(n,2) array] data to model
     :param edges: [list of 2 arrays] (array array); the x and y bins
     :return:
-        N:
+        N: [(m,n) array] modified histogram
     """
+    # TODO:     update this function to remain fully in torch, rather than
+    # TODO:     converting back & forth to numpy
+    # convert to numpy
+    data = data.numpy()
+    edges = [edges[0].numpy(), edges[1].numpy()]
     # Cluster with histogram function
     N, _, _ = np.histogram2d(data[:,0], data[:,1], bins=edges)
-    N = N.astype(np.int32)
 
     # Move the last row/col to the second to last
     lastcol = N[:,-1]
@@ -260,4 +279,28 @@ def myhist3(data, edges):
     N = np.delete(N, -1, axis=0)
     N = np.delete(N, -1, axis=1)
 
+    # convert back to torch
+    N = torch.tensor(N, dtype=torch.float32)
+
     return N
+
+
+def unravel_index(index, shape):
+    """
+    A PyTorch implementation of np.unravel_index
+
+    :param index: [(n,) tensor] TODO
+    :param shape: [torch.Size] TODO
+    :return:
+        xi: [(n,) tensor] TODO
+        yi: [(n,) tensor] TODO
+    """
+    xi = index % shape[0]
+    yi = index / shape[0]
+
+    return xi, yi
+
+def logsumexp_t(tensor):
+    array = logsumexp(tensor.numpy())
+
+    return torch.tensor(array, dtype=torch.float32)

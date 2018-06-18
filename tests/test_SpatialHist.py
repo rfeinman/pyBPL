@@ -2,8 +2,12 @@ import unittest
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.special import logsumexp
+import torch
+from torch.distributions.multivariate_normal import MultivariateNormal
+from torch.distributions.uniform import Uniform
 
 from pybpl.classes import SpatialHist
+from pybpl.classes.spatial_hist import logsumexp_t
 
 class TestSpatialHist(unittest.TestCase):
 
@@ -11,24 +15,24 @@ class TestSpatialHist(unittest.TestCase):
         # Parameters
         nbin_per_side = 50
         prior_count = 0.1
-        xlm = [-10, 10]
-        ylm = [-10, 10]
+        xlm = [-10., 10.]
+        ylm = [-10., 10.]
 
         n = 1000  # number of training points in each slice
 
         # Shape of distribution
-        mu1 = [-5, 0]
-        mu2 = [0, 5]
-        Sigma = np.eye(2)
+        mu1 = torch.tensor([-5., 0.])
+        mu2 = torch.tensor([0., 5.])
+        Sigma = torch.eye(2)
 
         # Sample the data
-        data1 = np.random.multivariate_normal(mu1, Sigma, n)
-        data2 = np.random.multivariate_normal(mu2, Sigma, n)
-        data = np.concatenate([data1, data2])
+        data1 = MultivariateNormal(mu1, Sigma).sample(torch.Size([n]))
+        data2 = MultivariateNormal(mu2, Sigma).sample(torch.Size([n]))
+        data = torch.cat([data1, data2])
 
         # Build the SpatialHist instance & sample data
         self.H = SpatialHist(data, xlm, ylm, nbin_per_side, prior_count)
-        self.syndata, _, _ = self.H.sample(1000)
+        self.syndata, _, _ = self.H.sample(n)
 
         self.data = data
         self.xlim = xlm
@@ -66,8 +70,8 @@ class TestSpatialHist(unittest.TestCase):
         """
         ll = self.H.score(self.syndata)
         _, ll2 = self.H.get_id(self.syndata)
-        ll2 = np.sum(ll2)
-        self.assertTrue(np.abs(ll - ll2) <= 1e-2)
+        ll2 = torch.sum(ll2)
+        self.assertTrue(torch.abs(ll - ll2) <= 1e-2)
 
     def test_validDensity(self):
         """
@@ -76,13 +80,13 @@ class TestSpatialHist(unittest.TestCase):
         nsamp = 10000
         area = (self.xlim[1]-self.xlim[0]) * (self.ylim[1]-self.ylim[0])
 
-        x = np.random.uniform(low=self.xlim[0], high=self.xlim[1], size=nsamp)
-        y = np.random.uniform(low=self.ylim[0], high=self.ylim[1], size=nsamp)
-        D = np.transpose(np.vstack([x,y]))
+        x = Uniform(low=self.xlim[0], high=self.xlim[1]).sample(torch.Size([nsamp]))
+        y = Uniform(low=self.ylim[0], high=self.ylim[1]).sample(torch.Size([nsamp]))
+        D = torch.cat([x.view(-1, 1), y.view(-1, 1)], 1)
 
         _, ll = self.H.get_id(D)
-        ltot = logsumexp(ll.flatten())
-        tsum = np.exp(ltot)
+        ltot = logsumexp_t(ll.view(-1))
+        tsum = torch.exp(ltot)
         tot = (area/nsamp) * tsum
 
         print('Average score: %0.3f' % tot)
