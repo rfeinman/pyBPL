@@ -116,15 +116,18 @@ class Library(object):
         Get the probability of transitioning to a new state, given your current
         state is "prev_state"
 
-        :param prev_state: [] current state of the model
+        :param prev_state: [tensor] current state of the model
         :return:
-            p: [float] probability of transitioning to a new state
+            p: [tensor] probability vector; probabilities of transitioning to
+                        each potential new state
         """
+        assert prev_state.shape == torch.Size([])
         logR = self.logT[prev_state]
-        R = np.exp(logR)
-        # TODO
+        R = torch.exp(logR)
+        R = R.view(-1)
+        p = R / torch.sum(R)
 
-        return
+        return p
 
     def score_eval_marg(self, eval_spot_token):
         return
