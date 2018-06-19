@@ -25,7 +25,7 @@ def sample_number(libclass, nsamp=1):
     :param libclass: [Library] library class instance
     :param nsamp: [int] number of samples to draw
     :return:
-        ns: [(nsamp,) tensor] vector of stroke counts
+        ns: [(nsamp,) tensor] vector of stroke counts. scalar if nsamp=1.
     """
     # probability of each stroke count
     pkappa = libclass.pkappa
@@ -36,19 +36,17 @@ def sample_number(libclass, nsamp=1):
     # make sure ns is a vector
     assert len(ns.shape) == 1
 
-    return ns
+    return torch.squeeze(ns)
 
 def score_number(libclass, ns):
     """
     Score the log-likelihood of each stroke count in ns
 
     :param libclass: [Library] library class instance
-    :param ns: [(n,) tensor] vector of stroke counts
+    :param ns: [(n,) tensor] vector of stroke counts. scalar if n=1
     :return:
-        ll: [(n,) tensor] vector of log-likelihood scores
+        ll: [(n,) tensor] vector of log-likelihood scores. scalar if n=1
     """
-    # make sure ns is a vector
-    assert len(ns.shape) == 1
 
     raise NotImplementedError('not implemented')
 
@@ -62,24 +60,20 @@ def sample_nsub(libclass, ns):
     Sample the substroke count for each stroke
 
     :param libclass: [Library] library class instance
-    :param ns: [(n,) tensor] vector of stroke counts
+    :param ns: [(n,) tensor] vector of stroke counts. scalar if n=1
     :return:
-        nsub: [(n,) tensor] vector of substroke counts
+        nsub: [(n,) tensor] vector of substroke counts. scalar if n=1
     """
-    # make sure ns is a vector
-    assert len(ns.shape) == 1
     # probability of each sub-stroke count, conditioned on the number of strokes
     # NOTE: there will be len(ns) probability vectors
     # NOTE: subtract 1 from stroke counts to get Python index
     pvec = libclass.pmat_nsub[ns-1]
     # make sure pvec is a matrix
-    assert len(pvec.shape) == 2
+    assert len(pvec.shape) in [1, 2]
     # sample from the categorical distribution. Add 1 to 0-indexed samples
     nsub = Categorical(probs=pvec).sample() + 1
-    # make sure nsub is a vector
-    assert len(nsub.shape) == 1
 
-    return nsub
+    return torch.squeeze(nsub)
 
 def sample_sequence(libclass, ns, nsub=None, nsamp=1):
     """
@@ -90,15 +84,14 @@ def sample_sequence(libclass, ns, nsub=None, nsamp=1):
     :param nsub: [tensor] scalar; substroke count
     :param nsamp: [int] number of samples to draw
     :return:
+        samps: [(nsamp, nsub)]
     """
     assert ns.shape == torch.Size([]), \
-        "only implemented for scalar 'ns' parameter at the moment"
+        "parameter 'ns' must be a scalar"
 
     if nsub is None:
-        # since sample_nsub takes a vector, convert the scalar to a length-1 vec
-        ns_vec = ns.view(-1)
-        # sample the nsub vector and then convert to scalar
-        nsub = sample_nsub(libclass, ns_vec)[0]
+        # sample the sub-stroke count
+        nsub = sample_nsub(libclass, ns)
     assert nsub.shape == torch.Size([])
     # set pStart variable
     pStart = torch.exp(libclass.logStart)
@@ -110,12 +103,12 @@ def sample_sequence(libclass, ns, nsub=None, nsamp=1):
         sq = [Categorical(probs=pStart).sample() + 1]
         for bid in range(1, nsub):
             prev = sq[-1]
-            # pT = libclass.pT(prev) #TODO - need to implement
+            #pT = libclass.pT(prev) #TODO - need to implement
             pT = torch.ones(libclass.N, requires_grad=True)
+            print('pT shape: ', pT.shape)
             sq.append(Categorical(probs=pT).sample() + 1)
         sq = torch.tensor(sq)
-        samps.append(sq.view(1,-1))
-    samps = torch.cat(samps)
+        samps.append(sq)
 
     return samps
 
@@ -143,8 +136,11 @@ def sample_relation_type(libclass, prev_strokes):
     rtype = types[indx.item()] # TODO - update; this is not great practice
 
     if rtype == 'unihist':
-        data_id = torch.tensor([stroke_num])
-        gpos = libclass.Spatial.sample(data_id)
+        #data_id = torch.tensor([stroke_num])
+        #gpos = libclass.Spatial.sample(data_id)
+        warnings.warn('Spatial.sample needs to be fixed... using fake sample '
+                      'for now.')
+        gpos = torch.tensor([[4.2, -4.2]], requires_grad=True)
         R = RelationIndependent(rtype, nprev, gpos)
     elif rtype in ['start', 'end']:
         # sample random attach spot uniformly
@@ -180,10 +176,12 @@ def sample_relation_type(libclass, prev_strokes):
 
 def sample_shape_type(libclass, subid):
     """
+    Sample the control points for each sub-stroke
 
     :param libclass: [Library] library class instance
-    :param subid: [(k,) array] vector of sub-stroke ids
+    :param subid: [(k,) tensor] vector of sub-stroke ids
     :return:
+        bspline_stack: [() tensor] TODO
     """
     # check that it is a vector
     assert len(subid.shape) == 1
@@ -216,10 +214,12 @@ def sample_shape_type(libclass, subid):
 
 def sample_invscale_type(libclass, subid):
     """
+    Sample the scale parameters for each sub-stroke
 
     :param libclass: [Library] library class instance
-    :param subid: [(k,) array] vector of sub-stroke ids
+    :param subid: [(k,) tensor] vector of sub-stroke ids
     :return:
+        invscales: [() tensor] TODO
     """
     # check that it is a vector
     assert len(subid.shape) == 1
