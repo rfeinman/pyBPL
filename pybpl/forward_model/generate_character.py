@@ -22,7 +22,7 @@ def generate_character(libclass, ns=None):
         # sample the number of sub-strokes
         nsub = CPD.sample_nsub(libclass, ns)
         # sample the sub-stroke sequence. Access 0-th element since nsamp=1
-        template.S[i].ids = CPD.sample_sequence(libclass, ns, nsub)[0]
+        template.S[i].ids = CPD.sample_sequence(libclass, nsub)[0]
         # sample control points for each sub-stroke in the sequence
         template.S[i].shapes_type = CPD.sample_shape_type(
             libclass, template.S[i].ids
@@ -33,5 +33,5 @@ def generate_character(libclass, ns=None):
         )
         # sample the relation of this stroke to previous strokes
         template.S[i].R = CPD.sample_relation_type(libclass, template.S[:i])
-        
+
     return template, lambda: generate_exemplar(template, libclass)

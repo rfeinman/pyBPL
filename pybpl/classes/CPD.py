@@ -20,7 +20,7 @@ from ..rendering import bspline_gen_s
 
 def sample_number(libclass, nsamp=1):
     """
-    Sample a vector of stroke counts
+    Sample a stroke count, or a vector of stroke counts
 
     :param libclass: [Library] library class instance
     :param nsamp: [int] number of samples to draw
@@ -35,8 +35,10 @@ def sample_number(libclass, nsamp=1):
     ns = Categorical(probs=pkappa).sample(torch.Size([nsamp])) + 1
     # make sure ns is a vector
     assert len(ns.shape) == 1
+    # convert vector to scalar if nsamp=1
+    ns = torch.squeeze(ns)
 
-    return torch.squeeze(ns)
+    return ns
 
 def score_number(libclass, ns):
     """
@@ -55,43 +57,39 @@ def score_number(libclass, ns):
 # Sequence of sub-strokes model
 # ----
 
-def sample_nsub(libclass, ns):
+def sample_nsub(libclass, ns, nsamp=1):
     """
-    Sample the substroke count for each stroke
+    Sample a sub-stroke count, or a vector of sub-stroke counts
 
     :param libclass: [Library] library class instance
-    :param ns: [(n,) tensor] vector of stroke counts. scalar if n=1
-    :return:
-        nsub: [(n,) tensor] vector of substroke counts. scalar if n=1
-    """
-    # probability of each sub-stroke count, conditioned on the number of strokes
-    # NOTE: there will be len(ns) probability vectors
-    # NOTE: subtract 1 from stroke counts to get Python index
-    pvec = libclass.pmat_nsub[ns-1]
-    # make sure pvec is a matrix
-    assert len(pvec.shape) in [1, 2]
-    # sample from the categorical distribution. Add 1 to 0-indexed samples
-    nsub = Categorical(probs=pvec).sample() + 1
-
-    return torch.squeeze(nsub)
-
-def sample_sequence(libclass, ns, nsub=None, nsamp=1):
-    """
-    Sample the sequence of substrokes
-
-    :param libclass: [Library] library class instance
-    :param ns: [tensor] scalar; stroke count
-    :param nsub: [tensor] scalar; substroke count
+    :param ns: [tensor] stroke count. scalar
     :param nsamp: [int] number of samples to draw
     :return:
-        samps: [(nsamp, nsub)]
+        nsub: [(n,) tensor] vector of sub-stroke counts. scalar if nsamp=1
     """
-    assert ns.shape == torch.Size([]), \
-        "parameter 'ns' must be a scalar"
+    # probability of each sub-stroke count, conditioned on the number of strokes
+    # NOTE: subtract 1 from stroke counts to get Python index
+    pvec = libclass.pmat_nsub[ns-1]
+    # make sure pvec is a vector
+    assert len(pvec.shape) == 1
+    # sample from the categorical distribution. Add 1 to 0-indexed samples
+    nsub = Categorical(probs=pvec).sample(torch.Size([nsamp])) + 1
+    # convert vector to scalar if nsamp=1
+    nsub = torch.squeeze(nsub)
 
-    if nsub is None:
-        # sample the sub-stroke count
-        nsub = sample_nsub(libclass, ns)
+    return nsub
+
+def sample_sequence(libclass, nsub, nsamp=1):
+    """
+    Sample the sequence of sub-strokes
+
+    :param libclass: [Library] library class instance
+    :param nsub: [tensor] scalar; sub-stroke count
+    :param nsamp: [int] number of samples to draw
+    :return:
+        samps: [list of tensors] list of sub-stroke sequences
+    """
+    # nsub should be a scalar
     assert nsub.shape == torch.Size([])
     # set pStart variable
     pStart = torch.exp(libclass.logStart)
