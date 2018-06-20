@@ -11,8 +11,8 @@ from .spatial_hist import SpatialHist
 
 class SpatialModel(object):
     """
-    Stores a set of SpatialHist's, one for each stroke position, and can
-    evaluate the likelihood/sample new positions.
+    Stores a set of SpatialHist's, one for each stroke number. Can
+    evaluate the likelihood of a stroke position and sample new positions.
     """
 
     def __init__(
@@ -138,17 +138,16 @@ class SpatialModel(object):
         assert len(data_id.shape) == 1
         nsamp = len(data_id)
         new_id = self.__map_indx(data_id)
-        print('new_id: ', new_id)
 
         # for each stroke id
         samples = torch.zeros(nsamp, 2)
         for sid in range(self.last_model_id):
-            # TODO - fix this
             sel = new_id == sid
-            print('sel: ', sel)
             nsel = torch.sum(sel)
-            samp, _, _ = self.list_SH[sid].sample(nsel.item())
-            samples[new_id==sid] = samp
+            # if nsel > 0 then sample
+            if nsel.byte():
+                samp, _, _ = self.list_SH[sid].sample(nsel.item())
+                samples[sel] = samp.float()
 
         return samples
 
