@@ -91,22 +91,27 @@ def sample_sequence(libclass, nsub, nsamp=1):
     """
     # nsub should be a scalar
     assert nsub.shape == torch.Size([])
-    # set pStart variable
-    pStart = torch.exp(libclass.logStart)
-    warnings.warn(
-        'pTransition unimplemented; using uniform transition prob'
-    )
+
     samps = []
     for _ in range(nsamp):
-        sq = [Categorical(probs=pStart).sample() + 1]
-        for bid in range(1, nsub):
-            prev = sq[-1]
-            #pT = libclass.pT(prev) #TODO - need to implement
-            pT = torch.ones(libclass.N, requires_grad=True)
-            print('pT shape: ', pT.shape)
-            sq.append(Categorical(probs=pT).sample() + 1)
-        sq = torch.tensor(sq)
-        samps.append(sq)
+        # set initial transition probabilities
+        pT = torch.exp(libclass.logStart)
+        # sub-stroke sequence is a list
+        seq = []
+        # step through and sample 'nsub' sub-strokes
+        for i in range(nsub):
+            # sample the sub-stroke
+            ss = Categorical(probs=pT).sample()
+            seq.append(ss)
+            # update transition probabilities; condition on previous sub-stroke
+            pT = libclass.pT(ss)
+        # convert list into tensor
+        seq = torch.tensor(seq)
+        samps.append(seq.view(1,-1))
+    # concatenate list of samples into tensor (matrix)
+    samps = torch.cat(samps)
+    # if nsamp=1 this should be a vector
+    samps = torch.squeeze(samps, dim=0)
 
     return samps
 

@@ -21,8 +21,8 @@ def generate_character(libclass, ns=None):
     for i in range(ns):
         # sample the number of sub-strokes
         nsub = CPD.sample_nsub(libclass, ns)
-        # sample the sub-stroke sequence. Access 0-th element since nsamp=1
-        template.S[i].ids = CPD.sample_sequence(libclass, nsub)[0]
+        # sample the sub-stroke sequence
+        template.S[i].ids = CPD.sample_sequence(libclass, nsub)
         # sample control points for each sub-stroke in the sequence
         template.S[i].shapes_type = CPD.sample_shape_type(
             libclass, template.S[i].ids
