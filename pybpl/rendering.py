@@ -19,24 +19,6 @@ def offset_stk(traj,offset):
     stk = traj - sub
     return stk
 
-
-def to_motor(shapes,invscales,first_pos):
-    vanilla_traj = []
-    motor = []
-    ncpt,_,n = shapes.shape
-    for i in range(n):
-        shapes[:,:,i] = invscales[i] * shapes[:,:,i]
-        vanilla_traj.append(get_stk_from_bspline(shapes[:,:,i]))
-
-        #calculate offset
-        if i == 0:
-            offset = vanilla_traj[i][0,:] - first_pos
-        else:
-            offset = vanilla_traj[i-1][0,:] - motor[i-1][-1,:]
-        motor.append(rendering.offset_stk(vanilla_traj[i],offset))
-    return motor
-
-
 def apply_warp(MP):
     motor_unwarped = MP.motor
     if MP.A == []:
@@ -44,7 +26,6 @@ def apply_warp(MP):
     else:
         #TODO - motor warped
         return []
-
 
 def space_motor_to_img(pt): #TODO
     error("not implemented yet")
