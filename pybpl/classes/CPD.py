@@ -136,7 +136,7 @@ def sample_relation_type(libclass, prev_strokes):
     else:
         indx = Categorical(probs=libclass.rel['mixprob']).sample()
 
-    rtype = types[indx.item()] # TODO - update; this is not great practice
+    rtype = types[indx]
 
     if rtype == 'unihist':
         data_id = torch.tensor([stroke_num])
@@ -152,7 +152,7 @@ def sample_relation_type(libclass, prev_strokes):
         probs = torch.ones(nprev, requires_grad=True)
         attach_spot = Categorical(probs=probs).sample()
         # sample random subid spot uniformly
-        nsub = prev_strokes[attach_spot.item()].nsub
+        nsub = prev_strokes[attach_spot].nsub
         probs = torch.ones(nsub, requires_grad=True)
         subid_spot = Categorical(probs=probs).sample()
 
