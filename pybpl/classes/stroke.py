@@ -27,8 +27,8 @@ class Stroke(object):
         """
         self.refresh_listener()
         if previousStroke is not None:
-            # TODO - verify that copying works as expected
-            self.myType = copy.deepcopy(previousStroke.myType)
+            assert isinstance(previousStroke, StrokeType)
+            self.myType = previousStroke.myType
         else:
             self.myType = StrokeType()
 
@@ -37,20 +37,29 @@ class Stroke(object):
         self.invscales_token = []
         self.shapes_token = []
 
-        self.lh = None
-        self.cache_current = False
-
     @property
     def ids(self):
         return self.myType.ids
+
+    @ids.setter
+    def ids(self, val):
+        self.myType.ids = val
 
     @property
     def invscales_type(self):
         return self.myType.invscales_type
 
+    @invscales_type.setter
+    def invscales_type(self, val):
+        self.myType.invscales_type = val
+
     @property
     def shapes_type(self):
         return self.myType.shapes_type
+
+    @shapes_type.setter
+    def shapes_type(self, val):
+        self.myType.shapes_type = val
 
     @property
     def R(self):
@@ -60,16 +69,8 @@ class Stroke(object):
 
         return out
 
-    def set_ids(self, val):
-        self.myType.ids = val
-
-    def set_invscales_type(self, val):
-        self.myType.invscales_type = val
-
-    def set_shapes_type(self, val):
-        self.myType.shapes_type = val
-
-    def set_R(self, val):
+    @R.setter
+    def R(self, val):
         self.myType.R = val
         if (self.myType.R is not None) and (self.myType.R.type == 'mid'):
             self.myType.R.eval_spot_token = []
@@ -85,18 +86,11 @@ class Stroke(object):
     @property
     def motor(self):
         """
-        Compute the [x,y,t] trajectory of this stroke, either from cached item
-        or from scratch
+        Compute the [x,y,t] trajectory of this stroke
         """
-        assert self.onListener
-        if self.cache_current:
-            motor = self.cache_motor
-        else:
-            motor = vanilla_to_motor(
-                self.shapes_token, self.invscales_token, self.pos_token
-            )
-            self.cache_motor = motor
-            self.cache_current = True
+        motor = vanilla_to_motor(
+            self.shapes_token, self.invscales_token, self.pos_token
+        )
 
         return motor
 
@@ -106,16 +100,6 @@ class Stroke(object):
         TODO
         """
         raise NotImplementedError('motor_spline method not yet implemented.')
-
-    def saveobj(self):
-        Y = copy.deepcopy(self)
-        del Y.lh
-
-    def onListener(self):
-        return True
-
-    def refresh_listener(self):
-        return
 
 def vanilla_to_motor(shapes, invscales, first_pos):
     vanilla_traj = []
