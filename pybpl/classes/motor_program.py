@@ -5,7 +5,7 @@ from __future__ import print_function, division
 import copy
 import torch
 
-from .stroke import Stroke
+from . import Stroke, UtilMP
 from ..parameters import defaultps
 from .. import rendering
 
@@ -99,15 +99,18 @@ class MotorProgram(object):
 
     def __apply_render(self):
         """
-
         TODO - this needs to be differentiable
+        motor
         :return:
             pimg: TODO
             ink_off_page: TODO
         """
-        ping, ink_off_page = rendering.motor_to_pimg(self)
+        motor_warped = self.__aply_warp()
+        flat_warped = UtilMP.flatten_substrokes(motor_warped)
+        pimg, ink_off_page = rendering.render_image(
+            motor_warped, self.epsilon, self.blur_sigma, MP.parameters
+        )
 
         return pimg, ink_off_page
-
 
 

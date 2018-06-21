@@ -19,14 +19,6 @@ def offset_stk(traj,offset):
     stk = traj - sub
     return stk
 
-def apply_warp(MP):
-    motor_unwarped = MP.motor
-    if MP.A == []:
-        return motor_unwarped
-    else:
-        #TODO - motor warped
-        return []
-
 def space_motor_to_img(pt): #TODO
     error("not implemented yet")
     return new_pt
@@ -37,16 +29,7 @@ def render_image(cell_traj, epsilon, blur_sigma, PM):
     ink = PM.ink_pp
     max_dist = PM.ink_max_dist
 
-
     return prob_on, ink_off_page
-
-def motor_to_pimg(MP):
-    motor_warped = rendering.apply_warp(MP)
-
-    pimg, ink_off_page = rendering.render_image(
-        motor_warped, MP.epsilon, MP.blur_sigma, MP.parameters
-    )
-    return pimg, ink_off_page
 
 def vectorized_bspline_coeff(vi,vs):
     assert vi.shape == vs.shape
