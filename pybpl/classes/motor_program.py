@@ -6,29 +6,37 @@ import copy
 import torch
 
 from .stroke import Stroke
+from ..parameters import defaultps
 
 
-class MotorProgram(object): 
-    def __init__(self, args):
-        #set variables:
+class MotorProgram(object):
+    po = {'epsilon', 'blur_sigma', 'A'}
+
+    def __init__(self, arg):
         self.I = []
         self.S = []
         self.parameters = []
+        self.epsilon = None
+        self.blur_sigma = None
+        self.A = []
 
-        if isinstance(args, torch.Tensor):
-            assert args.data.shape == torch.Size([])
-            ns = args
-            for i in range(ns):
+        if isinstance(arg, torch.Tensor):
+            assert arg.shape == torch.Size([]), \
+                'Tensor parameter must be a scalar'
+            for _ in range(arg):
                 self.S.append(Stroke())
-        elif isinstance(args, MotorProgram):
-            Template = args
-            for i in range(Template.ns):
-                self.S.append(Stroke(Template.S[i]))
+            self.parameters = defaultps()
+        elif isinstance(arg, MotorProgram):
+            template = arg
+            for i in range(template.ns):
+                self.S.append(Stroke(template.S[i]))
             # this might break if mcmc comes online
-            self.parameters = copy.copy(Template.parameters)
+            self.parameters = copy.copy(template.parameters)
         else:
-            raise TypeError("Invalid constructor pararmeter; must be either a "
-                            "torch.Tensor or MotorProgram")
+            raise TypeError(
+                "Invalid constructor; must be either a torch.Tensor or "
+                "MotorProgram"
+            )
 
 
     #other methods:
