@@ -13,14 +13,14 @@ class Relation(object):
 
 class RelationIndependent(Relation):
     def __init__(self, rtype, nprev, gpos=[]):
-        self.rtype = rtype
+        self.type = rtype
         self.nprev = nprev
         self.gpos = gpos
         assert self.validType
 
 class RelationAttach(Relation):
     def __init__(self, rtype, nprev, attach_spot):
-        self.rtype = rtype
+        self.type = rtype
         self.nprev = nprev
         self.attach_spot = attach_spot
         assert self.validType
