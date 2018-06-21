@@ -1,39 +1,40 @@
-#relation stuff
+"""
+Relation class definitions
+"""
 from __future__ import print_function, division
 
+from ..rendering import bspline_eval
+
+
 class Relation(object):
-    types_allowed = ['unihist','start','end','mid']
+    types_allowed = ['unihist', 'start', 'end', 'mid']
+
+    def __init__(self, type, nprev):
+        self.type = type
+        self.nprev = nprev
+        assert self.validType
 
     def validType(self):
-        return self.rtype in types_allowed
-
-
-    #self.type = []
-    #self.nprev
+        return self.type in self.types_allowed
 
 class RelationIndependent(Relation):
-    def __init__(self, rtype, nprev, gpos=[]):
-        self.type = rtype
-        self.nprev = nprev
+    def __init__(self, type, nprev, gpos=None):
+        Relation.__init__(self, type, nprev)
         self.gpos = gpos
-        assert self.validType
 
 class RelationAttach(Relation):
-    def __init__(self, rtype, nprev, attach_spot):
-        self.type = rtype
-        self.nprev = nprev
+    def __init__(self, type, nprev, attach_spot):
+        Relation.__init__(self, type, nprev)
         self.attach_spot = attach_spot
-        assert self.validType
 
 class RelationAttachAlong(RelationAttach):
-    def __init__(self, rtype, nprev, attach_spot, nsub, subid_spot, ncpt):
-        # hope this works
-        super(RelationAttachAlong,self).__init__(rtype, nprev, attach_spot)
+    def __init__(self, type, nprev, attach_spot, nsub, subid_spot, ncpt):
+        RelationAttach.__init__(self, type, nprev, attach_spot)
         self.subid_spot = subid_spot
         self.ncpt = ncpt
         self.nsub = nsub
-        eval_spot_type = []
-        eval_spot_token = []
+        self.eval_spot_type = []
+        self.eval_spot_token = []
 
 def get_attach_point(R, prev_strokes):
     """
@@ -45,6 +46,18 @@ def get_attach_point(R, prev_strokes):
     :return:
         pos: TODO
     """
-    pos = None
+    if R.type == 'unihist':
+        pos = R.gpos
+    elif R.type == 'start':
+        subtraj = prev_strokes[R.attach_spot].motor[0]
+        pos = subtraj[0]
+    elif R.type == 'end':
+        subtraj = prev_strokes[R.attach_spot].motor[-1]
+        pos = subtraj[-1]
+    elif R.type == 'mid':
+        bspline = prev_strokes[R.attach_spot].motor_spline[:,:,R.subid_spot]
+        pos = bspline_eval[R.eval_spot_token, bspline]
+    else:
+        raise TypeError('invalid relation')
 
     return pos
