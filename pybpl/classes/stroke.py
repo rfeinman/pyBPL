@@ -17,7 +17,7 @@ class Stroke(object):
         This might be shared between multiple strokes (see MotorProgram)
     """
     # tracked properties
-    po = {'pos_token', 'invscales_token', 'shapes_token'}
+    __po = {'pos_token', 'invscales_token', 'shapes_token'}
 
     def __init__(self, previousStroke=None):
         """
@@ -25,7 +25,6 @@ class Stroke(object):
 
         :param previousStroke: [Stroke] the previous stroke
         """
-        self.refresh_listener()
         if previousStroke is not None:
             assert isinstance(previousStroke, StrokeType)
             self.myType = previousStroke.myType
