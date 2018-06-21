@@ -1,11 +1,11 @@
 """
-Motor program.
+Motor program class definition
 """
 from __future__ import print_function, division
 import copy
 import torch
 
-from pybpl.classes.stroke import Stroke
+from .stroke import Stroke
 
 
 class MotorProgram(object): 
