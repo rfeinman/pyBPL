@@ -4,8 +4,8 @@ Stroke class definition.
 from __future__ import print_function, division
 import copy
 
-from .stroke_type import StrokeType
-from .. import rendering
+from pybpl.classes import StrokeType
+from pybpl.rendering import offset_stk, get_stk_from_bspline
 
 
 class Stroke(object):
@@ -113,6 +113,6 @@ def vanilla_to_motor(shapes, invscales, first_pos):
             offset = vanilla_traj[i][0,:] - first_pos
         else:
             offset = vanilla_traj[i-1][0,:] - motor[i-1][-1,:]
-        motor.append(rendering.offset_stk(vanilla_traj[i],offset))
+        motor.append(offset_stk(vanilla_traj[i],offset))
 
     return motor

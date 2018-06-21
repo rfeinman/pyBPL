@@ -5,9 +5,9 @@ from __future__ import print_function, division
 import copy
 import torch
 
-from . import Stroke, UtilMP
-from ..parameters import defaultps
-from .. import rendering
+from pybpl.classes import Stroke, UtilMP
+from pybpl.parameters import defaultps
+from pybpl.rendering import render_image
 
 
 class MotorProgram(object):
@@ -70,9 +70,9 @@ class MotorProgram(object):
         if list_sid is None:
             list_sid = range(self.ns)
         present = [self.S[i].R is not None for i in list_sid]
-        assert np.all(present) or not np.any(present), \
+        assert all(present) or not any(present), \
             'error: all relations should be present or not'
-        out = np.all(present)
+        out = all(present)
 
         return out
 
@@ -107,8 +107,8 @@ class MotorProgram(object):
         """
         motor_warped = self.__aply_warp()
         flat_warped = UtilMP.flatten_substrokes(motor_warped)
-        pimg, ink_off_page = rendering.render_image(
-            motor_warped, self.epsilon, self.blur_sigma, MP.parameters
+        pimg, ink_off_page = render_image(
+            motor_warped, self.epsilon, self.blur_sigma, self.parameters
         )
 
         return pimg, ink_off_page

@@ -7,7 +7,6 @@ import torch
 
 from pybpl.classes import MotorProgram, CPD
 from pybpl.forward_model import generate_exemplar
-from pybpl.parameters import defaultps
 
 
 def generate_character(libclass, ns=None):

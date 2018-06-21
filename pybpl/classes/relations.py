@@ -3,7 +3,7 @@ Relation class definitions
 """
 from __future__ import print_function, division
 
-from ..rendering import bspline_eval
+from pybpl.rendering import bspline_eval
 
 
 class Relation(object):
