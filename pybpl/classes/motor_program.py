@@ -7,18 +7,19 @@ import torch
 
 from .stroke import Stroke
 from ..parameters import defaultps
+from .. import rendering
 
 
 class MotorProgram(object):
-    po = {'epsilon', 'blur_sigma', 'A'}
+    __po = {'epsilon', 'blur_sigma', 'A'}
 
     def __init__(self, arg):
-        self.I = []
+        self.I = None
         self.S = []
-        self.parameters = []
+        self.parameters = None
         self.epsilon = None
         self.blur_sigma = None
-        self.A = []
+        self.A = None
 
         if isinstance(arg, torch.Tensor):
             assert arg.shape == torch.Size([]), \
@@ -34,43 +35,79 @@ class MotorProgram(object):
             self.parameters = copy.copy(template.parameters)
         else:
             raise TypeError(
-                "Invalid constructor; must be either a torch.Tensor or "
+                "Invalid constructor; must be either a torch.Tensor or a "
                 "MotorProgram"
             )
 
-
-    #other methods:
-
-    #get number of strokes
     @property
     def ns(self):
+        # get number of strokes
         return len(self.S)
 
-    #get motor??
+    @property
+    def motor(self):
+        # get motor trajectories for each stroke
+        return [stroke.motor for stroke in self.S]
 
-    #get.motor(this)
-    #get.motor_warped(this)
-    #get.pimg(this)
-    #get.ink_off_page(this)
-    #get.cache_grand_current(this)
-    #has_relations(this,last_sid)
-    #clear_relations(this)
-
-    #[pimg, ink_off_page] = apply_render(this) -- this is the thing that
-    # needs to be differentiable
-
-    def apply_render(self):
-        ping, ink_off_page = rendering.motor_to_pimg(self)
-        return pimg, ink_off_page
+    @property
+    def motor_warped(self):
+        return self.__apply_warp()
 
     @property
     def pimg(self):
-        return self.apply_render()[0] #hopefully this will work
+        # get probability map of an image
+        pimg, _ = self.__apply_render()
 
-    #this is probably not the correct way to do this. May mess with rendering.
+        return pimg
+
     @property
     def ink_off_page(self):
-        return self.apply_render()[1]
+        _, ink_off_page = self.__apply_render()
+
+        return ink_off_page
+
+    def has_relations(self, list_sid=None):
+        if list_sid is None:
+            list_sid = range(self.ns)
+        present = [self.S[i].R is not None for i in list_sid]
+        assert np.all(present) or not np.any(present), \
+            'error: all relations should be present or not'
+        out = np.all(present)
+
+        return out
+
+    def clear_relations(self):
+        for i in range(self.ns):
+            self.S[i].R = None
+        return
+
+    def clear_shapes_type(self):
+        for i in range(self.ns):
+            self.S[i].shapes_type = None
+
+    def istied(self, varargin):
+        raise NotImplementedError("'istied' method not yet implemented")
+
+    def __apply_warp(self):
+        motor_unwarped = self.motor
+        if self.A is None:
+            return motor_unwarped
+        else:
+            raise NotImplementedError(
+                "'apply_warp' method not yet implemented."
+            )
+
+    def __apply_render(self):
+        """
+
+        TODO - this needs to be differentiable
+        :return:
+            pimg: TODO
+            ink_off_page: TODO
+        """
+        ping, ink_off_page = rendering.motor_to_pimg(self)
+
+        return pimg, ink_off_page
 
 
 
