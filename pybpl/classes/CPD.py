@@ -87,7 +87,8 @@ def sample_sequence(libclass, nsub, nsamp=1):
     :param nsub: [tensor] scalar; sub-stroke count
     :param nsamp: [int] number of samples to draw
     :return:
-        samps: [list of tensors] list of sub-stroke sequences
+        samps: [(nsamp, nsub) tensor] matrix of sequence samples. vector if
+                nsamp=1
     """
     # nsub should be a scalar
     assert nsub.shape == torch.Size([])
