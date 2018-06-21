@@ -38,7 +38,7 @@ motor path and outputs an image, is unimplemented.
 ### Library
 
 The library data is now stored as a series of `.mat` files in the subfolder
-`library/`. Currently the only piece of data missing is the `Spatial` entry of
-the library. This will be dealt with soon. I've included a Matlab script,
-`process_library.m`, which can be run with the original BPL repository to obtain
-these data files. Library loading is now functional.
+`library/`. I've included a Matlab script, `process_library.m`, which can be
+run with the original BPL repository to obtain these data files.
+Library loading is fully functional... see loadlib.py for an example of how to
+load the library.
