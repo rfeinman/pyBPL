@@ -20,7 +20,7 @@ export PYTHONPATH="/path/to/pyPBL:$PYTHONPATH"
 ## Demo
 Currently there are two working demos.
 
-### Generate character type
+#### Generate character type
 You can generate a character type (i.e., a motor program) by
 running the following command from the root folder:
 ```
@@ -29,9 +29,9 @@ python demo_generate_character.py
 At the moment, the program will simply generate the type and exit, as there
 is no way to visualize the type.
 
-### Optimize character type
+#### Optimize character type
 You can generate a character type and then optimize its parameters to maximize
-the likelihood of the character under the prior by running the following
+the likelihood of the type under the prior by running the following
 command from the root folder:
 ```
 python demo_optimize_type.py
@@ -41,7 +41,7 @@ strokes you would like the generated character type to have.
 
 ## Status notes
 
-### General
+#### General
 
 Most things which exist are implemented. CPD.py should work,
 but has some shortcuts taken, meaning it is not entirely faithful to the
@@ -49,7 +49,7 @@ original model. rendering.py is incomplete. The conversion from control points
 to a motor path is implemented, but the differential rendering, which takes a
 motor path and outputs an image, is unimplemented.
 
-### Library
+#### Library
 
 The library data is stored as a series of `.mat` files in the subfolder
 `library/`. I've included a Matlab script, `process_library.m`, which can be
