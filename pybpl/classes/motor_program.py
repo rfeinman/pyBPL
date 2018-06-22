@@ -22,9 +22,13 @@ class MotorProgram(object):
         self.blur_sigma = None
         self.A = None
 
-        if isinstance(arg, torch.Tensor):
-            assert arg.shape == torch.Size([]), \
-                'Tensor parameter must be a scalar'
+        if isinstance(arg, int) or isinstance(arg, torch.Tensor):
+            if isinstance(arg, torch.Tensor):
+                assert arg.shape == torch.Size([]), \
+                    'Tensor parameter must be a scalar'
+                assert arg.dtype in \
+                       [torch.uint8, torch.int8, torch.int16, torch.in32,
+                        torch.int64], 'Tensor parameter must be an integer'
             for _ in range(arg):
                 self.S.append(Stroke())
             self.parameters = defaultps()
@@ -36,8 +40,8 @@ class MotorProgram(object):
             self.parameters = copy.copy(template.parameters)
         else:
             raise TypeError(
-                "Invalid constructor; must be either a torch.Tensor or a "
-                "MotorProgram"
+                "Invalid constructor; must be either an integer, a "
+                "torch.Tensor or a MotorProgram"
             )
 
     @property
@@ -106,7 +110,7 @@ class MotorProgram(object):
             pimg: TODO
             ink_off_page: TODO
         """
-        motor_warped = self.__aply_warp()
+        motor_warped = self.__apply_warp()
         flat_warped = UtilMP.flatten_substrokes(motor_warped)
         pimg, ink_off_page = render_image(
             motor_warped, self.epsilon, self.blur_sigma, self.parameters
