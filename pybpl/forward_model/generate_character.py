@@ -3,10 +3,8 @@ Generate character
 """
 
 from __future__ import print_function, division
-import torch
 
 from pybpl.classes import MotorProgram, CPD
-from pybpl.forward_model import generate_exemplar
 
 
 def generate_character(libclass, ns=None):
@@ -32,4 +30,4 @@ def generate_character(libclass, ns=None):
         # sample the relation of this stroke to previous strokes
         template.S[i].R = CPD.sample_relation_type(libclass, template.S[:i])
 
-    return template, lambda: generate_exemplar(template, libclass)
+    return template

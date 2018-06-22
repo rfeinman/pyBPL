@@ -3,7 +3,7 @@ Parameters...
 """
 from __future__ import division, print_function
 
-class defaultps():
+class defaultps(object):
     def __init__(self):
         # Library to use
         self.libname = 'library'

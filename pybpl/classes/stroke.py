@@ -32,9 +32,10 @@ class Stroke(object):
             self.myType = StrokeType()
 
         # token-level parameters
-        self.pos_token = []
-        self.invscales_token = []
-        self.shapes_token = []
+        self.pos_token = None
+        self.invscales_token = None
+        self.shapes_token = None
+        self.eval_spot_token = None
 
     @property
     def ids(self):
