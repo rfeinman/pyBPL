@@ -9,10 +9,11 @@ import torch
 from torch.distributions.categorical import Categorical
 from torch.distributions.multivariate_normal import MultivariateNormal
 from torch.distributions.gamma import Gamma
+from torch.distributions.uniform import Uniform
 
 from pybpl.classes import (RelationIndependent, RelationAttach,
                            RelationAttachAlong, CPDUnif)
-from pybpl.rendering import bspline_gen_s
+from pybpl.splines import bspline_gen_s
 
 
 # ----
@@ -159,15 +160,12 @@ def sample_relation_type(libclass, prev_strokes):
         nsub = prev_strokes[attach_spot].nsub
         probs = torch.ones(nsub, requires_grad=True)
         subid_spot = Categorical(probs=probs).sample()
-
         R = RelationAttachAlong(
             rtype, nprev, attach_spot, nsub, subid_spot, ncpt
         )
-
-        # still to be fixed
-        warnings.warn('Setting relation eval_spot_type to be fixed...')
+        # set R.eval_spot_type
         _, lb, ub = bspline_gen_s(ncpt, 1)
-        R.eval_spot_type = lb + np.random.uniform() * (ub - lb)  # TODO
+        R.eval_spot_type = Uniform(lb, ub).sample()
     else:
         raise TypeError('invalid relation')
 
