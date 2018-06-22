@@ -65,7 +65,7 @@ def bspline_gen_s(nland, neval=200):
     else:
         s = torch.linspace(lb, ub, neval)
 
-    return s, ub, lb
+    return s, lb, ub
 
 def fit_bspline_to_traj(stk, nland):
     """

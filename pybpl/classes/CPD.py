@@ -316,7 +316,7 @@ def sample_relation_token(libclass, eval_spot_type):
                                                    Variable(torch.ones(1)))
 
     ncpt = libclass.ncpt
-    _, ub, lb = bspline_gen_s(ncpt, 1);  # need to fix
+    _, lb, ub = bspline_gen_s(ncpt, 1);  # need to fix
     while eval_spot_token.data[0] < lb or eval_spot_token.data[0] > ub:
         print("lb:", lb)
         print("ub:", ub)
