@@ -11,9 +11,9 @@ from torch.distributions.multivariate_normal import MultivariateNormal
 from torch.distributions.gamma import Gamma
 from torch.distributions.uniform import Uniform
 
-from pybpl.classes import (RelationIndependent, RelationAttach,
-                           RelationAttachAlong, CPDUnif)
-from pybpl.classes.relations import get_attach_point
+from .relations import (RelationIndependent, RelationAttach,
+                        RelationAttachAlong, get_attach_point)
+from . import CPDUnif
 from pybpl.splines import bspline_gen_s
 
 

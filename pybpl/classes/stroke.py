@@ -3,7 +3,7 @@ Stroke class definition.
 """
 from __future__ import print_function, division
 
-from pybpl.classes import StrokeType
+from .stroke_type import StrokeType
 from pybpl.rendering import offset_stk
 from pybpl.splines import get_stk_from_bspline
 

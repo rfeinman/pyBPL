@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import torch
 
-from pybpl.classes import SpatialHist
+from .spatial_hist import SpatialHist
 
 
 class SpatialModel(object):

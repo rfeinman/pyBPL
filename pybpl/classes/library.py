@@ -5,7 +5,9 @@ import scipy.io as io
 import numpy as np
 import torch
 
-from pybpl.classes import SpatialHist, SpatialModel, CPD
+from .spatial_hist import SpatialHist
+from .spatial_model import SpatialModel
+from . import CPD
 from pybpl.splines import bspline_gen_s
 from pybpl.general_util import aeq
 

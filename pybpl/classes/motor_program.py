@@ -5,7 +5,8 @@ from __future__ import print_function, division
 import copy
 import torch
 
-from pybpl.classes import Stroke, UtilMP
+from .stroke import Stroke
+from . import UtilMP
 from pybpl.parameters import defaultps
 from pybpl.rendering import render_image
 
