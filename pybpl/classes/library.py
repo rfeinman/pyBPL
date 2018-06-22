@@ -61,7 +61,8 @@ class Library(object):
         self.check_consistent()
 
         # Caching structure
-        self.__create_eval_list()
+        warnings.warn('No Library caching structures for now.')
+        #self.__create_eval_list()
 
     def restrict_library(self, keep):
         """

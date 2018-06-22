@@ -329,6 +329,8 @@ def sample_relation_token(libclass, eval_spot_type):
 
     return eval_spot_token
 
+def score_relation_token(libclass, eval_spot_token, eval_spot_type):
+    raise NotImplementedError
 
 def sample_position(libclass, R,
                     prev_strokes):  # check that this does what I want, slicewise
