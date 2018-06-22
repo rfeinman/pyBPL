@@ -4,7 +4,7 @@ Generate character
 
 from __future__ import print_function, division
 
-from pybpl.classes import MotorProgram, CPD
+from ..classes import MotorProgram, CPD
 
 
 def generate_character(libclass, ns=None):

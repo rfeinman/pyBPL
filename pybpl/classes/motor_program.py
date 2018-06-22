@@ -7,8 +7,8 @@ import torch
 
 from .stroke import Stroke
 from . import UtilMP
-from pybpl.parameters import defaultps
-from pybpl.rendering import render_image
+from ..parameters import defaultps
+from ..rendering import render_image
 
 
 class MotorProgram(object):

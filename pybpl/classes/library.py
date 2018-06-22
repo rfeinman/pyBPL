@@ -8,8 +8,8 @@ import torch
 from .spatial_hist import SpatialHist
 from .spatial_model import SpatialModel
 from . import CPD
-from pybpl.splines import bspline_gen_s
-from pybpl.general_util import aeq
+from ..splines import bspline_gen_s
+from ..general_util import aeq
 
 
 class Library(object):

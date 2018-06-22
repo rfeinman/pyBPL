@@ -4,8 +4,8 @@ Stroke class definition.
 from __future__ import print_function, division
 
 from .stroke_type import StrokeType
-from pybpl.rendering import offset_stk
-from pybpl.splines import get_stk_from_bspline
+from ..rendering import offset_stk
+from ..splines import get_stk_from_bspline
 
 
 class Stroke(object):

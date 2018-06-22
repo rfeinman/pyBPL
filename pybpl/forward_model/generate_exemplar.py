@@ -3,7 +3,7 @@ Generate exemplar
 """
 from __future__ import division, print_function
 
-from pybpl.classes import MotorProgram, CPD
+from ..classes import MotorProgram, CPD
 
 
 def generate_exemplar(template, libclass):

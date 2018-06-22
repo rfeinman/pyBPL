@@ -14,7 +14,7 @@ from torch.distributions.uniform import Uniform
 from .relations import (RelationIndependent, RelationAttach,
                         RelationAttachAlong, get_attach_point)
 from . import CPDUnif
-from pybpl.splines import bspline_gen_s
+from ..splines import bspline_gen_s
 
 
 # ----

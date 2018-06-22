@@ -10,7 +10,7 @@ import torch
 from torch.distributions.uniform import Uniform
 from torch.distributions.categorical import Categorical
 
-from pybpl.general_util import aeq
+from ..general_util import aeq
 
 class SpatialHist(object):
     """
