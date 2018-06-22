@@ -5,11 +5,9 @@ from pybpl.forward_model import generate_character
 
 
 def main():
+    print('generating character type...')
     lib = Library(lib_dir='./library')
-    x, y = generate_character(lib)
-    print('generating exemplar:')
-    character = y()
-
+    x = generate_character(lib)
 
 if __name__ == '__main__':
     main()
