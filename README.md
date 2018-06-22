@@ -18,7 +18,7 @@ export PYTHONPATH="/path/to/pyPBL:$PYTHONPATH"
 ```
 
 ## Demo
-Currently there are two working demos.
+Currently there are 2 working demos.
 
 #### Generate character type
 You can generate a character type (i.e., a motor program) by
@@ -26,7 +26,7 @@ running the following command from the root folder:
 ```
 python demo_generate_character.py
 ```
-At the moment, the program will simply generate the type and exit, as there
+At the moment, the script will simply generate the type and exit, as there
 is no way to visualize the type.
 
 #### Optimize character type
