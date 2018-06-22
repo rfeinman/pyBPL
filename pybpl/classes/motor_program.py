@@ -27,7 +27,7 @@ class MotorProgram(object):
                 assert arg.shape == torch.Size([]), \
                     'Tensor parameter must be a scalar'
                 assert arg.dtype in \
-                       [torch.uint8, torch.int8, torch.int16, torch.in32,
+                       [torch.uint8, torch.int8, torch.int16, torch.int32,
                         torch.int64], 'Tensor parameter must be an integer'
             for _ in range(arg):
                 self.S.append(Stroke())
