@@ -1,12 +1,9 @@
 from __future__ import division, print_function
 
 import torch
-from torch.autograd import Variable
-from torch import nn, optim, distributions
+from torch import distributions
 
-from pybpl.classes import MotorProgram, CPD
-from pybpl.generate_exemplar import generate_exemplar
-import numpy as np
+from pybpl.classes import MotorProgram
 import matplotlib.pyplot as plt
 
 dtype = torch.float
