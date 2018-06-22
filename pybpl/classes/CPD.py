@@ -11,7 +11,7 @@ from torch.distributions.multivariate_normal import MultivariateNormal
 from torch.distributions.gamma import Gamma
 
 from pybpl.classes import (RelationIndependent, RelationAttach,
-                           RelationAttachAlong)
+                           RelationAttachAlong, CPDUnif)
 from pybpl.rendering import bspline_gen_s
 
 
@@ -60,7 +60,7 @@ def score_number(libclass, ns):
 
 def sample_nsub(libclass, ns, nsamp=1):
     """
-    Sample a sub-stroke count, or a vector of sub-stroke counts
+    Sample a sub-stroke count (or a vector of sub-stroke counts if nsamp>1)
 
     :param libclass: [Library] library class instance
     :param ns: [tensor] stroke count. scalar
@@ -82,7 +82,7 @@ def sample_nsub(libclass, ns, nsamp=1):
 
 def sample_sequence(libclass, nsub, nsamp=1):
     """
-    Sample the sequence of sub-strokes
+    Sample the sequence of sub-strokes for this stroke
 
     :param libclass: [Library] library class instance
     :param nsub: [tensor] scalar; sub-stroke count
@@ -101,7 +101,7 @@ def sample_sequence(libclass, nsub, nsamp=1):
         # sub-stroke sequence is a list
         seq = []
         # step through and sample 'nsub' sub-strokes
-        for i in range(nsub):
+        for _ in range(nsub):
             # sample the sub-stroke
             ss = Categorical(probs=pT).sample()
             seq.append(ss)
@@ -117,12 +117,14 @@ def sample_sequence(libclass, nsub, nsamp=1):
 
     return samps
 
+
 # ----
 # Relation model (R)
 # ----
 
 def sample_relation_type(libclass, prev_strokes):
     """
+    Sample a relation type for this stroke
 
     :param libclass: [Library] library class instance
     :param prev_strokes: [list of Strokes] list of previous strokes
@@ -172,6 +174,7 @@ def sample_relation_type(libclass, prev_strokes):
     return R
 
 
+
 # ----
 # Shape model (x)
 # ----
@@ -181,38 +184,67 @@ def sample_shape_type(libclass, subid):
     Sample the control points for each sub-stroke
 
     :param libclass: [Library] library class instance
-    :param subid: [(k,) tensor] vector of sub-stroke ids
+    :param subid: [(nsub,) tensor] vector of sub-stroke ids
     :return:
-        bspline_stack: [() tensor] TODO
+        bspline_stack: [(ncpt, 2, nsub) tensor] sampled spline
     """
     # check that it is a vector
     assert len(subid.shape) == 1
     # record vector length
-    k = len(subid)
+    nsub = len(subid)
+    # if uniform, sample using CPDUnif and return
     if isunif(libclass):
-        # TODO - update; handle this case
-        #bspline_stack = CPDUnif.sample_shape_type(libclass, subid)
-        #return bspline_stack
-        warnings.warn(
-            'isunif=True but CPDUnif not yet implemented... treating as though '
-            'isunif=False for now'
-        )
-
+        bspline_stack = CPDUnif.sample_shape_type(libclass, subid)
+        return bspline_stack
+    # record num control points
+    ncpt = libclass.ncpt
+    # create multivariate normal distribution
     Cov = libclass.shape['Sigma'][:,:,subid].permute([2,0,1])
     mu = libclass.shape['mu'][subid]
-    rows_bspline = MultivariateNormal(mu, Cov).sample()
-    ncpt = libclass.ncpt
-    bspline_stack = torch.zeros((ncpt,2,k), requires_grad=True)
-    for i in range(k):
-        bspline_stack[:, :, i] = rows_bspline[i].view(ncpt, 2)
+    mvn = MultivariateNormal(mu, Cov)
+    # sample points from the multivariate normal distribution
+    rows_bspline = mvn.sample()
+    # convert (nsub, ncpt*2) tensor into (ncpt, 2, nsub) tensor
+    bspline_stack = torch.transpose(rows_bspline,0,1).view(ncpt,2,nsub)
 
     return bspline_stack
+
+def score_shape_type(libclass, bspline_stack, subid):
+    """
+    Score the log-likelihoods of the control points for each sub-stroke
+
+    :param libclass: [Library] library class instance
+    :param bspline_stack: [(ncpt, 2, nsub) tensor] shapes of bsplines
+    :param subid: [(nsub,) tensor] vector of sub-stroke ids
+    :return:
+        ll: [(nsub,) tensor] vector of log-likelihood scores
+    """
+    # check that it is a vector
+    assert len(subid.shape) == 1
+    # record vector length
+    nsub = len(subid)
+    assert bspline_stack.shape[-1] == nsub
+    # if uniform, score using CPDUnif and return
+    if isunif(libclass):
+        ll = CPDUnif.score_shape_type(libclass, bspline_stack, subid)
+        return ll
+    # record num control points
+    ncpt = libclass.ncpt
+    # convert (ncpt, 2, nsub) tensor into (nsub, ncpt*2) tensor
+    rows_bspline = torch.transpose(bspline_stack.view(ncpt * 2, nsub),0,1)
+    # create multivariate normal distribution
+    Cov = libclass.shape['Sigma'][:,:,subid].permute([2,0,1])
+    mu = libclass.shape['mu'][subid]
+    mvn = MultivariateNormal(mu, Cov)
+    # score points using the multivariate normal distribution
+    ll = mvn.log_prob(rows_bspline)
+
+    return ll
 
 
 # ----
 # Scale model (y)
 # ----
-
 
 def sample_invscale_type(libclass, subid):
     """
@@ -221,28 +253,52 @@ def sample_invscale_type(libclass, subid):
     :param libclass: [Library] library class instance
     :param subid: [(k,) tensor] vector of sub-stroke ids
     :return:
-        invscales: [() tensor] TODO
+        invscales: [(k,) tensor] vector of scale values
     """
     # check that it is a vector
     assert len(subid.shape) == 1
-
+    # if uniform, sample using CPDUnif and return
     if isunif(libclass):
-        # TODO - update; handle this case
-        #invscales = CPDUnif.sample_shape_type(libclass, subid)
-        #return invscales
-        warnings.warn(
-            'isunif=True but CPDUnif not yet implemented... treating as though '
-            'isunif=False for now'
-        )
+        invscales = CPDUnif.sample_invscale_type(libclass, subid)
+        return invscales
+    # create gamma distribution
     theta = libclass.scale['theta'][subid]
     concentration = theta[:,0]
-    # PyTorch gamma dist uses rate parameter, which is inverse of scale
+    # NOTE: PyTorch gamma dist uses rate parameter, which is inverse of scale
     rate = 1/theta[:,1]
-    invscales = Gamma(concentration, rate).sample()
+    gamma = Gamma(concentration, rate)
+    # sample from the gamma distribution
+    invscales = gamma.sample()
 
     return invscales
 
+def score_invscale_type(libclass, invscales, subid):
+    """
+    Score the log-likelihood of each sub-stroke's scale parameter
 
+    :param libclass:
+    :param invscales:
+    :param subid:
+    :return:
+    """
+    # make sure these are vectors
+    assert len(invscales.shape) == 1
+    assert len(subid.shape) == 1
+    assert len(invscales) == len(subid)
+    # if uniform, score using CPDUnif and return
+    if isunif(libclass):
+        ll = CPDUnif.score_invscale_type(libclass, invscales, subid)
+        return ll
+    # create gamma distribution
+    theta = libclass.scale['theta'][subid]
+    concentration = theta[:,0]
+    # NOTE: PyTorch gamma dist uses rate parameter, which is inverse of scale
+    rate = 1/theta[:,1]
+    gamma = Gamma(concentration, rate)
+    # score points using the gamma distribution
+    ll = gamma.log_prob(invscales)
+
+    return ll
 
 
 
