@@ -5,8 +5,9 @@ import scipy.io as io
 import numpy as np
 import torch
 
-from pybpl.classes import SpatialHist, SpatialModel
+from pybpl.classes import SpatialHist, SpatialModel, CPD
 from pybpl.splines import bspline_gen_s
+from pybpl.general_util import aeq
 
 
 class Library(object):
@@ -60,20 +61,15 @@ class Library(object):
         # Caching structure
         self.__create_eval_list()
 
-    def legacylib(self, oldlib):
-        # TODO - do we need this?
-        return
-
     def restrict_library(self, keep):
         """
         Remove primitives from library, except for those in "keep"
-        TODO
+        TODO - do wee need this?
 
         :param keep: [(N,) array] array of bools; true for an entry if we want
                         to keep that primitive
-        :return: None
         """
-        return
+        raise NotImplementedError
 
     @property
     def ncpt(self):
@@ -104,11 +100,20 @@ class Library(object):
     def check_consistent(self):
         """
         Check consistency of the number of primitives in the model
-        TODO
-
-        :return: None
         """
-        return
+        N = self.N
+        ncpt = self.ncpt
+        assert self.shape['Sigma'].shape[0] == ncpt*2
+        assert self.logT.shape[0] == N
+        assert self.logStart.shape[0] == N
+        assert self.shape['mixprob'].shape[0] == N
+        assert self.shape['freq'].shape[0] == N
+        assert self.shape['vsd'].shape[0] == N
+        assert self.scale['theta'].shape[0] == N
+        assert aeq(torch.sum(torch.exp(self.logStart)), torch.tensor(1.))
+        for i in range(N):
+            pT = self.pT(torch.tensor(i))
+            assert aeq(torch.sum(pT), torch.tensor(1.))
 
     def pT(self, prev_state):
         """
@@ -129,31 +134,43 @@ class Library(object):
         return p
 
     def score_eval_marg(self, eval_spot_token):
-        return
+        raise NotImplementedError
 
     def __create_eval_list(self):
         """
         Create caching structure for efficiently computing marginal likelihood
         of attachment
-
-        :return: None
         """
-        warnings.warn(
-            "'__create_eval_list' method not yet implemented. Library "
-            "properties '__int_eval_marg' and '__prob_eval_mar' not created.")
-        return
-        # TODO - fix bspline_gen_s function so we can use this.
         _, lb, ub = bspline_gen_s(self.ncpt, 1)
-        x = np.arange(lb, ub+self.__eval_int, self.__eval_int)
+        step = self.__eval_int
+        x = torch.arange(lb, ub+step, step)
         nint = len(x)
-        logy = np.zeros(nint)
+        logy = torch.zeros(nint)
         for i in range(nint):
             logy[i] = self.__score_relation_eval_marginalize_exact(x[i])
         self.__int_eval_marg = x
-        self.__prob_eval_marg = np.exp(logy)
+        self.__prob_eval_marg = torch.exp(logy)
 
     def __score_relation_eval_marginalize_exact(self, eval_spot_token):
-        return
+        assert eval_spot_token.shape == torch.Size([])
+        ncpt = self.ncpt
+        _, lb, ub = bspline_gen_s(ncpt, 1)
+        if eval_spot_token < lb or eval_spot_token > ub:
+            ll = -np.inf
+            return ll
+        def fll(x):
+            score = CPD.score_relation_token(self, eval_spot_token, x)
+            score = score - torch.log(ub - lb)
+            return torch.exp(score)
+
+        step = self.__eval_int/100
+        x = torch.arange(lb, ub+step, step)
+        y = fll(x)
+        # TODO - update this to be fully torch
+        Z = torch.tensor(np.trapz(x.numpy(), y.numpy()))
+        ll = torch.log(Z)
+
+        return ll
 
 
 def get_dict(path):
