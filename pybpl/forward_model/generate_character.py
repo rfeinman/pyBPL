@@ -12,7 +12,6 @@ def generate_character(libclass, ns=None):
         # sample the number of strokes
         ns = CPD.sample_number(libclass)
     template = MotorProgram(ns)
-    print('ns: %i' % ns)
     # for each stroke, sample its template
     for i in range(ns):
         # sample the number of sub-strokes
