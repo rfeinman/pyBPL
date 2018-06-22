@@ -10,6 +10,7 @@ import torch
 from torch.distributions.uniform import Uniform
 from torch.distributions.categorical import Categorical
 
+from pybpl.general_util import aeq
 
 class SpatialHist(object):
     """
@@ -72,7 +73,7 @@ class SpatialHist(object):
 
         # Convert to probability distribution
         logpN = logN - logsumexp_t(logN)
-        #assert aeq(np.sum(np.exp(logpN)),1) # TODO - what is "aeq"?
+        assert aeq(torch.sum(torch.exp(logpN)), torch.tensor(1.))
 
         self.logpYX = logpN
         self.xlab = xtick
