@@ -13,6 +13,7 @@ from torch.distributions.uniform import Uniform
 
 from pybpl.classes import (RelationIndependent, RelationAttach,
                            RelationAttachAlong, CPDUnif)
+from pybpl.classes.relations import get_attach_point
 from pybpl.splines import bspline_gen_s
 
 
@@ -304,6 +305,7 @@ def score_invscale_type(libclass, invscales, subid):
 # TODO - here downward
 
 def sample_relation_token(libclass, eval_spot_type):
+    raise NotImplementedError
     sigma_attach = torch.squeeze(
         torch.Tensor(libclass['tokenvar']['sigma_attach'][0, 0]))
     print("sigma_attach", sigma_attach)
@@ -330,8 +332,8 @@ def sample_relation_token(libclass, eval_spot_type):
 
 def sample_position(libclass, R,
                     prev_strokes):  # check that this does what I want, slicewise
-
-    base = getAttachPoint(R, prev_strokes)
+    raise NotImplementedError
+    base = get_attach_point(R, prev_strokes)
     # indexing into base is not pretty
 
     sigma_x = Variable(
@@ -351,6 +353,7 @@ def sample_position(libclass, R,
 
 
 def sample_shape_token(libclass, bspline_stack):
+    raise NotImplementedError
     sz = bspline_stack.shape
     sigma_shape = torch.squeeze(
         torch.Tensor(libclass['tokenvar']['sigma_shape'][0, 0]))
@@ -362,6 +365,7 @@ def sample_shape_token(libclass, bspline_stack):
 
 
 def sample_invscale_token(libclass, invscales_type):
+    raise NotImplementedError
     # print 'invscales_type', invscales_type
     sz = invscales_type.shape
     sigma_invscale = torch.squeeze(
@@ -379,6 +383,7 @@ def sample_invscale_token(libclass, invscales_type):
 
 
 def sample_affine(libclass):
+    raise NotImplementedError
     sample_A = Variable(torch.zeros(1, 4))
     # m_scale = Variable(torch.squeeze(torch.Tensor(libclass['affine']['mu_scale']))) #broken for some reason
     m_scale = Variable(torch.Tensor([[1, 1]]))
@@ -419,31 +424,9 @@ def sample_affine(libclass):
 
 
 def sample_image(pimg):
+    raise NotImplementedError
     I = pyro.sample('image', dist.bernoulli, pimg)  # hope this works.
     return I
-
-
-def getAttachPoint(R, prev_strokes):
-    print("prev_strokes:", prev_strokes)
-    if R.rtype == 'unihist':
-        pos = R.gpos  # make sure this is okay
-
-    elif R.rtype == 'start':
-
-        subtraj = prev_strokes[R.attach_spot.data[0] - 1].motor[
-            0]  # this obviously won't work bc no motor attribute rn
-        pos = subtraj[0, :]
-    elif R.rtype == 'end':
-        subtraj = prev_strokes[R.attach_spot.data[0] - 1].motor[
-            -1]  # this obviously won't work bc no motor attribute rn
-        pos = subtraj[-1, :]
-    elif R.rtype == 'mid':
-        bspline = prev_strokes[R.attach_spot.data[0] - 1].motor_spline[:, :,
-                  R.subid_spot - 1]
-        pos = bspline_eval(R.eval_spot_token, bspline)
-    else:
-        raise ValueError('invalid relation')
-    return pos
 
 def isunif(libclass):
     """
