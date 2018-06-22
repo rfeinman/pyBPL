@@ -81,9 +81,12 @@ def main():
     # get optimizable variables & their bounds
     parameters, lbs, ubs = get_variables_MP(mp)
 
+    # optimize the motor program
     score_list = []
     for idx in range(1000):
-        score = obj_fun(mp)
+        if idx % 100 == 0:
+            print('iteration #%i' % idx)
+        score = obj_fun(mp, lib)
         score.backward()
         score_list.append(score)
         with torch.no_grad():
@@ -94,9 +97,9 @@ def main():
                     lb = lbs[ip]
                     ub = ubs[ip]
                     if len(lb)>0:
-                        param = torch.max(param, lb)
+                        torch.max(param, lb, out=param)
                     if len(ub)>0:
-                        param = torch.min(param, ub)
+                        torch.min(param, ub, out=param)
 
                 param.grad.zero_()
 
