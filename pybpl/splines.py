@@ -59,7 +59,7 @@ def bspline_gen_s(nland, neval=200):
     """
     lb = 2
     ub = nland + 1
-    assert ub >= lb
+    assert ub > lb
     if neval == 1:
         s = torch.tensor([lb], dtype=torch.float)
     else:
