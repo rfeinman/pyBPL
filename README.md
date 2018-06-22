@@ -1,5 +1,6 @@
 # pyBPL
-Python implementation of BPL for omniglot, using PyTorch. Not yet operational.
+Python implementation of BPL for omniglot, using PyTorch. Not yet fully
+operational.
 
 ## Setup
 
@@ -25,6 +26,8 @@ running the following command from the root folder:
 ```
 python demo_generate_character.py
 ```
+At the moment, the program will simply generate the type and exit, as there
+is no way to visualize the type.
 
 ### Optimize character type
 You can generate a character type and then optimize its parameters to maximize
@@ -33,6 +36,8 @@ command from the root folder:
 ```
 python demo_optimize_type.py
 ```
+Optionally, you may add the integer parameter `--ns=<int>` to specify how many
+strokes you would like the generated character type to have.
 
 ## Status notes
 
