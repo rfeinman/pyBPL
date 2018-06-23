@@ -17,13 +17,13 @@ from . import library
 from . import relations
 from . import UtilMP
 
-classes = [
-    'MotorProgram', 'SpatialModel', 'SpatialHist', 'Stroke', 'StrokeType',
-    'Library', 'Relation', 'RelationAttach', 'RelationAttachAlong',
-    'RelationIndependent'
-]
-modules = [
-    'motor_program', 'spatial_hist', 'spatial_model', 'relations', 'CPD',
-    'CPDUnif', 'UtilMP', 'stroke', 'library'
-]
-__all__ = classes + modules
+# classes = [
+#     'MotorProgram', 'SpatialModel', 'SpatialHist', 'Stroke', 'StrokeType',
+#     'Library', 'Relation', 'RelationAttach', 'RelationAttachAlong',
+#     'RelationIndependent'
+# ]
+# modules = [
+#     'motor_program', 'spatial_hist', 'spatial_model', 'relations', 'CPD',
+#     'CPDUnif', 'UtilMP', 'stroke', 'library'
+# ]
+# __all__ = classes + modules
