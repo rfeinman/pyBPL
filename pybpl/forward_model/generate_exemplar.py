@@ -14,8 +14,6 @@ def generate_exemplar(template, libclass):
             M.S[sid].R.eval_spot_token = CPD.sample_relation_token(
                 libclass, M.S[sid].R.eval_spot_type
             )
-
-        # check that this does what I want, slicewise
         M.S[sid].pos_token = CPD.sample_position(
             libclass, M.S[sid].R, M.S[:sid]
         )
@@ -25,14 +23,18 @@ def generate_exemplar(template, libclass):
         M.S[sid].invscales_token = CPD.sample_invscale_token(
             libclass, M.S[sid].invscales_type
         )
-
+    # sample affine warp
     M.A = CPD.sample_affine(libclass)
 
-    #set rendering params to minimum noise
+    # set rendering parameters to minimum noise
     M.blur_sigma = template.parameters.min_blur_sigma
     M.epsilon = template.parameters.min_epsilon
 
-    #sample image
+    # sample rendering parameters
+    #M.blur_sigma = CPD.sample_image_blur(template.parameters)
+    #M.epsilon = CPD.sample_image_noise(template.parameters)
+
+    # sample the image
     M.I = CPD.sample_image(M.pimg)
 
     return M, template
