@@ -2,6 +2,7 @@
 Relation model (R)
 """
 from __future__ import division, print_function
+import numpy as np
 import torch
 from torch.distributions.categorical import Categorical
 from torch.distributions.uniform import Uniform
@@ -10,6 +11,7 @@ from torch.distributions.normal import Normal
 from ..relations import (RelationIndependent, RelationAttach,
                         RelationAttachAlong)
 from ...splines import bspline_gen_s
+
 
 def sample_relation_type(libclass, prev_strokes):
     """
@@ -60,23 +62,44 @@ def sample_relation_type(libclass, prev_strokes):
     return R
 
 def sample_relation_token(libclass, eval_spot_type):
-    loc = torch.tensor(0.)
-    scale = libclass.tokenvar['sigma_attach']
-    eval_spot_token = eval_spot_type + Normal(loc, scale).sample()
+    """
+    TODO
 
-    ncpt = libclass.ncpt
-    _, lb, ub = bspline_gen_s(ncpt, 1);  # need to fix
-    while eval_spot_token.data[0] < lb or eval_spot_token.data[0] > ub:
-        print("lb:", lb)
-        print("ub:", ub)
-        print("eval_spot_token.data[0]:", eval_spot_token.data[0])
-        eval_spot_token = eval_spot_type + sigma_attach.numpy() * \
-                                           pyro.sample('randn_for_rtoken',
-                                                       dist.normal,
-                                                       Variable(torch.zeros(1)),
-                                                       Variable(torch.ones(1)))
+    :param libclass:
+    :param eval_spot_type:
+    :return:
+    """
+    score = torch.tensor(-np.inf)
+    while np.isinf(score):
+        norm = Normal(eval_spot_type, libclass.tokenvar['sigma_attach'])
+        eval_spot_token = norm.sample()
+        score = score_relation_token(libclass, eval_spot_token, eval_spot_type)
 
     return eval_spot_token
 
 def score_relation_token(libclass, eval_spot_token, eval_spot_type):
+    """
+    TODO
+
+    :param libclass:
+    :param eval_spot_token:
+    :param eval_spot_type:
+    :return:
+    """
     raise NotImplementedError
+    assert type(eval_spot_token) in [int, float] or \
+           (type(eval_spot_token) == torch.Tensor and
+            eval_spot_token.shape == torch.Size([]))
+    assert eval_spot_type is not None
+    ncpt = libclass.ncpt
+    _, lb, ub = bspline_gen_s(ncpt, 1)
+    if eval_spot_token < lb or eval_spot_token > ub:
+        ll = torch.tensor(-np.inf)
+        return ll
+    ll = mvnormpdfln(eval_spot_token, eval_spot_type, libclass.tokenvar['sigma_attach'])
+
+    # correction for bounds
+    p_within = None
+    ll = ll - torch.log(p_within)
+
+    return ll

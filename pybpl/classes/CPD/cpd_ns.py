@@ -55,7 +55,7 @@ def score_number(libclass, ns):
     pkappa = libclass.pkappa
     out_of_bounds = ns > len(pkappa)
     if out_of_bounds.any():
-        ll = -np.inf
+        ll = torch.tensor(-np.inf)
         return ll
     # get the categorical distribution
     cat = __get_dist(pkappa)
