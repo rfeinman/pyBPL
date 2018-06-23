@@ -8,24 +8,23 @@ from ..classes import MotorProgram, CPD
 
 def generate_exemplar(template, libclass):
     M = MotorProgram(template)
-    print('M.ns', M.ns)
     #sample stroke params
-    for i in range(M.ns):
-        if M.S[i].R.rtype == 'mid':
-            print("M.S[i].R :", M.S[i].R)
-            M.S[i].R.eval_spot_token = CPD.sample_relation_token(
-                libclass, M.S[i].R.eval_spot_type
+    for sid in range(M.ns):
+        if M.S[sid].R.rtype == 'mid':
+            M.S[sid].R.eval_spot_token = CPD.sample_relation_token(
+                libclass, M.S[sid].R.eval_spot_type
             )
 
         # check that this does what I want, slicewise
-        M.S[i].pos_token = CPD.sample_position(libclass, M.S[i].R, M.S[0:i])
-        M.S[i].shapes_token = CPD.sample_shape_token(
-            libclass, M.S[i].shapes_type
+        M.S[sid].pos_token = CPD.sample_position(
+            libclass, M.S[sid].R, M.S[:sid]
         )
-        M.S[i].invscales_token = CPD.sample_invscale_token(
-            libclass, M.S[i].invscales_type
+        M.S[sid].shapes_token = CPD.sample_shape_token(
+            libclass, M.S[sid].shapes_type
         )
-
+        M.S[sid].invscales_token = CPD.sample_invscale_token(
+            libclass, M.S[sid].invscales_type
+        )
 
     M.A = CPD.sample_affine(libclass)
 

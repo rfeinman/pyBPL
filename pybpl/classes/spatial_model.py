@@ -45,11 +45,11 @@ class SpatialModel(object):
         assert len(data_id) == len(data_start)
         assert len(xlim) == 2 and len(ylim) == 2
 
-        # Learn specific spatial models
+        # learn separate spatial histograms for each stroke num up to 'clump_id'
         self.list_SH = []
-        for i in range(clump_id):
+        for sid in range(clump_id):
             sh = SpatialHist(
-                data_start[data_id==i], xlim, ylim, nbin_per_side, prior_count
+                data_start[data_id==sid], xlim, ylim, nbin_per_side, prior_count
             )
             self.list_SH.append(sh)
 

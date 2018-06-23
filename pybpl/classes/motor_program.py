@@ -34,8 +34,8 @@ class MotorProgram(object):
             self.parameters = defaultps()
         elif isinstance(arg, MotorProgram):
             template = arg
-            for i in range(template.ns):
-                self.S.append(Stroke(template.S[i]))
+            for sid in range(template.ns):
+                self.S.append(Stroke(template.S[sid]))
             # this might break if mcmc comes online
             self.parameters = copy.copy(template.parameters)
         else:
@@ -74,7 +74,7 @@ class MotorProgram(object):
     def has_relations(self, list_sid=None):
         if list_sid is None:
             list_sid = range(self.ns)
-        present = [self.S[i].R is not None for i in list_sid]
+        present = [self.S[sid].R is not None for sid in list_sid]
         assert all(present) or not any(present), \
             'error: all relations should be present or not'
         out = all(present)
@@ -82,13 +82,13 @@ class MotorProgram(object):
         return out
 
     def clear_relations(self):
-        for i in range(self.ns):
-            self.S[i].R = None
+        for sid in range(self.ns):
+            self.S[sid].R = None
         return
 
     def clear_shapes_type(self):
-        for i in range(self.ns):
-            self.S[i].shapes_type = None
+        for sid in range(self.ns):
+            self.S[sid].shapes_type = None
 
     def istied(self, varargin):
         raise NotImplementedError("'istied' method not yet implemented")

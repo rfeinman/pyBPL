@@ -9,8 +9,8 @@ from ..splines import bspline_eval
 class Relation(object):
     types_allowed = ['unihist', 'start', 'end', 'mid']
 
-    def __init__(self, type, nprev):
-        self.type = type
+    def __init__(self, rtype, nprev):
+        self.type = rtype
         self.nprev = nprev
         assert self.validType
 
@@ -18,18 +18,18 @@ class Relation(object):
         return self.type in self.types_allowed
 
 class RelationIndependent(Relation):
-    def __init__(self, type, nprev, gpos=None):
-        Relation.__init__(self, type, nprev)
+    def __init__(self, rtype, nprev, gpos=None):
+        Relation.__init__(self, rtype, nprev)
         self.gpos = gpos
 
 class RelationAttach(Relation):
-    def __init__(self, type, nprev, attach_spot):
-        Relation.__init__(self, type, nprev)
+    def __init__(self, rtype, nprev, attach_spot):
+        Relation.__init__(self, rtype, nprev)
         self.attach_spot = attach_spot
 
 class RelationAttachAlong(RelationAttach):
-    def __init__(self, type, nprev, attach_spot, nsub, subid_spot, ncpt):
-        RelationAttach.__init__(self, type, nprev, attach_spot)
+    def __init__(self, rtype, nprev, attach_spot, nsub, subid_spot, ncpt):
+        RelationAttach.__init__(self, rtype, nprev, attach_spot)
         self.subid_spot = subid_spot
         self.ncpt = ncpt
         self.nsub = nsub

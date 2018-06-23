@@ -113,8 +113,8 @@ class Library(object):
         assert self.shape['vsd'].shape[0] == N
         assert self.scale['theta'].shape[0] == N
         assert aeq(torch.sum(torch.exp(self.logStart)), torch.tensor(1.))
-        for i in range(N):
-            pT = self.pT(torch.tensor(i))
+        for sid in range(N):
+            pT = self.pT(torch.tensor(sid))
             assert aeq(torch.sum(pT), torch.tensor(1.))
 
     def pT(self, prev_state):
