@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import torch
 
 from pybpl.classes import Library, CPD
-from pybpl.forward_model import generate_character
+from pybpl.forward_model import generate_type
 
 dtype = torch.float
 
@@ -93,7 +93,7 @@ def main():
     # load the library
     lib = Library(lib_dir='./library')
     # generate a motor program (a character type)
-    mp = generate_character(lib, ns=args.ns)
+    mp = generate_type(lib, ns=args.ns)
     print('num strokes: %i' % mp.ns)
     # get optimizable variables & their bounds
     parameters, lbs, ubs = get_variables_MP(mp)
