@@ -2,11 +2,29 @@
 Scale model (y)
 """
 from __future__ import division, print_function
-from torch.distributions.gamma import Gamma
+import torch.distributions as dist
 
 from .cpd_general import isunif
 from .. import CPDUnif
 
+
+def __get_dist(theta, subid):
+    """
+    TODO
+
+    :param theta:
+    :param subid:
+    :return:
+    """
+    assert len(theta.shape) == 2
+    # get sub-set of theta according to subid
+    theta_sub = theta[subid]
+    concentration = theta_sub[:,0]
+    # NOTE: PyTorch gamma dist uses rate parameter, which is inverse of scale
+    rate = 1/theta_sub[:,1]
+    gamma = dist.gamma.Gamma(concentration, rate)
+
+    return gamma
 
 def sample_invscale_type(libclass, subid):
     """
@@ -24,11 +42,7 @@ def sample_invscale_type(libclass, subid):
         invscales = CPDUnif.sample_invscale_type(libclass, subid)
         return invscales
     # create gamma distribution
-    theta = libclass.scale['theta'][subid]
-    concentration = theta[:,0]
-    # NOTE: PyTorch gamma dist uses rate parameter, which is inverse of scale
-    rate = 1/theta[:,1]
-    gamma = Gamma(concentration, rate)
+    gamma = __get_dist(libclass.scale['theta'], subid)
     # sample from the gamma distribution
     invscales = gamma.sample()
 
@@ -52,11 +66,7 @@ def score_invscale_type(libclass, invscales, subid):
         ll = CPDUnif.score_invscale_type(libclass, invscales, subid)
         return ll
     # create gamma distribution
-    theta = libclass.scale['theta'][subid]
-    concentration = theta[:,0]
-    # NOTE: PyTorch gamma dist uses rate parameter, which is inverse of scale
-    rate = 1/theta[:,1]
-    gamma = Gamma(concentration, rate)
+    gamma = __get_dist(libclass.scale['theta'], subid)
     # score points using the gamma distribution
     ll = gamma.log_prob(invscales)
 

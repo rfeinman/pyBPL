@@ -3,11 +3,31 @@ Shape model (x)
 """
 from __future__ import division, print_function
 import torch
-from torch.distributions.multivariate_normal import MultivariateNormal
+import torch.distributions as dist
 
 from .cpd_general import isunif
 from .. import CPDUnif
 
+
+def __get_dist(mu, Cov, subid):
+    """
+    TODO
+
+    :param mu:
+    :param Cov:
+    :param subid:
+    :return:
+    """
+    assert len(mu.shape) == 2
+    assert len(Cov.shape) == 3
+    assert mu.shape[0] == Cov.shape[0]
+    assert Cov.shape[1] == Cov.shape[2]
+    # get sub-set of mu and Cov according to subid
+    Cov_sub = Cov[subid]
+    mu_sub = mu[subid]
+    mvn = dist.multivariate_normal.MultivariateNormal(mu_sub, Cov_sub)
+
+    return mvn
 
 def sample_shape_type(libclass, subid):
     """
@@ -29,9 +49,9 @@ def sample_shape_type(libclass, subid):
     # record num control points
     ncpt = libclass.ncpt
     # create multivariate normal distribution
-    Cov = libclass.shape['Sigma'][:,:,subid].permute([2,0,1])
-    mu = libclass.shape['mu'][subid]
-    mvn = MultivariateNormal(mu, Cov)
+    mvn = __get_dist(
+        libclass.shape['mu'], libclass.shape['Sigma'].permute([2,0,1]), subid
+    )
     # sample points from the multivariate normal distribution
     rows_bspline = mvn.sample()
     # convert (nsub, ncpt*2) tensor into (ncpt, 2, nsub) tensor
@@ -61,11 +81,11 @@ def score_shape_type(libclass, bspline_stack, subid):
     # record num control points
     ncpt = libclass.ncpt
     # convert (ncpt, 2, nsub) tensor into (nsub, ncpt*2) tensor
-    rows_bspline = torch.transpose(bspline_stack.view(ncpt * 2, nsub),0,1)
+    rows_bspline = torch.transpose(bspline_stack.view(ncpt*2, nsub),0,1)
     # create multivariate normal distribution
-    Cov = libclass.shape['Sigma'][:,:,subid].permute([2,0,1])
-    mu = libclass.shape['mu'][subid]
-    mvn = MultivariateNormal(mu, Cov)
+    mvn = __get_dist(
+        libclass.shape['mu'], libclass.shape['Sigma'].permute([2,0,1]), subid
+    )
     # score points using the multivariate normal distribution
     ll = mvn.log_prob(rows_bspline)
 
