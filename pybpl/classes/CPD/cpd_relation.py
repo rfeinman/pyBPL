@@ -41,12 +41,12 @@ def sample_relation_type(libclass, prev_strokes):
     if rtype == 'unihist':
         data_id = torch.tensor([stroke_num])
         gpos = libclass.Spatial.sample(data_id)
-        R = RelationIndependent(rtype, nprev, gpos)
+        r = RelationIndependent(rtype, nprev, gpos)
     elif rtype in ['start', 'end']:
         # sample random attach spot uniformly
         probs = torch.ones(nprev, requires_grad=True)
         attach_spot = Categorical(probs=probs).sample()
-        R = RelationAttach(rtype, nprev, attach_spot)
+        r = RelationAttach(rtype, nprev, attach_spot)
     elif rtype == 'mid':
         # sample random attach spot uniformly
         probs = torch.ones(nprev, requires_grad=True)
@@ -55,16 +55,16 @@ def sample_relation_type(libclass, prev_strokes):
         nsub = prev_strokes[attach_spot].nsub
         probs = torch.ones(nsub, requires_grad=True)
         subid_spot = Categorical(probs=probs).sample()
-        R = RelationAttachAlong(
+        r = RelationAttachAlong(
             rtype, nprev, attach_spot, nsub, subid_spot, ncpt
         )
         # set R.eval_spot_type
         _, lb, ub = bspline_gen_s(ncpt, 1)
-        R.eval_spot_type = Uniform(lb, ub).sample()
+        r.eval_spot_type = Uniform(lb, ub).sample()
     else:
         raise TypeError('invalid relation')
 
-    return R
+    return r
 
 def sample_relation_token(libclass, eval_spot_type):
     """
@@ -91,7 +91,6 @@ def score_relation_token(libclass, eval_spot_token, eval_spot_type):
     :param eval_spot_type:
     :return:
     """
-    raise NotImplementedError
     assert type(eval_spot_token) in [int, float] or \
            (type(eval_spot_token) == torch.Tensor and
             eval_spot_token.shape == torch.Size([]))
@@ -101,10 +100,11 @@ def score_relation_token(libclass, eval_spot_token, eval_spot_type):
     if eval_spot_token < lb or eval_spot_token > ub:
         ll = torch.tensor(-np.inf)
         return ll
-    ll = mvnormpdfln(eval_spot_token, eval_spot_type, libclass.tokenvar['sigma_attach'])
+    norm = __get_dist(eval_spot_type, libclass.tokenvar['sigma_attach'])
+    ll = norm.log_prob(eval_spot_token)
 
     # correction for bounds
-    p_within = None
+    p_within = norm.cdf(ub) - norm.cdf(lb)
     ll = ll - torch.log(p_within)
 
     return ll
