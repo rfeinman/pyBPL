@@ -5,6 +5,7 @@ from __future__ import print_function, division
 import torch
 
 from .stroke import Stroke
+from .library import Library
 from . import CPD
 from .character_type import CharacterType
 from . import UtilMP
@@ -14,12 +15,20 @@ from ..rendering import render_image
 
 class MotorProgram(object):
 
-    def __init__(self, ctype):
+    def __init__(self, ctype, lib):
+        """
+        Constructor
+
+        :param ctype: [CharacterType]
+        :param lib: [Library]
+        """
         assert isinstance(ctype, CharacterType)
+        assert isinstance(lib, Library)
         self.ctype = ctype
+        self.lib = lib
         self.parameters = defaultps()
 
-    def sample_token(self, libclass):
+    def sample_token(self):
         """
         Sample a token from the motor program
 
@@ -32,15 +41,15 @@ class MotorProgram(object):
         for stype, r in zip(self.ctype.S, self.ctype.R):
             # TODO - need to do something about updating eval_spot_type/token?
             if r.type == 'mid':
-                r.eval_spot_token = CPD.sample_relation_token(libclass, r.eval_spot_type)
-            pos_token = CPD.sample_position(libclass, r, strokes)
-            shapes_token = CPD.sample_shape_token(libclass, stype.shapes_type)
-            invscales_token = CPD.sample_invscale_token(libclass, stype.invscales_type)
+                r.eval_spot_token = CPD.sample_relation_token(self.lib, r.eval_spot_type)
+            pos_token = CPD.sample_position(self.lib, r, strokes)
+            shapes_token = CPD.sample_shape_token(self.lib, stype.shapes_type)
+            invscales_token = CPD.sample_invscale_token(self.lib, stype.invscales_type)
             s = Stroke(stype, pos_token, shapes_token, invscales_token)
             strokes.append(s)
 
         # sample affine warp
-        affine = CPD.sample_affine(libclass)
+        affine = CPD.sample_affine(self.lib)
 
         # set rendering parameters to minimum noise
         blur_sigma = self.parameters.min_blur_sigma

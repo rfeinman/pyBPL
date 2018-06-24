@@ -54,12 +54,12 @@ def generate_mp(libclass, ns=None):
     :return:
     """
     ctype = generate_type(libclass, ns)
-    mp = MotorProgram(ctype)
+    mp = MotorProgram(ctype, libclass)
 
     return mp
 
 def generate_exemplar(libclass, ns=None):
     mp = generate_mp(libclass, ns)
-    exemplar = mp.sample_token(libclass)
+    exemplar = mp.sample_token()
 
     return exemplar
