@@ -7,7 +7,7 @@ import numpy as np
 import torch
 import torch.distributions as dist
 
-from pybpl.character.stroke import StrokeType
+from ..character.stroke import StrokeType
 from .cpd_substrokes import sample_nsub, sample_sequence
 from .cpd_shape import sample_shape_type
 from .cpd_scale import sample_invscale_type

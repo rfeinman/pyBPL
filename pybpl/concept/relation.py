@@ -17,30 +17,30 @@ class Relation(object):
     def validType(self):
         return self.type in self.types_allowed
 
-    def get_attach_point(self, prev_strokes):
+    def get_attach_point(self, prev):
         """
-        Get the mean attachment point of where the start of the next stroke
+        Get the mean attachment point of where the start of the next part
         should be, given the previous ones and their relations
 
-        :param prev_strokes: TODO
+        :param prev: TODO
         :return:
             pos: TODO
         """
         if self.type == 'unihist':
             pos = self.gpos
         else:
-            stroke = prev_strokes[self.attach_spot]
+            part = prev[self.attach_spot]
             if self.type == 'start':
-                subtraj = stroke.motor[0]
+                subtraj = part.motor[0]
                 pos = subtraj[0]
             elif self.type == 'end':
-                subtraj = stroke.motor[-1]
+                subtraj = part.motor[-1]
                 pos = subtraj[-1]
             elif self.type == 'mid':
-                bspline = stroke.motor_spline[:,:,self.subid_spot]
+                bspline = part.motor_spline[:,:,self.subid_spot]
                 pos = bspline_eval[self.eval_spot_token, bspline]
             else:
-                raise TypeError('invalid relation')
+                raise TypeError('invalid relation type')
 
         return pos
 

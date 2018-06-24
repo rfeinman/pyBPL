@@ -1,13 +1,12 @@
 import unittest
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.special import logsumexp
 import torch
 from torch.distributions.multivariate_normal import MultivariateNormal
 from torch.distributions.uniform import Uniform
 
 from pybpl.classes import SpatialHist
-from pybpl.classes.spatial_hist import logsumexp_t
+from pybpl.library.spatial_hist import logsumexp_t
 
 class TestSpatialHist(unittest.TestCase):
 

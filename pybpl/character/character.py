@@ -2,17 +2,15 @@
 Motor program class definition
 """
 from __future__ import print_function, division
-import torch
 import torch.distributions as dist
 
-from pybpl.classes.stroke import Stroke, StrokeType
-from pybpl.classes.relations import Relation
-from pybpl.classes.library import Library
-from pybpl.classes import CPD
-from pybpl.classes import UtilMP
-from pybpl.parameters import defaultps
-from pybpl.rendering import render_image
-from .concept import Concept, ConceptType
+from .stroke import Stroke, StrokeType
+from .parameters import defaultps
+from ..concept.relation import Relation
+from ..library.library import Library
+from .. import CPD, UtilMP
+from ..rendering import render_image
+from ..concept.concept import Concept, ConceptType
 
 class CharacterType(ConceptType):
     def __init__(self, S, R):

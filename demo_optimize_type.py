@@ -7,8 +7,9 @@ import argparse
 import matplotlib.pyplot as plt
 import torch
 
-from pybpl.classes import Library, CPD
-from pybpl.forward_model import generate_type
+from pybpl import CPD
+from pybpl.library.library import Library
+from pybpl.generate_character import generate_type
 
 dtype = torch.float
 

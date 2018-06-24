@@ -1,5 +1,4 @@
 from __future__ import division, print_function
-import warnings
 import os
 import scipy.io as io
 import numpy as np
@@ -7,7 +6,7 @@ import torch
 
 from .spatial_hist import SpatialHist
 from .spatial_model import SpatialModel
-from . import CPD
+from .. import CPD
 from ..splines import bspline_gen_s
 from ..general_util import aeq
 

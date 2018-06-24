@@ -1,7 +1,7 @@
 from __future__ import division, print_function
 import torch
-from pybpl import CPD
-from pybpl.character.character import CharacterType, Character
+from . import CPD
+from .character.character import CharacterType, Character
 
 
 # list of acceptable dtypes for 'ns' parameter

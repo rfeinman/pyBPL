@@ -3,8 +3,9 @@ Stroke class definition.
 """
 from __future__ import print_function, division
 
-from ..rendering import offset_stk
-from ..splines import get_stk_from_bspline
+from pybpl.rendering import offset_stk
+from pybpl.splines import get_stk_from_bspline
+from pybpl.concept.part import Part
 
 
 class StrokeType(object):
@@ -17,7 +18,7 @@ class StrokeType(object):
     def nsub(self):
         return len(self.ids)
 
-class Stroke(object):
+class Stroke(Part):
     """
     STROKETOKEN. Random variables that define a continuous pen trajectory
         Utilized in the MotorProgram class
@@ -35,6 +36,7 @@ class Stroke(object):
 
         :param stype: [StrokeType] the type-level template for the stroke
         """
+        Part.__init__(self)
         if stype is not None:
             assert isinstance(stype, StrokeType)
             self.myType = stype

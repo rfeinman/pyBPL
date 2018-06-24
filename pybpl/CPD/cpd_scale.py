@@ -4,7 +4,7 @@ Scale model (y)
 from __future__ import division, print_function
 import torch.distributions as dist
 
-from .. import CPDUnif
+from pybpl import CPDUnif
 
 
 def __get_dist(theta, subid):

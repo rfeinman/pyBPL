@@ -8,9 +8,9 @@ from torch.distributions.categorical import Categorical
 from torch.distributions.uniform import Uniform
 import torch.distributions as dist
 
-from pybpl.concept.relation import (RelationIndependent, RelationAttach,
+from ..concept.relation import (RelationIndependent, RelationAttach,
                                     RelationAttachAlong)
-from ...splines import bspline_gen_s
+from ..splines import bspline_gen_s
 
 
 def __get_dist(eval_spot_type, sigma_attach):
