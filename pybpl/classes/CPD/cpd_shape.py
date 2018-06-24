@@ -5,7 +5,6 @@ from __future__ import division, print_function
 import torch
 import torch.distributions as dist
 
-from .cpd_general import isunif
 from .. import CPDUnif
 
 
@@ -43,7 +42,7 @@ def sample_shape_type(libclass, subid):
     # record vector length
     nsub = len(subid)
     # if uniform, sample using CPDUnif and return
-    if isunif(libclass):
+    if libclass.isunif:
         bspline_stack = CPDUnif.sample_shape_type(libclass, subid)
         return bspline_stack
     # record num control points
@@ -75,7 +74,7 @@ def score_shape_type(libclass, bspline_stack, subid):
     nsub = len(subid)
     assert bspline_stack.shape[-1] == nsub
     # if uniform, score using CPDUnif and return
-    if isunif(libclass):
+    if libclass.isunif:
         ll = CPDUnif.score_shape_type(libclass, bspline_stack, subid)
         return ll
     # record num control points

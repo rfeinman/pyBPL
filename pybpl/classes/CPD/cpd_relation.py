@@ -6,12 +6,17 @@ import numpy as np
 import torch
 from torch.distributions.categorical import Categorical
 from torch.distributions.uniform import Uniform
-from torch.distributions.normal import Normal
+import torch.distributions as dist
 
 from ..relations import (RelationIndependent, RelationAttach,
                         RelationAttachAlong)
 from ...splines import bspline_gen_s
 
+
+def __get_dist(eval_spot_type, sigma_attach):
+    norm = dist.normal.Normal(eval_spot_type, sigma_attach)
+
+    return norm
 
 def sample_relation_type(libclass, prev_strokes):
     """
@@ -69,9 +74,9 @@ def sample_relation_token(libclass, eval_spot_type):
     :param eval_spot_type:
     :return:
     """
+    norm = __get_dist(eval_spot_type, libclass.tokenvar['sigma_attach'])
     score = torch.tensor(-np.inf)
     while np.isinf(score):
-        norm = Normal(eval_spot_type, libclass.tokenvar['sigma_attach'])
         eval_spot_token = norm.sample()
         score = score_relation_token(libclass, eval_spot_token, eval_spot_type)
 

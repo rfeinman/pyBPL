@@ -4,7 +4,6 @@ Scale model (y)
 from __future__ import division, print_function
 import torch.distributions as dist
 
-from .cpd_general import isunif
 from .. import CPDUnif
 
 
@@ -38,7 +37,7 @@ def sample_invscale_type(libclass, subid):
     # check that it is a vector
     assert len(subid.shape) == 1
     # if uniform, sample using CPDUnif and return
-    if isunif(libclass):
+    if libclass.isunif:
         invscales = CPDUnif.sample_invscale_type(libclass, subid)
         return invscales
     # create gamma distribution
@@ -62,7 +61,7 @@ def score_invscale_type(libclass, invscales, subid):
     assert len(subid.shape) == 1
     assert len(invscales) == len(subid)
     # if uniform, score using CPDUnif and return
-    if isunif(libclass):
+    if libclass.isunif:
         ll = CPDUnif.score_invscale_type(libclass, invscales, subid)
         return ll
     # create gamma distribution

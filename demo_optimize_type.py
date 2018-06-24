@@ -19,41 +19,41 @@ lr = 1e-3
 # tol. for constrained optimization
 eps = 1e-4
 
-def get_variables_MP(mp):
+def get_variables(ctype):
     """
     Indicate variables for optimization (requires_grad_)
 
-    :param mp: [MotorProgram] the character type
+    :param ctype: [ConceptType] character type to optimize
     :return:
-        parameters: TODO
+        parameters: [list] list of optimizable parameters
         lbs: [list] list of lower bounds (each elem. is a tensor same size
                 as param; empty list indicates no lb)
-        ubs: [list ] list of upper bounds (each elem. is a tensor; empty
+        ubs: [list] list of upper bounds (each elem. is a tensor; empty
                 list indicates no ub)
     """
     parameters = []
     lbs = []
     ubs = []
-    for sid in range(mp.ns):
+    for sid in range(ctype.ns):
         # shape
-        mp.S[sid].shapes_type.requires_grad_()
-        parameters.append(mp.S[sid].shapes_type)
+        ctype.S[sid].shapes_type.requires_grad_()
+        parameters.append(ctype.S[sid].shapes_type)
         lbs.append([])
         ubs.append([])
 
         # scale
-        mp.S[sid].invscales_type.requires_grad_()
-        parameters.append(mp.S[sid].invscales_type)
-        lbs.append(torch.full(mp.S[sid].invscales_type.shape, eps))
+        ctype.S[sid].invscales_type.requires_grad_()
+        parameters.append(ctype.S[sid].invscales_type)
+        lbs.append(torch.full(ctype.S[sid].invscales_type.shape, eps))
         ubs.append([])
 
     return parameters, lbs, ubs
 
-def obj_fun(mp, lib):
+def obj_fun(ctype, lib):
     """
     Evaluate the log-likelihood of a character type under the prior
 
-    :param mp: [MotorProgram] the character type
+    :param ctype: [ConceptType] character type
     :return:
         ll: [tensor] log-likelihood under the prior. Scalar
     """
@@ -61,50 +61,37 @@ def obj_fun(mp, lib):
     ll = 0.
 
     # loop through the strokes
-    for sid in range(mp.ns):
-        stroke = mp.S[sid]
+    for sid in range(ctype.ns):
+        stype = ctype.S[sid]
         # log-prob of the control points for each sub-stroke in this stroke
         ll_cpts = CPD.score_shape_type(
-            lib, stroke.shapes_type, stroke.ids
+            lib, stype.shapes_type, stype.ids
         )
         # log-prob of the scales for each sub-stroke in this stroke
         ll_scales = CPD.score_invscale_type(
-            lib, stroke.invscales_type, stroke.ids
+            lib, stype.invscales_type, stype.ids
         )
         # sum over sub-strokes and add to accumulator
         ll = ll + torch.sum(ll_cpts) + torch.sum(ll_scales)
 
     return ll
 
-def view_params(mp):
-    """
-    Function to check in on the parameter values
-
-    :param mp:
-    """
-    print('viewing params:')
-    for sid in range(mp.ns):
-        print('\tsub-id: %i' % sid)
-        print('\tshapes_type: ', mp.S[sid].shapes_type)
-        print('\tinvscales_type: ', mp.S[sid].invscales_type)
-        print('\n')
-
 def main():
     # load the library
     lib = Library(lib_dir='./library')
-    # generate a motor program (a character type)
-    mp = generate_type(lib, ns=args.ns)
-    print('num strokes: %i' % mp.ns)
+    # generate a character type
+    ctype = generate_type(lib, ns=args.ns)
+    print('num strokes: %i' % ctype.ns)
     # get optimizable variables & their bounds
-    parameters, lbs, ubs = get_variables_MP(mp)
+    parameters, lbs, ubs = get_variables(ctype)
 
-    # optimize the motor program
+    # optimize the character type
     score_list = []
     for idx in range(1000):
         if idx % 100 == 0:
             print('iteration #%i' % idx)
             #view_params(mp)
-        score = obj_fun(mp, lib)
+        score = obj_fun(ctype, lib)
         score.backward()
         score_list.append(score)
         with torch.no_grad():

@@ -2,118 +2,93 @@
 Motor program class definition
 """
 from __future__ import print_function, division
-import copy
 import torch
 
 from .stroke import Stroke
+from . import CPD
+from .concept_type import ConceptType
 from . import UtilMP
 from ..parameters import defaultps
 from ..rendering import render_image
 
 
 class MotorProgram(object):
-    __po = {'epsilon', 'blur_sigma', 'A'}
 
-    def __init__(self, arg):
-        self.I = None
-        self.S = []
-        self.parameters = None
-        self.epsilon = None
-        self.blur_sigma = None
-        self.A = None
+    def __init__(self, ctype):
+        assert isinstance(ctype, ConceptType)
+        self.ctype = ctype
+        self.parameters = defaultps()
 
-        if isinstance(arg, int) or isinstance(arg, torch.Tensor):
-            if isinstance(arg, torch.Tensor):
-                assert arg.shape == torch.Size([]), \
-                    'Tensor parameter must be a scalar'
-                assert arg.dtype in \
-                       [torch.uint8, torch.int8, torch.int16, torch.int32,
-                        torch.int64], 'Tensor parameter must be an integer'
-            for _ in range(arg):
-                self.S.append(Stroke())
-            self.parameters = defaultps()
-        elif isinstance(arg, MotorProgram):
-            template = arg
-            for sid in range(template.ns):
-                self.S.append(Stroke(template.S[sid]))
-            # this might break if mcmc comes online
-            self.parameters = copy.copy(template.parameters)
-        else:
-            raise TypeError(
-                "Invalid constructor; must be either an integer, a "
-                "torch.Tensor or a MotorProgram"
-            )
+    def sample_token(self, libclass):
+        """
+        Sample a token from the motor program
+
+        :param libclass: [Library] library class instance
+        :return:
+            image: [(m,n) tensor] token (image)
+        """
+        # sample the token-level stroke params
+        strokes = []
+        for stype, r in zip(self.ctype.S, self.ctype.R):
+            # TODO - need to do something about updating eval_spot_type/token?
+            if r.type == 'mid':
+                r.eval_spot_token = CPD.sample_relation_token(libclass, r.eval_spot_type)
+            pos_token = CPD.sample_position(libclass, r, strokes)
+            shapes_token = CPD.sample_shape_token(libclass, stype.shapes_type)
+            invscales_token = CPD.sample_invscale_token(libclass, stype.invscales_type)
+            s = Stroke(stype, pos_token, shapes_token, invscales_token)
+            strokes.append(s)
+
+        # sample affine warp
+        affine = CPD.sample_affine(libclass)
+
+        # set rendering parameters to minimum noise
+        blur_sigma = self.parameters.min_blur_sigma
+        epsilon = self.parameters.min_epsilon
+        # self.blur_sigma = CPD.sample_image_blur(self.parameters)
+        # self.epsilon = CPD.sample_image_noise(self.parameters)
+
+        # get probability map of an image
+        pimg, _ = self.__apply_render(strokes, affine, epsilon, blur_sigma)
+        # sample the image
+        image = CPD.sample_image(pimg)
+
+        return image
 
     @property
     def ns(self):
         # get number of strokes
-        return len(self.S)
-
-    @property
-    def motor(self):
-        # get motor trajectories for each stroke
-        return [stroke.motor for stroke in self.S]
-
-    @property
-    def motor_warped(self):
-        return self.__apply_warp()
-
-    @property
-    def pimg(self):
-        # get probability map of an image
-        pimg, _ = self.__apply_render()
-
-        return pimg
-
-    @property
-    def ink_off_page(self):
-        _, ink_off_page = self.__apply_render()
-
-        return ink_off_page
+        return len(self.ctype.S)
 
     def has_relations(self, list_sid=None):
         if list_sid is None:
             list_sid = range(self.ns)
-        present = [self.S[sid].R is not None for sid in list_sid]
+        present = [self.ctype.R[sid] is not None for sid in list_sid]
         assert all(present) or not any(present), \
             'error: all relations should be present or not'
         out = all(present)
 
         return out
 
-    def clear_relations(self):
-        for sid in range(self.ns):
-            self.S[sid].R = None
-        return
-
-    def clear_shapes_type(self):
-        for sid in range(self.ns):
-            self.S[sid].shapes_type = None
-
     def istied(self, varargin):
-        raise NotImplementedError("'istied' method not yet implemented")
+        raise NotImplementedError
 
-    def __apply_warp(self):
-        motor_unwarped = self.motor
-        if self.A is None:
-            return motor_unwarped
+    def __apply_warp(self, strokes, affine):
+        motor_unwarped = [stroke.motor for stroke in strokes]
+        if affine is None:
+            motor_warped = motor_unwarped
         else:
             raise NotImplementedError(
                 "'apply_warp' method not yet implemented."
             )
 
-    def __apply_render(self):
-        """
-        TODO - this needs to be differentiable
-        motor
-        :return:
-            pimg: TODO
-            ink_off_page: TODO
-        """
-        motor_warped = self.__apply_warp()
+        return motor_warped
+
+    def __apply_render(self, strokes, affine, epsilon, blur_sigma):
+        motor_warped = self.__apply_warp(strokes, affine)
         flat_warped = UtilMP.flatten_substrokes(motor_warped)
         pimg, ink_off_page = render_image(
-            motor_warped, self.epsilon, self.blur_sigma, self.parameters
+            flat_warped, epsilon, blur_sigma, self.parameters
         )
 
         return pimg, ink_off_page

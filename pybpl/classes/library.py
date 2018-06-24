@@ -138,6 +138,10 @@ class Library(object):
     def score_eval_marg(self, eval_spot_token):
         raise NotImplementedError
 
+    @property
+    def isunif(self):
+        return torch.isnan(self.shape['mu']).any()
+
     def __create_eval_list(self):
         """
         Create caching structure for efficiently computing marginal likelihood

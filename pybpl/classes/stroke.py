@@ -3,10 +3,19 @@ Stroke class definition.
 """
 from __future__ import print_function, division
 
-from .stroke_type import StrokeType
 from ..rendering import offset_stk
 from ..splines import get_stk_from_bspline
 
+
+class StrokeType(object):
+    def __init__(self, ids=None, shapes_type=None, invscales_type=None):
+        self.ids = ids
+        self.shapes_type = shapes_type
+        self.invscales_type = invscales_type
+
+    @property
+    def nsub(self):
+        return len(self.ids)
 
 class Stroke(object):
     """
@@ -19,24 +28,29 @@ class Stroke(object):
     # tracked properties
     __po = {'pos_token', 'invscales_token', 'shapes_token'}
 
-    def __init__(self, previousStroke=None):
+    def __init__(
+            self, stype=None, pos_token=None, invscales_token=None,
+            shapes_token=None
+    ):
         """
         Initialize the Stroke class instance.
 
-        :param previousStroke: [Stroke] the previous stroke
+        :param stype: [StrokeType] the type-level template for the stroke
         """
-        if previousStroke is not None:
-            assert isinstance(previousStroke, StrokeType)
-            self.myType = previousStroke.myType
+        if stype is not None:
+            assert isinstance(stype, StrokeType)
+            self.myType = stype
         else:
             self.myType = StrokeType()
 
         # token-level parameters
-        self.pos_token = None
-        self.invscales_token = None
-        self.shapes_token = None
-        self.eval_spot_token = None
+        self.pos_token = pos_token
+        self.invscales_token = invscales_token
+        self.shapes_token = shapes_token
 
+    # -----
+    # NOTE: these might be unnecessary
+    # -----
     @property
     def ids(self):
         return self.myType.ids
@@ -63,25 +77,18 @@ class Stroke(object):
 
     @property
     def R(self):
-        out = self.myType.R
-        if (out is not None) and (out.type == 'mid'):
-            out.eval_spot_token = self.eval_spot_token
-
-        return out
+        return self.myType.R
 
     @R.setter
     def R(self, val):
         self.myType.R = val
-        if (self.myType.R is not None) and (self.myType.R.type == 'mid'):
-            self.myType.R.eval_spot_token = []
-            self.eval_spot_token = val.eval_spot_token
 
     @property
     def nsub(self):
         """
         Get the number of sub-strokes
         """
-        return len(self.ids)
+        return self.myType.nsub
 
     @property
     def motor(self):

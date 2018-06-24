@@ -12,8 +12,8 @@ def main():
         "type (template) for now."
     )
     lib = Library(lib_dir='./library')
-    x = generate_type(lib)
-    print('Character: ', x)
+    ctype = generate_type(lib)
+    print('Character type: ', ctype)
 
 if __name__ == '__main__':
     main()

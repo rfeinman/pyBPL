@@ -3,9 +3,9 @@ from .spatial_model import SpatialModel
 from .library import Library
 from .relations import (Relation, RelationAttach, RelationAttachAlong,
                         RelationIndependent)
-from .stroke_type import StrokeType
-from .stroke import Stroke
+from .stroke import Stroke, StrokeType
 from .motor_program import MotorProgram
+from .concept_type import ConceptType
 
 from . import CPDUnif
 from . import CPD

@@ -1,4 +1,2 @@
-from .generate_character import (generate_type, generate_token,
-                                 generate_character)
-
-__all__ = ['generate_type', 'generate_token', 'generate_character']
+from .generate_exemplar import (generate_type, generate_mp,
+                                 generate_exemplar)

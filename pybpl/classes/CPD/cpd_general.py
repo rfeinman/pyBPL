@@ -6,8 +6,26 @@ from __future__ import division, print_function
 import numpy as np
 import torch
 
+from ..stroke import StrokeType
 from ..relations import get_attach_point
+from .cpd_substrokes import sample_nsub, sample_sequence
+from .cpd_shape import sample_shape_type
+from .cpd_scale import sample_invscale_type
 
+
+def sample_stroke_type(libclass, ns):
+    # sample the number of sub-strokes
+    nsub = sample_nsub(libclass, ns)
+    # sample the sub-stroke sequence
+    ss_seq = sample_sequence(libclass, nsub)
+    # sample control points for each sub-stroke in the sequence
+    cpts = sample_shape_type(libclass, ss_seq)
+    # sample scales for each sub-stroke in the sequence
+    scales = sample_invscale_type(libclass, ss_seq)
+    # initialize the stroke type
+    stype = StrokeType(ss_seq, cpts, scales)
+
+    return stype
 
 def sample_position(libclass, R,
                     prev_strokes):  # check that this does what I want, slicewise
@@ -75,12 +93,3 @@ def sample_image(pimg):
     raise NotImplementedError
     I = pyro.sample('image', dist.bernoulli, pimg)  # hope this works.
     return I
-
-def isunif(libclass):
-    """
-
-    :param libclass:
-    :return:
-    """
-
-    return torch.isnan(libclass.shape['mu']).any()
