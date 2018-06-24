@@ -6,11 +6,11 @@ from ..classes import CPD, CharacterType, MotorProgram
 # list of acceptable dtypes for 'ns' parameter
 int_types = [torch.uint8, torch.int8, torch.int16, torch.int32, torch.int64]
 
-def generate_type(libclass, ns=None):
+def generate_type(lib, ns=None):
     """
     Generate a character type by sampling from the prior
 
-    :param libclass: [Library] library class instance
+    :param lib: [Library] library class instance
     :param ns: [int or tensor] number of strokes for the character
     :return:
         ctype: [CharacterType] character type
@@ -18,7 +18,7 @@ def generate_type(libclass, ns=None):
 
     if ns is None:
         # sample the number of strokes 'ns'
-        ns = CPD.sample_number(libclass)
+        ns = CPD.sample_number(lib)
     else:
         # make sure 'ns' is correct dtype
         isint = isinstance(ns, int)
@@ -33,9 +33,9 @@ def generate_type(libclass, ns=None):
     # for each stroke, sample stroke parameters
     for _ in range(ns):
         # sample the stroke type
-        stype = CPD.sample_stroke_type(libclass, ns)
+        stype = CPD.sample_stroke_type(lib, ns)
         # sample the relation of this stroke to previous strokes
-        r = CPD.sample_relation_type(libclass, S)
+        r = CPD.sample_relation_type(lib, S)
         # append stroke type and relation to their respective lists
         S.append(stype)
         R.append(r)
@@ -44,22 +44,22 @@ def generate_type(libclass, ns=None):
 
     return ctype
 
-def generate_mp(libclass, ns=None):
+def generate_mp(lib, ns=None):
     """
     Wrapper for generate_type... since the function in the paper returns a
     program rather than a type, this function returns a motor program
 
-    :param libclass:
+    :param lib:
     :param ns:
     :return:
     """
-    ctype = generate_type(libclass, ns)
-    mp = MotorProgram(ctype, libclass)
+    ctype = generate_type(lib, ns)
+    mp = MotorProgram(ctype, lib)
 
     return mp
 
-def generate_exemplar(libclass, ns=None):
-    mp = generate_mp(libclass, ns)
+def generate_exemplar(lib, ns=None):
+    mp = generate_mp(lib, ns)
     exemplar = mp.sample_token()
 
     return exemplar

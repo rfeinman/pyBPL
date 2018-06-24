@@ -4,7 +4,7 @@ Model of global statistics
 from __future__ import division, print_function
 
 
-def score_stat(libclass, M):
+def score_stat(lib, M):
     raise NotImplementedError
     logwt = None
     x_ink = None

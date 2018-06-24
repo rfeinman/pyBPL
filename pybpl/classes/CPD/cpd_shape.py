@@ -28,11 +28,11 @@ def __get_dist(mu, Cov, subid):
 
     return mvn
 
-def sample_shape_type(libclass, subid):
+def sample_shape_type(lib, subid):
     """
     Sample the control points for each sub-stroke
 
-    :param libclass: [Library] library class instance
+    :param lib: [Library] library class instance
     :param subid: [(nsub,) tensor] vector of sub-stroke ids
     :return:
         bspline_stack: [(ncpt, 2, nsub) tensor] sampled spline
@@ -42,14 +42,14 @@ def sample_shape_type(libclass, subid):
     # record vector length
     nsub = len(subid)
     # if uniform, sample using CPDUnif and return
-    if libclass.isunif:
-        bspline_stack = CPDUnif.sample_shape_type(libclass, subid)
+    if lib.isunif:
+        bspline_stack = CPDUnif.sample_shape_type(lib, subid)
         return bspline_stack
     # record num control points
-    ncpt = libclass.ncpt
+    ncpt = lib.ncpt
     # create multivariate normal distribution
     mvn = __get_dist(
-        libclass.shape['mu'], libclass.shape['Sigma'].permute([2,0,1]), subid
+        lib.shape['mu'], lib.shape['Sigma'].permute([2,0,1]), subid
     )
     # sample points from the multivariate normal distribution
     rows_bspline = mvn.sample()
@@ -58,11 +58,11 @@ def sample_shape_type(libclass, subid):
 
     return bspline_stack
 
-def score_shape_type(libclass, bspline_stack, subid):
+def score_shape_type(lib, bspline_stack, subid):
     """
     Score the log-likelihoods of the control points for each sub-stroke
 
-    :param libclass: [Library] library class instance
+    :param lib: [Library] library class instance
     :param bspline_stack: [(ncpt, 2, nsub) tensor] shapes of bsplines
     :param subid: [(nsub,) tensor] vector of sub-stroke ids
     :return:
@@ -74,27 +74,27 @@ def score_shape_type(libclass, bspline_stack, subid):
     nsub = len(subid)
     assert bspline_stack.shape[-1] == nsub
     # if uniform, score using CPDUnif and return
-    if libclass.isunif:
-        ll = CPDUnif.score_shape_type(libclass, bspline_stack, subid)
+    if lib.isunif:
+        ll = CPDUnif.score_shape_type(lib, bspline_stack, subid)
         return ll
     # record num control points
-    ncpt = libclass.ncpt
+    ncpt = lib.ncpt
     # convert (ncpt, 2, nsub) tensor into (nsub, ncpt*2) tensor
     rows_bspline = torch.transpose(bspline_stack.view(ncpt*2, nsub),0,1)
     # create multivariate normal distribution
     mvn = __get_dist(
-        libclass.shape['mu'], libclass.shape['Sigma'].permute([2,0,1]), subid
+        lib.shape['mu'], lib.shape['Sigma'].permute([2,0,1]), subid
     )
     # score points using the multivariate normal distribution
     ll = mvn.log_prob(rows_bspline)
 
     return ll
 
-def sample_shape_token(libclass, bspline_stack):
+def sample_shape_token(lib, bspline_stack):
     raise NotImplementedError
     sz = bspline_stack.shape
     sigma_shape = torch.squeeze(
-        torch.Tensor(libclass['tokenvar']['sigma_shape'][0, 0]))
+        torch.Tensor(lib['tokenvar']['sigma_shape'][0, 0]))
     outstack = bspline_stack + Variable(sigma_shape) * \
                                pyro.sample('shape_var', dist.normal,
                                            Variable(torch.zeros(sz)),

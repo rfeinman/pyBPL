@@ -19,17 +19,17 @@ def __get_dist(pkappa):
 
     return cat
 
-def sample_number(libclass, nsamp=1):
+def sample_number(lib, nsamp=1):
     """
     Sample a stroke count, or a vector of stroke counts
 
-    :param libclass: [Library] library class instance
+    :param lib: [Library] library class instance
     :param nsamp: [int] number of samples to draw
     :return:
         ns: [(nsamp,) tensor] vector of stroke counts. scalar if nsamp=1.
     """
     # probability of each stroke count
-    pkappa = libclass.pkappa
+    pkappa = lib.pkappa
     # get the categorical distribution
     cat = __get_dist(pkappa)
     # sample from the dist
@@ -42,17 +42,17 @@ def sample_number(libclass, nsamp=1):
 
     return ns
 
-def score_number(libclass, ns):
+def score_number(lib, ns):
     """
     Score the log-likelihood of each stroke count in ns
 
-    :param libclass: [Library] library class instance
+    :param lib: [Library] library class instance
     :param ns: [(nsamp,) tensor] vector of stroke counts. scalar if nsamp=1
     :return:
         ll: [(nsamp,) tensor] vector of log-likelihood scores. scalar if nsamp=1
     """
     # probability of each stroke count
-    pkappa = libclass.pkappa
+    pkappa = lib.pkappa
     out_of_bounds = ns > len(pkappa)
     if out_of_bounds.any():
         ll = torch.tensor(-np.inf)

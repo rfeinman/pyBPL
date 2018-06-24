@@ -5,15 +5,15 @@ from __future__ import print_function, division
 import torch
 
 
-def offset_stk(traj,offset):
+def offset_stk(traj, offset):
     n = traj.shape[0]
     list_sub = [offset for _ in range(n)]
-    sub = torch.cat(list_sub,0)
+    sub = torch.cat(list_sub, 0)
     stk = traj - sub
 
     return stk
 
-def space_motor_to_img(pt): #TODO
+def space_motor_to_img(pt):
     raise NotImplementedError
 
 def render_image(cell_traj, epsilon, blur_sigma, PM):

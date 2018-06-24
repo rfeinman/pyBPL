@@ -18,11 +18,11 @@ def __get_dist(eval_spot_type, sigma_attach):
 
     return norm
 
-def sample_relation_type(libclass, prev_strokes):
+def sample_relation_type(lib, prev_strokes):
     """
     Sample a relation type for this stroke
 
-    :param libclass: [Library] library class instance
+    :param lib: [Library] library class instance
     :param prev_strokes: [list of Strokes] list of previous strokes
     :return:
         R: [Relation] relation
@@ -30,17 +30,17 @@ def sample_relation_type(libclass, prev_strokes):
     nprev = len(prev_strokes)
     stroke_num = nprev + 1
     types = ['unihist', 'start', 'end', 'mid']
-    ncpt = libclass.ncpt
+    ncpt = lib.ncpt
     if nprev == 0:
         indx = torch.tensor(0, dtype=torch.int64, requires_grad=True)
     else:
-        indx = Categorical(probs=libclass.rel['mixprob']).sample()
+        indx = Categorical(probs=lib.rel['mixprob']).sample()
 
     rtype = types[indx]
 
     if rtype == 'unihist':
         data_id = torch.tensor([stroke_num])
-        gpos = libclass.Spatial.sample(data_id)
+        gpos = lib.Spatial.sample(data_id)
         r = RelationIndependent(rtype, nprev, gpos)
     elif rtype in ['start', 'end']:
         # sample random attach spot uniformly
@@ -66,27 +66,27 @@ def sample_relation_type(libclass, prev_strokes):
 
     return r
 
-def sample_relation_token(libclass, eval_spot_type):
+def sample_relation_token(lib, eval_spot_type):
     """
     TODO
 
-    :param libclass:
+    :param lib:
     :param eval_spot_type:
     :return:
     """
-    norm = __get_dist(eval_spot_type, libclass.tokenvar['sigma_attach'])
+    norm = __get_dist(eval_spot_type, lib.tokenvar['sigma_attach'])
     score = torch.tensor(-np.inf)
     while np.isinf(score):
         eval_spot_token = norm.sample()
-        score = score_relation_token(libclass, eval_spot_token, eval_spot_type)
+        score = score_relation_token(lib, eval_spot_token, eval_spot_type)
 
     return eval_spot_token
 
-def score_relation_token(libclass, eval_spot_token, eval_spot_type):
+def score_relation_token(lib, eval_spot_token, eval_spot_type):
     """
     TODO
 
-    :param libclass:
+    :param lib:
     :param eval_spot_token:
     :param eval_spot_type:
     :return:
@@ -95,12 +95,12 @@ def score_relation_token(libclass, eval_spot_token, eval_spot_type):
            (type(eval_spot_token) == torch.Tensor and
             eval_spot_token.shape == torch.Size([]))
     assert eval_spot_type is not None
-    ncpt = libclass.ncpt
+    ncpt = lib.ncpt
     _, lb, ub = bspline_gen_s(ncpt, 1)
     if eval_spot_token < lb or eval_spot_token > ub:
         ll = torch.tensor(-np.inf)
         return ll
-    norm = __get_dist(eval_spot_type, libclass.tokenvar['sigma_attach'])
+    norm = __get_dist(eval_spot_type, lib.tokenvar['sigma_attach'])
     ll = norm.log_prob(eval_spot_token)
 
     # correction for bounds

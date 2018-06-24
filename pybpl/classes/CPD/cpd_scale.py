@@ -25,11 +25,11 @@ def __get_dist(theta, subid):
 
     return gamma
 
-def sample_invscale_type(libclass, subid):
+def sample_invscale_type(lib, subid):
     """
     Sample the scale parameters for each sub-stroke
 
-    :param libclass: [Library] library class instance
+    :param lib: [Library] library class instance
     :param subid: [(k,) tensor] vector of sub-stroke ids
     :return:
         invscales: [(k,) tensor] vector of scale values
@@ -37,21 +37,21 @@ def sample_invscale_type(libclass, subid):
     # check that it is a vector
     assert len(subid.shape) == 1
     # if uniform, sample using CPDUnif and return
-    if libclass.isunif:
-        invscales = CPDUnif.sample_invscale_type(libclass, subid)
+    if lib.isunif:
+        invscales = CPDUnif.sample_invscale_type(lib, subid)
         return invscales
     # create gamma distribution
-    gamma = __get_dist(libclass.scale['theta'], subid)
+    gamma = __get_dist(lib.scale['theta'], subid)
     # sample from the gamma distribution
     invscales = gamma.sample()
 
     return invscales
 
-def score_invscale_type(libclass, invscales, subid):
+def score_invscale_type(lib, invscales, subid):
     """
     Score the log-likelihood of each sub-stroke's scale parameter
 
-    :param libclass:
+    :param lib:
     :param invscales:
     :param subid:
     :return:
@@ -61,22 +61,22 @@ def score_invscale_type(libclass, invscales, subid):
     assert len(subid.shape) == 1
     assert len(invscales) == len(subid)
     # if uniform, score using CPDUnif and return
-    if libclass.isunif:
-        ll = CPDUnif.score_invscale_type(libclass, invscales, subid)
+    if lib.isunif:
+        ll = CPDUnif.score_invscale_type(lib, invscales, subid)
         return ll
     # create gamma distribution
-    gamma = __get_dist(libclass.scale['theta'], subid)
+    gamma = __get_dist(lib.scale['theta'], subid)
     # score points using the gamma distribution
     ll = gamma.log_prob(invscales)
 
     return ll
 
-def sample_invscale_token(libclass, invscales_type):
+def sample_invscale_token(lib, invscales_type):
     raise NotImplementedError
     # print 'invscales_type', invscales_type
     sz = invscales_type.shape
     sigma_invscale = torch.squeeze(
-        torch.Tensor(libclass['tokenvar']['sigma_invscale'][0, 0]))
+        torch.Tensor(lib['tokenvar']['sigma_invscale'][0, 0]))
     invscales_token = invscales_type + Variable(sigma_invscale) * pyro.sample(
         'scales_var', dist.normal, Variable(torch.zeros(sz)),
         Variable(torch.ones(sz)))

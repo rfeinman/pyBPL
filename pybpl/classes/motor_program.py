@@ -32,7 +32,6 @@ class MotorProgram(object):
         """
         Sample a token from the motor program
 
-        :param libclass: [Library] library class instance
         :return:
             image: [(m,n) tensor] token (image)
         """

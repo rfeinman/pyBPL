@@ -8,6 +8,6 @@ from pybpl.classes import Library
 
 def loadlib(lib_dir='./library'):
     lib = Library(lib_dir)
-    assert type(lib) is Library
+    assert isinstance(lib, Library)
 
     return lib
