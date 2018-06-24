@@ -1,4 +1,4 @@
-save_dir = 'library';
+save_dir = 'lib_data';
 lib = loadlib;
 fields = fieldnames(lib);
 

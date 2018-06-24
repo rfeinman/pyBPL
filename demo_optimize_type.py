@@ -79,7 +79,7 @@ def obj_fun(ctype, lib):
 
 def main():
     # load the library
-    lib = Library(lib_dir='./library')
+    lib = Library(lib_dir='./lib_data')
     # generate a character type
     ctype = generate_type(lib, ns=args.ns)
     print('num strokes: %i' % ctype.ns)

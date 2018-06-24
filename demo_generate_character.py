@@ -12,7 +12,7 @@ def main():
         "'generate_character' not yet fully implemented. Generating character "
         "type (template) for now."
     )
-    lib = Library(lib_dir='./library')
+    lib = Library(lib_dir='./lib_data')
     ctype = generate_type(lib)
     print('Character type: ', ctype)
     # char = Character(ctype, lib)
