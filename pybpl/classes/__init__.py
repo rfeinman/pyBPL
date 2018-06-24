@@ -5,7 +5,7 @@ from .relations import (Relation, RelationAttach, RelationAttachAlong,
                         RelationIndependent)
 from .stroke import Stroke, StrokeType
 from .motor_program import MotorProgram
-from .concept_type import ConceptType
+from .character_type import CharacterType
 
 from . import CPDUnif
 from . import CPD

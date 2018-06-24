@@ -1,11 +1,11 @@
 """
-A concept type. This serves as a template for a motor program.
+A character type. This serves as a template for a motor program.
 """
 from __future__ import division, print_function
 from .stroke import StrokeType
 from .relations import Relation
 
-class ConceptType(object):
+class CharacterType(object):
     def __init__(self, S, R):
         for stype in S:
             assert isinstance(stype, StrokeType)

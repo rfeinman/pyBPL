@@ -6,7 +6,7 @@ import torch
 
 from .stroke import Stroke
 from . import CPD
-from .concept_type import ConceptType
+from .character_type import CharacterType
 from . import UtilMP
 from ..parameters import defaultps
 from ..rendering import render_image
@@ -15,7 +15,7 @@ from ..rendering import render_image
 class MotorProgram(object):
 
     def __init__(self, ctype):
-        assert isinstance(ctype, ConceptType)
+        assert isinstance(ctype, CharacterType)
         self.ctype = ctype
         self.parameters = defaultps()
 

@@ -1,6 +1,6 @@
 from __future__ import division, print_function
 import torch
-from ..classes import CPD, ConceptType, MotorProgram
+from ..classes import CPD, CharacterType, MotorProgram
 
 
 # list of acceptable dtypes for 'ns' parameter
@@ -8,12 +8,12 @@ int_types = [torch.uint8, torch.int8, torch.int16, torch.int32, torch.int64]
 
 def generate_type(libclass, ns=None):
     """
-    Generate a concept type by sampling from the prior
+    Generate a character type by sampling from the prior
 
     :param libclass: [Library] library class instance
-    :param ns: [int or tensor] number of strokes for the concept
+    :param ns: [int or tensor] number of strokes for the character
     :return:
-        ctype: [ConceptType] concept type
+        ctype: [CharacterType] character type
     """
 
     if ns is None:
@@ -39,8 +39,8 @@ def generate_type(libclass, ns=None):
         # append stroke type and relation to their respective lists
         S.append(stype)
         R.append(r)
-    # initialize the concept type
-    ctype = ConceptType(S, R)
+    # initialize the character type
+    ctype = CharacterType(S, R)
 
     return ctype
 

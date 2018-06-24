@@ -23,7 +23,7 @@ def get_variables(ctype):
     """
     Indicate variables for optimization (requires_grad_)
 
-    :param ctype: [ConceptType] character type to optimize
+    :param ctype: [CharacterType] character type to optimize
     :return:
         parameters: [list] list of optimizable parameters
         lbs: [list] list of lower bounds (each elem. is a tensor same size
@@ -53,7 +53,7 @@ def obj_fun(ctype, lib):
     """
     Evaluate the log-likelihood of a character type under the prior
 
-    :param ctype: [ConceptType] character type
+    :param ctype: [CharacterType] character type
     :return:
         ll: [tensor] log-likelihood under the prior. Scalar
     """
