@@ -25,8 +25,6 @@ class Stroke(object):
     Reference to StrokeType object "myType"
         This might be shared between multiple strokes (see MotorProgram)
     """
-    # tracked properties
-    __po = {'pos_token', 'invscales_token', 'shapes_token'}
 
     def __init__(
             self, stype=None, pos_token=None, invscales_token=None,
@@ -95,7 +93,7 @@ class Stroke(object):
         """
         Compute the [x,y,t] trajectory of this stroke
         """
-        motor = vanilla_to_motor(
+        motor, _ = vanilla_to_motor(
             self.shapes_token, self.invscales_token, self.pos_token
         )
 
@@ -104,11 +102,25 @@ class Stroke(object):
     @property
     def motor_spline(self):
         """
-        TODO
+        Compute the spline trajectory of this stroke
         """
-        raise NotImplementedError('motor_spline method not yet implemented.')
+        raise NotImplementedError
+        _, motor_spline = vanilla_to_motor(
+            self.shapes_token, self.invscales_token, self.pos_token
+        )
 
 def vanilla_to_motor(shapes, invscales, first_pos):
+    """
+    Create the fine-motor trajectory of a stroke (denoted 'f()' in pseudocode)
+    with k sub-strokes
+
+    :param shapes: [(ncpt,2,k) tensor] spline points in normalized space
+    :param invscales: [(k,) tensor] inverse scales for each sub-stroke
+    :param first_pos: [(2,) tensor] starting location of stroke
+    :return:
+        motor: [list] k-length fine motor sequence
+        motor_spline: [list] k-length fine motor sequence in spline space
+    """
     vanilla_traj = []
     motor = []
     ncpt,_,n = shapes.shape
@@ -116,11 +128,13 @@ def vanilla_to_motor(shapes, invscales, first_pos):
         shapes[:,:,i] = invscales[i] * shapes[:,:,i]
         vanilla_traj.append(get_stk_from_bspline(shapes[:,:,i]))
 
-        #calculate offset
+        # calculate offset
         if i == 0:
             offset = vanilla_traj[i][0,:] - first_pos
         else:
             offset = vanilla_traj[i-1][0,:] - motor[i-1][-1,:]
         motor.append(offset_stk(vanilla_traj[i],offset))
 
-    return motor
+    motor_spline = None
+
+    return motor, motor_spline
