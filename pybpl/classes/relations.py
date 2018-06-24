@@ -17,6 +17,33 @@ class Relation(object):
     def validType(self):
         return self.type in self.types_allowed
 
+    def get_attach_point(self, prev_strokes):
+        """
+        Get the mean attachment point of where the start of the next stroke
+        should be, given the previous ones and their relations
+
+        :param prev_strokes: TODO
+        :return:
+            pos: TODO
+        """
+        if self.type == 'unihist':
+            pos = self.gpos
+        else:
+            stroke = prev_strokes[self.attach_spot]
+            if self.type == 'start':
+                subtraj = stroke.motor[0]
+                pos = subtraj[0]
+            elif self.type == 'end':
+                subtraj = stroke.motor[-1]
+                pos = subtraj[-1]
+            elif self.type == 'mid':
+                bspline = stroke.motor_spline[:,:,self.subid_spot]
+                pos = bspline_eval[self.eval_spot_token, bspline]
+            else:
+                raise TypeError('invalid relation')
+
+        return pos
+
 class RelationIndependent(Relation):
     def __init__(self, rtype, nprev, gpos=None):
         Relation.__init__(self, rtype, nprev)
@@ -35,29 +62,3 @@ class RelationAttachAlong(RelationAttach):
         self.nsub = nsub
         self.eval_spot_type = []
         self.eval_spot_token = []
-
-def get_attach_point(R, prev_strokes):
-    """
-    Get the mean attachment point of where the start of the next stroke should
-    be, given the previous ones and their relations
-
-    :param R: TODO
-    :param prev_strokes: TODO
-    :return:
-        pos: TODO
-    """
-    if R.type == 'unihist':
-        pos = R.gpos
-    elif R.type == 'start':
-        subtraj = prev_strokes[R.attach_spot].motor[0]
-        pos = subtraj[0]
-    elif R.type == 'end':
-        subtraj = prev_strokes[R.attach_spot].motor[-1]
-        pos = subtraj[-1]
-    elif R.type == 'mid':
-        bspline = prev_strokes[R.attach_spot].motor_spline[:,:,R.subid_spot]
-        pos = bspline_eval[R.eval_spot_token, bspline]
-    else:
-        raise TypeError('invalid relation')
-
-    return pos

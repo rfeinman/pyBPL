@@ -5,13 +5,16 @@ BPL model
 from __future__ import division, print_function
 import numpy as np
 import torch
+import torch.distributions as dist
 
 from ..stroke import StrokeType
-from ..relations import get_attach_point
 from .cpd_substrokes import sample_nsub, sample_sequence
 from .cpd_shape import sample_shape_type
 from .cpd_scale import sample_invscale_type
 
+# ----
+# Stroke
+# ----
 
 def sample_stroke_type(libclass, ns):
     # sample the number of sub-strokes
@@ -27,26 +30,59 @@ def sample_stroke_type(libclass, ns):
 
     return stype
 
-def sample_position(libclass, R,
-                    prev_strokes):  # check that this does what I want, slicewise
-    raise NotImplementedError
-    base = get_attach_point(R, prev_strokes)
-    # indexing into base is not pretty
+# ----
+# Local position model (L)
+# ----
 
-    sigma_x = Variable(
-        torch.squeeze(torch.Tensor(libclass['rel']['sigma_x'][0, 0])))
-    sigma_y = Variable(
-        torch.squeeze(torch.Tensor(libclass['rel']['sigma_y'][0, 0])))
+def __get_dist(base, sigma_x, sigma_y):
+    mu = base
+    Cov = torch.eye(2)
+    Cov[0,0] = sigma_x
+    Cov[1,1] = sigma_y
+    mvn = dist.multivariate_normal.MultivariateNormal(mu, Cov)
 
-    x = pyro.sample('r_x_pos', dist.normal, base[0, 0], sigma_x)
-    # print 'x', x
-    y = pyro.sample('r_y_pos', dist.normal, base[0, 1], sigma_y)
-    # print 'y:', y
+    return mvn
 
-    pos = torch.stack((x, y), dim=1)
-    # print 'pos', pos
+def sample_position(libclass, r, prev_strokes):
+    """
+    TODO
+
+    :param libclass:
+    :param r:
+    :param prev_strokes:
+    :return:
+        pos:
+    """
+    # sample where the position of this stroke should be
+    base = r.get_attach_point(prev_strokes)
+    assert base.shape == torch.Size([2])
+    # get mutlivariate normal distribution
+    mvn = __get_dist(base, libclass.rel['sigma_x'], libclass.rel['sigma_y'])
+    # sample position from the distribution
+    pos = mvn.sample()
 
     return pos
+
+def score_position(libclass, pos, r, prev_strokes):
+    """
+    TODO
+
+    :param libclass:
+    :param pos:
+    :param r:
+    :param prev_strokes:
+    :return:
+        ll:
+    """
+    # sample where the position of this stroke should be
+    base = r.get_attach_point(prev_strokes)
+    assert base.shape == torch.Size([2])
+    # get mutlivariate normal distribution
+    mvn = __get_dist(base, libclass.rel['sigma_x'], libclass.rel['sigma_y'])
+    # score position using the distribution
+    ll = mvn.log_prob(pos)
+
+    return ll
 
 def sample_affine(libclass):
     raise NotImplementedError
