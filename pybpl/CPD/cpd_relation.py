@@ -8,8 +8,8 @@ from torch.distributions.categorical import Categorical
 from torch.distributions.uniform import Uniform
 import torch.distributions as dist
 
-from ..relations import (RelationIndependent, RelationAttach,
-                        RelationAttachAlong)
+from pybpl.concept.relation import (RelationIndependent, RelationAttach,
+                                    RelationAttachAlong)
 from ...splines import bspline_gen_s
 
 

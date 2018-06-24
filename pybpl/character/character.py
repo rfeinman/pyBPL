@@ -3,17 +3,36 @@ Motor program class definition
 """
 from __future__ import print_function, division
 import torch
+import torch.distributions as dist
 
-from .stroke import Stroke
-from .library import Library
-from . import CPD
-from .character_type import CharacterType
-from . import UtilMP
-from ..parameters import defaultps
-from ..rendering import render_image
+from pybpl.classes.stroke import Stroke, StrokeType
+from pybpl.classes.relations import Relation
+from pybpl.classes.library import Library
+from pybpl.classes import CPD
+from pybpl.classes import UtilMP
+from pybpl.parameters import defaultps
+from pybpl.rendering import render_image
+from .concept import Concept, ConceptType
 
+class CharacterType(ConceptType):
+    def __init__(self, S, R):
+        for stype in S:
+            assert isinstance(stype, StrokeType)
+        for rtype in R:
+            assert isinstance(rtype, Relation)
+        assert len(S) == len(R)
+        ConceptType.__init__(self)
+        # the list of stroke types
+        self.S = S
+        # the list of relations
+        self.R = R
 
-class MotorProgram(object):
+    @property
+    def ns(self):
+        # get number of strokes
+        return len(self.S)
+
+class Character(Concept):
 
     def __init__(self, ctype, lib):
         """
@@ -24,9 +43,15 @@ class MotorProgram(object):
         """
         assert isinstance(ctype, CharacterType)
         assert isinstance(lib, Library)
+        Concept.__init__(self)
         self.ctype = ctype
         self.lib = lib
         self.parameters = defaultps()
+
+    @property
+    def ns(self):
+        # get number of strokes
+        return len(self.ctype.S)
 
     def sample_token(self):
         """
@@ -59,14 +84,9 @@ class MotorProgram(object):
         # get probability map of an image
         pimg, _ = self.__apply_render(strokes, affine, epsilon, blur_sigma)
         # sample the image
-        image = CPD.sample_image(pimg)
+        image = sample_image(pimg)
 
         return image
-
-    @property
-    def ns(self):
-        # get number of strokes
-        return len(self.ctype.S)
 
     def has_relations(self, list_sid=None):
         if list_sid is None:
@@ -102,3 +122,14 @@ class MotorProgram(object):
         return pimg, ink_off_page
 
 
+def sample_image(pimg):
+    binom = dist.binomial.Binomial(1, pimg)
+    image = binom.sample()
+
+    return image
+
+def score_image(image, pimg):
+    binom = dist.binomial.Binomial(1, pimg)
+    ll = binom.log_prob(image)
+
+    return ll
