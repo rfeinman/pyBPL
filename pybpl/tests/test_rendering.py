@@ -1,14 +1,14 @@
 from __future__ import division, print_function
 import unittest
 
-from .. import CPD
-from ..library.library import Library
-from .. import rendering
+from pybpl import CPD
+from pybpl.library.library import Library
+from pybpl import rendering
 
-class TestSpatialHist(unittest.TestCase):
+class TestRendering(unittest.TestCase):
 
     def setUp(self):
-        self.lib = Library('../lib_data')
+        self.lib = Library('../../lib_data')
 
     def testVanillaToMotor(self):
         # get shapes and invscales token
@@ -24,3 +24,7 @@ class TestSpatialHist(unittest.TestCase):
             shapes_token, invscales_token, position
         )
         print(motor)
+        print(3)
+
+if __name__ == '__main__':
+    unittest.main()
