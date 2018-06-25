@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import torch
 from torch.distributions.multivariate_normal import MultivariateNormal
 
-from pybpl.classes import SpatialModel
+from pybpl.library.spatial_model import SpatialModel
 
 
 class TestSpatialModel(unittest.TestCase):

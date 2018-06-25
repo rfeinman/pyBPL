@@ -1,9 +1,9 @@
 from __future__ import division, print_function
 import unittest
 
-from ..pybpl import CPD
-from ..pybpl.library.library import Library
-from ..pybpl import rendering
+from .. import CPD
+from ..library.library import Library
+from .. import rendering
 
 class TestSpatialHist(unittest.TestCase):
 
