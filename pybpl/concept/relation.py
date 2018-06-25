@@ -7,7 +7,6 @@ import numpy as np
 import torch
 import torch.distributions as dist
 
-from .part import PartToken
 from ..splines import bspline_eval, bspline_gen_s
 
 types_allowed = ['unihist', 'start', 'end', 'mid']
@@ -16,11 +15,10 @@ types_allowed = ['unihist', 'start', 'end', 'mid']
 class Relation(object):
     __metaclass__ = ABCMeta
 
-    def __init__(self, rtype, nprev, sigma_x, sigma_y):
+    def __init__(self, rtype, sigma_x, sigma_y):
         # make sure type is valid
         assert rtype in types_allowed
         self.type = rtype
-        self.nprev = nprev
 
         # build the position distribution
         Cov = torch.eye(2)
@@ -30,21 +28,19 @@ class Relation(object):
             torch.zeros(2), Cov
         )
 
-    def sample_position(self, prev_parts):
-        for part in prev_parts:
-            assert isinstance(part, PartToken)
-        base = self.get_attach_point(prev_parts)
+    def sample_position(self, prev_rendered_parts):
+        base = self.get_attach_point(prev_rendered_parts)
         assert base.shape == torch.Size([2])
         pos = base + self.pos_dist.sample()
 
         return pos
 
     @abstractmethod
-    def get_attach_point(self, prev_parts):
+    def get_attach_point(self, prev_rendered_parts):
         """
         Get the mean attachment point of where the start of the next part
-        should be, given the previous ones and their relations. This function
-        needs to be overridden in child classes
+        should be, given the previous parts (rendered). This function
+        needs to be overridden in child classes.
 
         :param prev_parts: TODO
         :return:
@@ -54,22 +50,22 @@ class Relation(object):
 
 
 class RelationIndependent(Relation):
-    def __init__(self, rtype, nprev, sigma_x, sigma_y, gpos):
+    def __init__(self, rtype, sigma_x, sigma_y, gpos):
         assert rtype == 'unihist'
         assert gpos.shape == torch.Size([2])
-        Relation.__init__(self, rtype, nprev, sigma_x, sigma_y)
+        Relation.__init__(self, rtype, sigma_x, sigma_y)
         self.gpos = gpos
 
-    def get_attach_point(self, prev_parts):
+    def get_attach_point(self, prev_rendered_parts):
         pos = self.gpos
 
         return pos
 
 
 class RelationAttach(Relation):
-    def __init__(self, rtype, nprev, sigma_x, sigma_y, attach_spot):
+    def __init__(self, rtype, sigma_x, sigma_y, attach_spot):
         assert rtype in ['start', 'end', 'mid']
-        Relation.__init__(self, rtype, nprev, sigma_x, sigma_y)
+        Relation.__init__(self, rtype, sigma_x, sigma_y)
         self.attach_spot = attach_spot
 
     def get_attach_point(self, prev_parts):
@@ -87,12 +83,12 @@ class RelationAttach(Relation):
 
 class RelationAttachAlong(RelationAttach):
     def __init__(
-            self, rtype, nprev, sigma_x, sigma_y, sigma_attach, attach_spot,
+            self, rtype, sigma_x, sigma_y, sigma_attach, attach_spot,
             subid_spot, ncpt, eval_spot_type
     ):
         assert rtype == 'mid'
         RelationAttach.__init__(
-            self, rtype, nprev, sigma_x, sigma_y, attach_spot
+            self, rtype, sigma_x, sigma_y, attach_spot
         )
         self.subid_spot = subid_spot
         self.ncpt = ncpt
@@ -102,7 +98,7 @@ class RelationAttachAlong(RelationAttach):
         eval_spot_token = self.sample_eval_spot_token()
         part = prev_parts[self.attach_spot]
         bspline = part.motor_spline[:, :, self.subid_spot]
-        pos = bspline_eval[eval_spot_token, bspline]
+        pos = bspline_eval(eval_spot_token, bspline)
 
         return pos
 

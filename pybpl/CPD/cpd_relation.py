@@ -41,13 +41,13 @@ def sample_relation_type(lib, prev_strokes):
         # convert (1,2) tensor to (2,) tensor
         gpos = torch.squeeze(gpos)
         # create relation
-        r = RelationIndependent(rtype, nprev, sigma_x, sigma_y, gpos)
+        r = RelationIndependent(rtype, sigma_x, sigma_y, gpos)
     elif rtype in ['start', 'end']:
         # sample random attach spot uniformly
         probs = torch.ones(nprev, requires_grad=True)
         attach_spot = Categorical(probs=probs).sample()
         # create relation
-        r = RelationAttach(rtype, nprev, sigma_x, sigma_y, attach_spot)
+        r = RelationAttach(rtype, sigma_x, sigma_y, attach_spot)
     elif rtype == 'mid':
         # sample random attach spot uniformly
         probs = torch.ones(nprev, requires_grad=True)
@@ -61,7 +61,7 @@ def sample_relation_type(lib, prev_strokes):
         eval_spot_type = Uniform(lb, ub).sample()
         # create relation
         r = RelationAttachAlong(
-            rtype, nprev, sigma_x, sigma_y, sigma_attach, attach_spot,
+            rtype, sigma_x, sigma_y, sigma_attach, attach_spot,
             subid_spot, ncpt, eval_spot_type
         )
 
