@@ -8,7 +8,7 @@ from pybpl import rendering
 class TestRendering(unittest.TestCase):
 
     def setUp(self):
-        self.lib = Library('../../lib_data')
+        self.lib = Library('../lib_data')
 
     def testVanillaToMotor(self):
         # get shapes and invscales token
