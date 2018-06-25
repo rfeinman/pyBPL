@@ -12,8 +12,17 @@ from ..concept.relation import Relation
 from ..library.library import Library
 from .. import CPD
 from .. import rendering
-from ..concept.concept import Concept
+from ..concept.concept import Concept, ConceptToken
 
+
+class CharacterToken(ConceptToken):
+    def __init__(self, list_st, list_rt, affine, epsilon, blur_sigma, image):
+        self.list_st = list_st
+        self.list_rt = list_rt
+        self.affine = affine
+        self.epsilon = epsilon
+        self.blur_sigma = blur_sigma
+        self.image = image
 
 class Character(Concept):
     """
@@ -75,7 +84,12 @@ class Character(Concept):
         # sample the image
         image = sample_image(pimg)
 
-        return image
+        # create the character token
+        token = ConceptToken(
+            list_st, list_rt, affine, epsilon, blur_sigma, image
+        )
+
+        return token
 
     def sample_affine(self):
         raise NotImplementedError
