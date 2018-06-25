@@ -8,7 +8,6 @@ import torch.distributions as dist
 
 from .. import rendering
 from ..concept.part import Part, PartToken
-from ..concept.relation import RelationToken
 
 
 class StrokeToken(PartToken):
@@ -17,28 +16,25 @@ class StrokeToken(PartToken):
         self.shapes = shapes
         self.invscales = invscales
 
-    def motor(self, rel_token):
+    def motor(self, position):
         """
         Compute the [x,y,t] trajectory of this stroke
         """
-        assert isinstance(rel_token, RelationToken)
         motor, _ = rendering.vanilla_to_motor(
-            self.shapes, self.invscales, rel_token.position
+            self.shapes, self.invscales, position
         )
 
         return motor
 
-    def motor_spline(self, rel_token):
+    def motor_spline(self, position):
         """
         Compute the spline trajectory of this stroke
         """
-        assert isinstance(rel_token, RelationToken)
         _, motor_spline = rendering.vanilla_to_motor(
-            self.shapes, self.invscales, rel_token.position
+            self.shapes, self.invscales, position
         )
 
         raise NotImplementedError
-        return motor_spline
 
 class Stroke(Part):
     """

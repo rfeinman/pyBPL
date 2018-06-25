@@ -13,11 +13,6 @@ from ..splines import bspline_eval, bspline_gen_s
 types_allowed = ['unihist', 'start', 'end', 'mid']
 
 
-class RelationToken(object):
-    def __init__(self, position):
-        self.position = position
-
-
 class Relation(object):
     __metaclass__ = ABCMeta
 
@@ -35,20 +30,14 @@ class Relation(object):
             torch.zeros(2), Cov
         )
 
-    def sample_position_token(self, prev_parts):
+    def sample_position(self, prev_parts):
+        for part in prev_parts:
+            assert isinstance(part, PartToken)
         base = self.get_attach_point(prev_parts)
         assert base.shape == torch.Size([2])
         pos = base + self.pos_dist.sample()
 
         return pos
-
-    def sample_token(self, prev_parts):
-        for part in prev_parts:
-            assert isinstance(part, PartToken)
-        pos = self.sample_position_token(prev_parts)
-        token = RelationToken(pos)
-
-        return token
 
     @abstractmethod
     def get_attach_point(self, prev_parts):

@@ -60,8 +60,8 @@ def vanilla_to_motor(shapes, invscales, first_pos):
 
     return motor, motor_spline
 
-def apply_warp(list_st, list_rt, affine):
-    motor_unwarped = [st.motor(rt) for st, rt in zip(list_st, list_rt)]
+def apply_warp(list_st, list_pos, affine):
+    motor_unwarped = [st.motor(pos) for st, pos in zip(list_st, list_pos)]
     if affine is None:
         motor_warped = motor_unwarped
     else:
@@ -69,8 +69,8 @@ def apply_warp(list_st, list_rt, affine):
 
     return motor_warped
 
-def apply_render(list_st, list_rt, affine, epsilon, blur_sigma, parameters):
-    motor_warped = apply_warp(list_st, list_rt, affine)
+def apply_render(list_st, list_pos, affine, epsilon, blur_sigma, parameters):
+    motor_warped = apply_warp(list_st, list_pos, affine)
     flat_warped = UtilMP.flatten_substrokes(motor_warped)
     pimg, ink_off_page = render_image(
         flat_warped, epsilon, blur_sigma, parameters

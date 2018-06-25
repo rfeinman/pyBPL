@@ -16,9 +16,9 @@ from ..concept.concept import Concept, ConceptToken
 
 
 class CharacterToken(ConceptToken):
-    def __init__(self, list_st, list_rt, affine, epsilon, blur_sigma, image):
+    def __init__(self, list_st, list_pos, affine, epsilon, blur_sigma, image):
         self.list_st = list_st
-        self.list_rt = list_rt
+        self.list_pos = list_pos
         self.affine = affine
         self.epsilon = epsilon
         self.blur_sigma = blur_sigma
@@ -55,19 +55,19 @@ class Character(Concept):
 
     def sample_token(self):
         """
-        Sample a token from the motor program
+        Sample a character token
 
         :return:
-            image: [(m,n) tensor] token (image)
+            token: [CharacterToken] character token
         """
-        # sample the stroke and relation tokens
+        # sample the stroke tokens and the start positions
         list_st = []
-        list_rt = []
-        for s, r in zip(self.ctype.S, self.ctype.R):
-            s_token = s.sample_token()
-            r_token = r.sample_token(prev_parts=list_st)
-            list_st.append(s_token)
-            list_rt.append(r_token)
+        list_pos = []
+        for s, r in zip(self.S, self.R):
+            st = s.sample_token()
+            pos = r.sample_position(prev_parts=list_st)
+            list_st.append(st)
+            list_pos.append(pos)
 
         # sample affine warp
         affine = self.sample_affine()
@@ -78,7 +78,7 @@ class Character(Concept):
 
         # get probability map of an image
         pimg, _ = rendering.apply_render(
-            list_st, list_rt, affine, epsilon, blur_sigma, self.parameters
+            list_st, list_pos, affine, epsilon, blur_sigma, self.parameters
         )
 
         # sample the image
@@ -86,7 +86,7 @@ class Character(Concept):
 
         # create the character token
         token = ConceptToken(
-            list_st, list_rt, affine, epsilon, blur_sigma, image
+            list_st, list_pos, affine, epsilon, blur_sigma, image
         )
 
         return token
