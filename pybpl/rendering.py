@@ -8,12 +8,7 @@ from . import splines
 from . import UtilMP
 
 def offset_stk(traj, offset):
-    n = traj.shape[0]
-    list_sub = [offset for _ in range(n)]
-    sub = torch.cat(list_sub, 0)
-    stk = traj - sub
-
-    return stk
+    print("'offset_stk' function is unnecessary.")
 
 def space_motor_to_img(pt):
     raise NotImplementedError
@@ -49,18 +44,18 @@ def vanilla_to_motor(shapes, invscales, first_pos, neval=200):
     ncpt, _, nsub = shapes.shape
     motor = torch.zeros(nsub, neval, 2, dtype=torch.float)
     motor_spline = torch.zeros_like(shapes, dtype=torch.float)
+    previous_pos = first_pos
     for i in range(nsub):
         # re-scale the control points
         shapes_scaled = invscales[i]*shapes[:,:,i]
         # get trajectories from b-spline
-        motor[i] = splines.get_stk_from_bspline(shapes_scaled, neval)
-        # reposition
-        if i == 0:
-            offset = motor[i,0] - first_pos
-        else:
-            offset = motor[i,0] - motor[i-1,-1]
-        motor[i] = offset_stk(motor[i], offset)
+        traj = splines.get_stk_from_bspline(shapes_scaled, neval)
+        # reposition; shift by offset
+        offset = traj[0] - previous_pos
+        motor[i] = traj - offset
         motor_spline[:,:,i] = shapes_scaled - offset
+        # update previous_pos to be last position of current traj
+        previous_pos = motor[i,-1]
 
     return motor, motor_spline
 

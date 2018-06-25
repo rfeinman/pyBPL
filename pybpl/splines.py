@@ -1,3 +1,8 @@
+"""
+B-splines utilities. For reference material on B-splines, see Kristin Branson's
+"A Practical Review of Uniform B-splines":
+http://vision.ucsd.edu/~kbranson/research/bsplines/bsplines.pdf
+"""
 from __future__ import division, print_function
 import warnings
 import torch
@@ -6,25 +11,34 @@ def bspline_eval(sval, cpts):
     """
     Fit a uniform, cubic B-spline
 
-    :param sval: [(k,) array] vector, where 0 <= sval(i) <= n
-    :param cpts: [(n,2) array] array of control points
+    :param sval: [(neval,) tensor] vector, where 0 <= sval(i) <= n
+    :param cpts: [(ncpt,2) tensor] array of control points
     :return:
-        y: [(k,2) array] the output of spline
-        Cof: TODO
+        y: [(neval,2) tensor] the output of spline
+        Cof: [(neval,ncpt) tensor] TODO
     """
-    raise NotImplementedError
     assert len(sval.shape) == 1
-    L = cpts.shape[0]
-    ns = len(sval)
+    assert len(cpts.shape) == 2
+    neval = sval.shape[0]
+    ncpt = cpts.shape[0]
+    y = torch.zeros(neval, 2, dtype=torch.float)
 
-    list_sval = [sval for _ in range(L)]
-    S = Variable(torch.cat(list_sval, 1))  # wait, does sval need to be
-    list_L = [torch.Tensor(np.arange(L)).view(1, -1) for _ in range(ns)]
-    I = Variable(torch.cat(list_L, 0))
+    # these will both have shape (neval,ncpt)
+    S = torch.cat(
+        [sval.view(-1,1) for _ in range(ncpt)],
+        dim=1
+    )
+    I = torch.cat(
+        [torch.arange(ncpt).view(1,-1) for _ in range(neval)],
+        dim=0
+    )
+    # this will have shape (neval,ncpt)
     Cof = vectorized_bspline_coeff(I, S)
-    y1 = torch.mm(Cof, cpts[:, 0])
-    y2 = torch.mm(Cof, cpts[:, 1])
-    y = torch.cat((y1, y2), 1)
+    # normalize rows of Cof
+    Cof = Cof / torch.sum(Cof, dim=1).view(-1,1)
+    # multiply (neval,ncpt) x (ncpt,1) = (neval, 1)
+    y[:,0] = torch.mm(Cof, cpts[:,0].view(-1,1)).view(-1)
+    y[:,1] = torch.mm(Cof, cpts[:,1].view(-1,1)).view(-1)
 
     return y, Cof
 
@@ -121,33 +135,37 @@ def get_stk_from_bspline(P, neval=None):
 def vectorized_bspline_coeff(vi, vs):
     """
     TODO
-    See Kristin Branson's "A Practical Review of Uniform B-splines"
 
-    :param vi: [(n,m) array] TODO
-    :param vs: [(n,m) array] TODO
+    :param vi: [(neval, ncpt) tensor] TODO
+    :param vs: [(neval, ncpt) tensor] TODO
     :return:
-        C: [(n,) array] the coefficients
+        C: [(neval, ncpt) tensor] the coefficients
     """
-    raise NotImplementedError
     assert vi.shape == vs.shape
-    C = torch.zeros(vi.shape)
 
-    # in the following, * stands in for 'and'
-    sel1 = (vs >= vi) * (vs < vi + 1)
-    C[sel1] = (1 / 6.) * torch.pow((vs[sel1] - vi[sel1]), 3)
+    # step through the conditions
+    # NOTE: in the following, * stands in for 'and'
+    C = torch.zeros_like(vi, dtype=torch.float)
 
-    sel2 = (vs >= vi + 1) * (vs < vi + 2)
-    C[sel2] = (1 / 6.) * (
-            -3. * torch.pow((vs[sel2] - vi[sel2] - 1), 3) +
-            3. * torch.pow((vs[sel2] - vi[sel2] - 1), 2) +
-            3. * (vs[sel2] - vi[sel2] - 1) +
-            1)
-
-    sel3 = (vs >= vi + 2) * (vs < vi + 3)
-    C[sel3] = (1 / 6.) * (3 * torch.pow((vs[sel3] - vi[sel3] - 2), 3) -
-                          6 * torch.pow((vs[sel3] - vi[sel3] - 2), 2) + 4)
-
-    sel4 = (vs >= vi + 3) * (vs < vi + 4)
-    C[sel4] = (1 / 6.) * torch.pow((1 - (vs(sel4) - vi(sel4) - 3)), 3)
+    # sel1
+    sel = (vs >= vi)*(vs < vi+1)
+    diff = vs[sel] - vi[sel]
+    val = torch.pow(diff, 3)
+    C[sel] = val/6.
+    # sel2
+    sel = (vs >= vi+1)*(vs < vi+2)
+    diff = vs[sel] - vi[sel] - 1
+    val = -3*torch.pow(diff, 3) + 3*torch.pow(diff, 2) + 3*diff + 1
+    C[sel] = val/6.
+    # sel3
+    sel = (vs >= vi+2)*(vs < vi+3)
+    diff = vs[sel] - vi[sel] - 2
+    val = 3*torch.pow(diff, 3) - 6*torch.pow(diff, 2) + 4
+    C[sel] = val/6.
+    # sel4
+    sel = (vs >= vi+3)*(vs < vi+4)
+    diff = vs[sel] - vi[sel] - 3
+    val = torch.pow(1-diff, 3)
+    C[sel] = val/6.
 
     return C
