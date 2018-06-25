@@ -6,9 +6,9 @@ import numpy as np
 import torch
 import torch.distributions as dist
 
-from ..rendering import offset_stk
-from ..splines import get_stk_from_bspline
+from .. import rendering
 from ..concept.part import Part, PartToken
+from ..concept.relation import RelationToken
 
 
 class StrokeToken(PartToken):
@@ -16,6 +16,29 @@ class StrokeToken(PartToken):
         PartToken.__init__(self)
         self.shapes = shapes
         self.invscales = invscales
+
+    def motor(self, rel_token):
+        """
+        Compute the [x,y,t] trajectory of this stroke
+        """
+        assert isinstance(rel_token, RelationToken)
+        motor, _ = rendering.vanilla_to_motor(
+            self.shapes, self.invscales, rel_token.position
+        )
+
+        return motor
+
+    def motor_spline(self, rel_token):
+        """
+        Compute the spline trajectory of this stroke
+        """
+        assert isinstance(rel_token, RelationToken)
+        _, motor_spline = rendering.vanilla_to_motor(
+            self.shapes, self.invscales, rel_token.position
+        )
+
+        raise NotImplementedError
+        return motor_spline
 
 class Stroke(Part):
     """
@@ -103,56 +126,3 @@ class Stroke(Part):
         token = StrokeToken(shapes_token, invscales_token)
 
         return token
-
-    @property
-    def motor(self):
-        """
-        Compute the [x,y,t] trajectory of this stroke
-        """
-        motor, _ = vanilla_to_motor(
-            self.shapes_token, self.invscales_token, self.pos_token
-        )
-
-        return motor
-
-    @property
-    def motor_spline(self):
-        """
-        Compute the spline trajectory of this stroke
-        """
-        raise NotImplementedError
-        _, motor_spline = vanilla_to_motor(
-            self.shapes_token, self.invscales_token, self.pos_token
-        )
-
-
-
-def vanilla_to_motor(shapes, invscales, first_pos):
-    """
-    Create the fine-motor trajectory of a stroke (denoted 'f()' in pseudocode)
-    with k sub-strokes
-
-    :param shapes: [(ncpt,2,k) tensor] spline points in normalized space
-    :param invscales: [(k,) tensor] inverse scales for each sub-stroke
-    :param first_pos: [(2,) tensor] starting location of stroke
-    :return:
-        motor: [list] k-length fine motor sequence
-        motor_spline: [list] k-length fine motor sequence in spline space
-    """
-    vanilla_traj = []
-    motor = []
-    ncpt,_,n = shapes.shape
-    for i in range(n):
-        shapes[:,:,i] = invscales[i] * shapes[:,:,i]
-        vanilla_traj.append(get_stk_from_bspline(shapes[:,:,i]))
-
-        # calculate offset
-        if i == 0:
-            offset = vanilla_traj[i][0,:] - first_pos
-        else:
-            offset = vanilla_traj[i-1][0,:] - motor[i-1][-1,:]
-        motor.append(offset_stk(vanilla_traj[i],offset))
-
-    motor_spline = None
-
-    return motor, motor_spline

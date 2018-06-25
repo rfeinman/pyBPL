@@ -10,8 +10,8 @@ from .stroke import Stroke
 from .parameters import defaultps
 from ..concept.relation import Relation
 from ..library.library import Library
-from .. import CPD, UtilMP
-from ..rendering import render_image
+from .. import CPD
+from .. import rendering
 from ..concept.concept import Concept
 
 
@@ -68,7 +68,9 @@ class Character(Concept):
         blur_sigma = self.sample_image_blur()
 
         # get probability map of an image
-        pimg, _ = self.__apply_render(list_st, affine, epsilon, blur_sigma)
+        pimg, _ = rendering.apply_render(
+            list_st, list_rt, affine, epsilon, blur_sigma, self.parameters
+        )
 
         # sample the image
         image = sample_image(pimg)
@@ -94,26 +96,6 @@ class Character(Concept):
         blur_sigma = self.parameters.min_blur_sigma
 
         return blur_sigma
-
-    def __apply_warp(self, strokes, affine):
-        motor_unwarped = [stroke.motor for stroke in strokes]
-        if affine is None:
-            motor_warped = motor_unwarped
-        else:
-            raise NotImplementedError(
-                "'apply_warp' method not yet implemented."
-            )
-
-        return motor_warped
-
-    def __apply_render(self, strokes, affine, epsilon, blur_sigma):
-        motor_warped = self.__apply_warp(strokes, affine)
-        flat_warped = UtilMP.flatten_substrokes(motor_warped)
-        pimg, ink_off_page = render_image(
-            flat_warped, epsilon, blur_sigma, self.parameters
-        )
-
-        return pimg, ink_off_page
 
 def sample_image(pimg):
     binom = dist.binomial.Binomial(1, pimg)
