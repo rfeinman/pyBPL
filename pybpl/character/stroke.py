@@ -2,93 +2,107 @@
 Stroke class definition.
 """
 from __future__ import print_function, division
+import numpy as np
+import torch
+import torch.distributions as dist
 
-from pybpl.rendering import offset_stk
-from pybpl.splines import get_stk_from_bspline
-from pybpl.concept.part import Part
+from ..rendering import offset_stk
+from ..splines import get_stk_from_bspline
+from ..concept.part import Part, PartToken
 
 
-class StrokeType(object):
-    def __init__(self, ids=None, shapes_type=None, invscales_type=None):
-        self.ids = ids
-        self.shapes_type = shapes_type
-        self.invscales_type = invscales_type
-
-    @property
-    def nsub(self):
-        return len(self.ids)
+class StrokeToken(PartToken):
+    def __init__(self, shapes, invscales):
+        PartToken.__init__(self)
+        self.shapes = shapes
+        self.invscales = invscales
 
 class Stroke(Part):
     """
-    STROKETOKEN. Random variables that define a continuous pen trajectory
-        Utilized in the MotorProgram class
-
-    Reference to StrokeType object "myType"
-        This might be shared between multiple strokes (see MotorProgram)
+    A Stroke is a program that can generate and score new stroke tokens
     """
-
     def __init__(
-            self, stype=None, pos_token=None, invscales_token=None,
-            shapes_token=None
+            self, ids, shapes_type, invscales_type, sigma_shape, sigma_invscale
     ):
         """
         Initialize the Stroke class instance.
 
-        :param stype: [StrokeType] the type-level template for the stroke
+        :param ids:
+        :param shapes_type:
+        :param invscales_type:
+        :param lib:
         """
+        # parent init
         Part.__init__(self)
-        if stype is not None:
-            assert isinstance(stype, StrokeType)
-            self.myType = stype
-        else:
-            self.myType = StrokeType()
 
-        # token-level parameters
-        self.pos_token = pos_token
-        self.invscales_token = invscales_token
-        self.shapes_token = shapes_token
+        # type-level parameters
+        self.ids = ids
+        self.shapes_type = shapes_type
+        self.invscales_type = invscales_type
 
-    # -----
-    # NOTE: these might be unnecessary
-    # -----
-    @property
-    def ids(self):
-        return self.myType.ids
-
-    @ids.setter
-    def ids(self, val):
-        self.myType.ids = val
-
-    @property
-    def invscales_type(self):
-        return self.myType.invscales_type
-
-    @invscales_type.setter
-    def invscales_type(self, val):
-        self.myType.invscales_type = val
-
-    @property
-    def shapes_type(self):
-        return self.myType.shapes_type
-
-    @shapes_type.setter
-    def shapes_type(self, val):
-        self.myType.shapes_type = val
-
-    @property
-    def R(self):
-        return self.myType.R
-
-    @R.setter
-    def R(self, val):
-        self.myType.R = val
+        # distributions
+        self.shapes_dist = dist.normal.Normal(shapes_type, sigma_shape)
+        self.scales_dist = dist.normal.Normal(invscales_type, sigma_invscale)
 
     @property
     def nsub(self):
         """
         Get the number of sub-strokes
         """
-        return self.myType.nsub
+        return len(self.ids)
+
+    def sample_shapes_token(self):
+        shapes_token = self.shapes_dist.sample()
+
+        return shapes_token
+
+    def score_shapes_token(self, shapes_token):
+        # compute scores for every element in shapes_token
+        ll = self.shapes_dist.log_prob(shapes_token)
+        # sum scores
+        ll = torch.sum(ll)
+
+        return ll
+
+    def sample_invscales_token(self):
+        ll = torch.tensor(-np.inf)
+        while np.isinf(ll):
+            invscales_token = self.scales_dist.sample()
+            ll = self.score_invscales_token(invscales_token)
+
+        return invscales_token
+
+    def score_invscales_token(self, invscales_token):
+        # compute scores for every element in invscales_token
+        ll = self.scales_dist.log_prob(invscales_token)
+
+        # don't allow invscales that are negative
+        out_of_bounds = invscales_token <= 0
+        if out_of_bounds.any():
+            ll = torch.tensor(-np.inf)
+            return ll
+
+        # correction for positive only invscales
+        p_below = self.scales_dist.cdf(0.)
+        p_above = 1.- p_below
+        ll = ll - torch.log(p_above)
+
+        # sum scores
+        ll = torch.sum(ll)
+
+        return ll
+
+    def sample_token(self):
+        """
+        TODO
+
+        :return:
+        """
+        shapes_token = self.sample_shapes_token()
+        invscales_token = self.sample_invscales_token()
+        token = StrokeToken(shapes_token, invscales_token)
+
+        return token
 
     @property
     def motor(self):
@@ -110,6 +124,8 @@ class Stroke(Part):
         _, motor_spline = vanilla_to_motor(
             self.shapes_token, self.invscales_token, self.pos_token
         )
+
+
 
 def vanilla_to_motor(shapes, invscales, first_pos):
     """

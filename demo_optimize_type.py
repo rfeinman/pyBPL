@@ -20,11 +20,12 @@ lr = 1e-3
 # tol. for constrained optimization
 eps = 1e-4
 
-def get_variables(ctype):
+def get_variables(S, R):
     """
     Indicate variables for optimization (requires_grad_)
 
-    :param ctype: [CharacterType] character type to optimize
+    :param S: [list of Stroke]
+    :param R: [list of Relation]
     :return:
         parameters: [list] list of optimizable parameters
         lbs: [list] list of lower bounds (each elem. is a tensor same size
@@ -35,26 +36,27 @@ def get_variables(ctype):
     parameters = []
     lbs = []
     ubs = []
-    for sid in range(ctype.ns):
+    for s, r in zip(S, R):
         # shape
-        ctype.S[sid].shapes_type.requires_grad_()
-        parameters.append(ctype.S[sid].shapes_type)
+        s.shapes_type.requires_grad_()
+        parameters.append(s.shapes_type)
         lbs.append([])
         ubs.append([])
 
         # scale
-        ctype.S[sid].invscales_type.requires_grad_()
-        parameters.append(ctype.S[sid].invscales_type)
-        lbs.append(torch.full(ctype.S[sid].invscales_type.shape, eps))
+        s.invscales_type.requires_grad_()
+        parameters.append(s.invscales_type)
+        lbs.append(torch.full(s.invscales_type.shape, eps))
         ubs.append([])
 
     return parameters, lbs, ubs
 
-def obj_fun(ctype, lib):
+def obj_fun(S, R, lib):
     """
     Evaluate the log-likelihood of a character type under the prior
 
-    :param ctype: [CharacterType] character type
+    :param S: [list of Stroke]
+    :param R: [list of Relation]
     :return:
         ll: [tensor] log-likelihood under the prior. Scalar
     """
@@ -62,15 +64,14 @@ def obj_fun(ctype, lib):
     ll = 0.
 
     # loop through the strokes
-    for sid in range(ctype.ns):
-        stype = ctype.S[sid]
+    for s, r in zip(S, R):
         # log-prob of the control points for each sub-stroke in this stroke
         ll_cpts = CPD.score_shape_type(
-            lib, stype.shapes_type, stype.ids
+            lib, s.shapes_type, s.ids
         )
         # log-prob of the scales for each sub-stroke in this stroke
         ll_scales = CPD.score_invscale_type(
-            lib, stype.invscales_type, stype.ids
+            lib, s.invscales_type, s.ids
         )
         # sum over sub-strokes and add to accumulator
         ll = ll + torch.sum(ll_cpts) + torch.sum(ll_scales)
@@ -81,10 +82,10 @@ def main():
     # load the library
     lib = Library(lib_dir='./lib_data')
     # generate a character type
-    ctype = generate_type(lib, ns=args.ns)
-    print('num strokes: %i' % ctype.ns)
+    S, R = generate_type(lib, ns=args.ns)
+    print('num strokes: %i' % len(S))
     # get optimizable variables & their bounds
-    parameters, lbs, ubs = get_variables(ctype)
+    parameters, lbs, ubs = get_variables(S, R)
 
     # optimize the character type
     score_list = []
@@ -92,7 +93,7 @@ def main():
         if idx % 100 == 0:
             print('iteration #%i' % idx)
             #view_params(mp)
-        score = obj_fun(ctype, lib)
+        score = obj_fun(S, R, lib)
         score.backward()
         score_list.append(score)
         with torch.no_grad():

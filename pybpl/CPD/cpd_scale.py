@@ -70,20 +70,3 @@ def score_invscale_type(lib, invscales, subid):
     ll = gamma.log_prob(invscales)
 
     return ll
-
-def sample_invscale_token(lib, invscales_type):
-    raise NotImplementedError
-    # print 'invscales_type', invscales_type
-    sz = invscales_type.shape
-    sigma_invscale = torch.squeeze(
-        torch.Tensor(lib['tokenvar']['sigma_invscale'][0, 0]))
-    invscales_token = invscales_type + Variable(sigma_invscale) * pyro.sample(
-        'scales_var', dist.normal, Variable(torch.zeros(sz)),
-        Variable(torch.ones(sz)))
-
-    if (invscales_token <= 0).any():
-        invscales_token = invscales_type + Variable(
-            sigma_invscale) * pyro.sample('scales_var', dist.normal,
-                                          Variable(torch.zeros(sz)),
-                                          Variable(torch.ones(sz)))
-    return invscales_token

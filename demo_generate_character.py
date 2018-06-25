@@ -13,9 +13,10 @@ def main():
         "type (template) for now."
     )
     lib = Library(lib_dir='./lib_data')
-    ctype = generate_type(lib)
-    print('Character type: ', ctype)
-    # char = Character(ctype, lib)
+    S, R = generate_type(lib)
+    print('strokes: ', S)
+    print('relations: ', R)
+    # char = Character(S, R, lib)
     # exemplar = char.sample_token()
 
 if __name__ == '__main__':

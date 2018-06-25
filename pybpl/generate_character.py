@@ -1,7 +1,7 @@
 from __future__ import division, print_function
 import torch
 from . import CPD
-from .character.character import CharacterType, Character
+from .character.character import Character
 
 
 # list of acceptable dtypes for 'ns' parameter
@@ -28,22 +28,21 @@ def generate_type(lib, ns=None):
                       ns.dtype in int_types
         assert isint or istensorint
 
-    # initialize stroke type and relation type lists
+    # initialize stroke and relation lists
     S = []
     R = []
     # for each stroke, sample stroke parameters
     for _ in range(ns):
         # sample the stroke type
-        stype = CPD.sample_stroke_type(lib, ns)
+        stroke = CPD.sample_stroke_type(lib, ns)
         # sample the relation of this stroke to previous strokes
-        r = CPD.sample_relation_type(lib, S)
+        relation = CPD.sample_relation_type(lib, S)
         # append stroke type and relation to their respective lists
-        S.append(stype)
-        R.append(r)
-    # initialize the character type
-    ctype = CharacterType(S, R)
+        S.append(stroke)
+        R.append(relation)
 
-    return ctype
+    # return the character type (a stencil for a character)
+    return S, R
 
 def generate_token(lib, ns=None):
     """
@@ -55,8 +54,8 @@ def generate_token(lib, ns=None):
     :param ns:
     :return:
     """
-    ctype = generate_type(lib, ns)
-    char = Character(ctype, lib)
+    S, R = generate_type(lib, ns)
+    char = Character(S, R, lib)
     exemplar = char.sample_token()
 
     return exemplar
@@ -70,7 +69,7 @@ def generate_program(lib, ns=None):
     :param ns:
     :return:
     """
-    ctype = generate_type(lib, ns)
-    char = Character(ctype, lib)
+    S, R = generate_type(lib, ns)
+    char = Character(S, R, lib)
 
     return char

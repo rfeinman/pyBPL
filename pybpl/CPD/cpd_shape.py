@@ -89,14 +89,3 @@ def score_shape_type(lib, bspline_stack, subid):
     ll = mvn.log_prob(rows_bspline)
 
     return ll
-
-def sample_shape_token(lib, bspline_stack):
-    raise NotImplementedError
-    sz = bspline_stack.shape
-    sigma_shape = torch.squeeze(
-        torch.Tensor(lib['tokenvar']['sigma_shape'][0, 0]))
-    outstack = bspline_stack + Variable(sigma_shape) * \
-                               pyro.sample('shape_var', dist.normal,
-                                           Variable(torch.zeros(sz)),
-                                           Variable(torch.ones(sz)))
-    return outstack

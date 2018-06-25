@@ -7,7 +7,7 @@ import numpy as np
 import torch
 import torch.distributions as dist
 
-from ..character.stroke import StrokeType
+from ..character.stroke import Stroke
 from .cpd_substrokes import sample_nsub, sample_sequence
 from .cpd_shape import sample_shape_type
 from .cpd_scale import sample_invscale_type
@@ -26,63 +26,13 @@ def sample_stroke_type(lib, ns):
     # sample scales for each sub-stroke in the sequence
     scales = sample_invscale_type(lib, ss_seq)
     # initialize the stroke type
-    stype = StrokeType(ss_seq, cpts, scales)
+    stroke = Stroke(
+        ss_seq, cpts, scales,
+        sigma_shape=lib.tokenvar['sigma_shape'],
+        sigma_invscale=lib.tokenvar['sigma_invscale']
+    )
 
-    return stype
-
-# ----
-# Local position model (L)
-# ----
-
-def __get_dist(base, sigma_x, sigma_y):
-    mu = base
-    Cov = torch.eye(2)
-    Cov[0,0] = sigma_x
-    Cov[1,1] = sigma_y
-    mvn = dist.multivariate_normal.MultivariateNormal(mu, Cov)
-
-    return mvn
-
-def sample_position(lib, r, prev_strokes):
-    """
-    TODO
-
-    :param lib:
-    :param r:
-    :param prev_strokes:
-    :return:
-        pos:
-    """
-    # sample where the position of this stroke should be
-    base = r.get_attach_point(prev_strokes)
-    assert base.shape == torch.Size([2])
-    # get mutlivariate normal distribution
-    mvn = __get_dist(base, lib.rel['sigma_x'], lib.rel['sigma_y'])
-    # sample position from the distribution
-    pos = mvn.sample()
-
-    return pos
-
-def score_position(lib, pos, r, prev_strokes):
-    """
-    TODO
-
-    :param lib:
-    :param pos:
-    :param r:
-    :param prev_strokes:
-    :return:
-        ll:
-    """
-    # sample where the position of this stroke should be
-    base = r.get_attach_point(prev_strokes)
-    assert base.shape == torch.Size([2])
-    # get mutlivariate normal distribution
-    mvn = __get_dist(base, lib.rel['sigma_x'], lib.rel['sigma_y'])
-    # score position using the distribution
-    ll = mvn.log_prob(pos)
-
-    return ll
+    return stroke
 
 def sample_affine(lib):
     raise NotImplementedError
@@ -123,9 +73,3 @@ def sample_affine(lib):
     if (sample_A[:, 0:2] <= 0).any():
         print('WARNING: sampled scale variable is less than zero')
     return sample_A
-
-
-def sample_image(pimg):
-    raise NotImplementedError
-    I = pyro.sample('image', dist.bernoulli, pimg)  # hope this works.
-    return I

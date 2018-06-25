@@ -1,55 +1,48 @@
 """
-Motor program class definition
+Character class definition
 """
 from __future__ import print_function, division
+import warnings
+import torch
 import torch.distributions as dist
 
-from .stroke import Stroke, StrokeType
+from .stroke import Stroke
 from .parameters import defaultps
 from ..concept.relation import Relation
 from ..library.library import Library
 from .. import CPD, UtilMP
 from ..rendering import render_image
-from ..concept.concept import Concept, ConceptType
+from ..concept.concept import Concept
 
-class CharacterType(ConceptType):
-    def __init__(self, S, R):
-        for stype in S:
-            assert isinstance(stype, StrokeType)
-        for rtype in R:
-            assert isinstance(rtype, Relation)
-        assert len(S) == len(R)
-        ConceptType.__init__(self)
-        # the list of stroke types
-        self.S = S
-        # the list of relations
-        self.R = R
-
-    @property
-    def ns(self):
-        # get number of strokes
-        return len(self.S)
 
 class Character(Concept):
-
-    def __init__(self, ctype, lib):
+    """
+    TODO
+    """
+    def __init__(self, S, R, lib):
         """
         Constructor
 
-        :param ctype: [CharacterType]
-        :param lib: [Library]
+        :param S: [list of Stroke] TODO
+        :param R: [list of Relation] TODO
+        :param lib: [Library] TODO
         """
-        assert isinstance(ctype, CharacterType)
+        assert len(S) == len(R)
+        assert len(S) > 0
+        for s, r in zip(S, R):
+            assert isinstance(s, Stroke)
+            assert isinstance(r, Relation)
         assert isinstance(lib, Library)
         Concept.__init__(self)
-        self.ctype = ctype
+        self.S = S
+        self.R = R
         self.lib = lib
         self.parameters = defaultps()
 
     @property
     def ns(self):
         # get number of strokes
-        return len(self.ctype.S)
+        return len(self.S)
 
     def sample_token(self):
         """
@@ -58,46 +51,49 @@ class Character(Concept):
         :return:
             image: [(m,n) tensor] token (image)
         """
-        # sample the token-level stroke params
-        strokes = []
-        for stype, r in zip(self.ctype.S, self.ctype.R):
-            # TODO - need to do something about updating eval_spot_type/token?
-            if r.type == 'mid':
-                r.eval_spot_token = CPD.sample_relation_token(self.lib, r.eval_spot_type)
-            pos_token = CPD.sample_position(self.lib, r, strokes)
-            shapes_token = CPD.sample_shape_token(self.lib, stype.shapes_type)
-            invscales_token = CPD.sample_invscale_token(self.lib, stype.invscales_type)
-            s = Stroke(stype, pos_token, shapes_token, invscales_token)
-            strokes.append(s)
+        # sample the stroke and relation tokens
+        list_st = []
+        list_rt = []
+        for s, r in zip(self.ctype.S, self.ctype.R):
+            s_token = s.sample_token()
+            r_token = r.sample_token(prev_parts=list_st)
+            list_st.append(s_token)
+            list_rt.append(r_token)
 
         # sample affine warp
-        affine = CPD.sample_affine(self.lib)
+        affine = self.sample_affine()
 
-        # set rendering parameters to minimum noise
-        blur_sigma = self.parameters.min_blur_sigma
-        epsilon = self.parameters.min_epsilon
-        # self.blur_sigma = CPD.sample_image_blur(self.parameters)
-        # self.epsilon = CPD.sample_image_noise(self.parameters)
+        # sample rendering parameters
+        epsilon = self.sample_image_noise()
+        blur_sigma = self.sample_image_blur()
 
         # get probability map of an image
-        pimg, _ = self.__apply_render(strokes, affine, epsilon, blur_sigma)
+        pimg, _ = self.__apply_render(list_st, affine, epsilon, blur_sigma)
+
         # sample the image
         image = sample_image(pimg)
 
         return image
 
-    def has_relations(self, list_sid=None):
-        if list_sid is None:
-            list_sid = range(self.ns)
-        present = [self.ctype.R[sid] is not None for sid in list_sid]
-        assert all(present) or not any(present), \
-            'error: all relations should be present or not'
-        out = all(present)
-
-        return out
-
-    def istied(self, varargin):
+    def sample_affine(self):
         raise NotImplementedError
+        return None
+
+    def sample_image_noise(self):
+        #epsilon = CPD.sample_image_noise(self.parameters)
+        warnings.warn('using fixed image noise for now...')
+        # set rendering parameters to minimum noise
+        epsilon = self.parameters.min_epsilon
+
+        return epsilon
+
+    def sample_image_blur(self):
+        #blur_sigma = CPD.sample_image_blur(self.parameters)
+        warnings.warn('using fixed image blur for now...')
+        # set rendering parameters to minimum noise
+        blur_sigma = self.parameters.min_blur_sigma
+
+        return blur_sigma
 
     def __apply_warp(self, strokes, affine):
         motor_unwarped = [stroke.motor for stroke in strokes]
@@ -118,7 +114,6 @@ class Character(Concept):
         )
 
         return pimg, ink_off_page
-
 
 def sample_image(pimg):
     binom = dist.binomial.Binomial(1, pimg)
