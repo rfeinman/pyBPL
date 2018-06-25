@@ -38,6 +38,8 @@ def sample_relation_type(lib, prev_strokes):
     if rtype == 'unihist':
         data_id = torch.tensor([stroke_num])
         gpos = lib.Spatial.sample(data_id)
+        # convert (1,2) tensor to (2,) tensor
+        gpos = torch.squeeze(gpos)
         # create relation
         r = RelationIndependent(rtype, nprev, sigma_x, sigma_y, gpos)
     elif rtype in ['start', 'end']:

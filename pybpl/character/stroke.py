@@ -84,8 +84,8 @@ class Stroke(Part):
         return ll
 
     def sample_invscales_token(self):
-        ll = torch.tensor(-np.inf)
-        while np.isinf(ll):
+        ll = torch.tensor(-float('inf'))
+        while ll == -float('inf'):
             invscales_token = self.scales_dist.sample()
             ll = self.score_invscales_token(invscales_token)
 
@@ -98,7 +98,7 @@ class Stroke(Part):
         # don't allow invscales that are negative
         out_of_bounds = invscales_token <= 0
         if out_of_bounds.any():
-            ll = torch.tensor(-np.inf)
+            ll = torch.tensor(-float('inf'))
             return ll
 
         # correction for positive only invscales

@@ -54,8 +54,9 @@ class Relation(object):
 
 
 class RelationIndependent(Relation):
-    def __init__(self, rtype, nprev, sigma_x, sigma_y, gpos=None):
+    def __init__(self, rtype, nprev, sigma_x, sigma_y, gpos):
         assert rtype == 'unihist'
+        assert gpos.shape == torch.Size([2])
         Relation.__init__(self, rtype, nprev, sigma_x, sigma_y)
         self.gpos = gpos
 
