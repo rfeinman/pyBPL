@@ -93,13 +93,11 @@ def get_stk_from_bspline(P, neval=None):
     :return:
         stk: [(m,2) array] trajectory
     """
-    raise NotImplementedError
+    nland = P.shape[0]
+
     # brenden's code finds number of eval points adaptively.
     # Can consider doing this if things take too long.
     # I worry it may mess with gradients by making them more piecewise
-
-    nland = P.size[0]
-
     if neval is None:
         # % set the number of evaluations adaptively,
         # % based on the size of the stroke
@@ -110,10 +108,14 @@ def get_stk_from_bspline(P, neval=None):
         # sumdist = sum_pair_dist(stk);
         # neval = max(neval,ceil(sumdist./PM.spline_grain));
         # neval = min(neval,PM.spline_max_neval);
-        raise NotImplementedError('dynamic n evaluation not implemented')
+        warnings.warn(
+            "cannot yet set 'neval' adaptively... using neval=200 for now."
+        )
+    # s has shape (neval,)
+    s, _, _ = bspline_gen_s(nland, neval)
+    # stk has shape (neval,2)
+    stk, _ = bspline_eval(s, P)
 
-    s = bspline_gen_s(nland, neval)
-    stk = bspline_eval(s, P)
     return stk
 
 def vectorized_bspline_coeff(vi, vs):

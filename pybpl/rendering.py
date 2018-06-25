@@ -4,7 +4,7 @@ All the functions and modules for differentiable rendering go here
 from __future__ import print_function, division
 import torch
 
-from .splines import get_stk_from_bspline
+from . import splines
 from . import UtilMP
 
 def offset_stk(traj, offset):
@@ -30,33 +30,37 @@ def render_image(cell_traj, epsilon, blur_sigma, PM):
 def sum_pair_dist(D):
     raise NotImplementedError
 
-def vanilla_to_motor(shapes, invscales, first_pos):
+def vanilla_to_motor(shapes, invscales, first_pos, neval=200):
     """
     Create the fine-motor trajectory of a stroke (denoted 'f()' in pseudocode)
-    with k sub-strokes
+    with 'nsub' sub-strokes
 
-    :param shapes: [(ncpt,2,k) tensor] spline points in normalized space
-    :param invscales: [(k,) tensor] inverse scales for each sub-stroke
+    :param shapes: [(ncpt,2,nsub) tensor] spline points in normalized space
+    :param invscales: [(nsub,) tensor] inverse scales for each sub-stroke
     :param first_pos: [(2,) tensor] starting location of stroke
+    :param neval: [tensor] int; the number of evaluations to use for each motor
+                    trajectory
     :return:
-        motor: [list] k-length fine motor sequence
-        motor_spline: [list] k-length fine motor sequence in spline space
+        motor: [list] nsub-length fine motor sequence
+        motor_spline: [list] nsub-length fine motor sequence in spline space
     """
-    vanilla_traj = []
-    motor = []
-    ncpt,_,n = shapes.shape
-    for i in range(n):
-        shapes[:,:,i] = invscales[i] * shapes[:,:,i]
-        vanilla_traj.append(get_stk_from_bspline(shapes[:,:,i]))
-
-        # calculate offset
+    for elt in [shapes, invscales, first_pos]:
+        assert elt is not None
+    ncpt, _, nsub = shapes.shape
+    motor = torch.zeros(nsub, neval, 2, dtype=torch.float)
+    motor_spline = torch.zeros_like(shapes, dtype=torch.float)
+    for i in range(nsub):
+        # re-scale the control points
+        shapes_scaled = invscales[i]*shapes[:,:,i]
+        # get trajectories from b-spline
+        motor[i] = splines.get_stk_from_bspline(shapes_scaled, neval)
+        # reposition
         if i == 0:
-            offset = vanilla_traj[i][0,:] - first_pos
+            offset = motor[i,0] - first_pos
         else:
-            offset = vanilla_traj[i-1][0,:] - motor[i-1][-1,:]
-        motor.append(offset_stk(vanilla_traj[i],offset))
-
-    motor_spline = None
+            offset = motor[i,0] - motor[i-1,-1]
+        motor[i] = offset_stk(motor[i], offset)
+        motor_spline[:,:,i] = shapes_scaled - offset
 
     return motor, motor_spline
 
