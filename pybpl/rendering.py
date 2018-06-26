@@ -9,6 +9,7 @@ from . import UtilMP
 
 def com_char(char):
     raise NotImplementedError
+    ns = len(char)
 
 def offset_stk(traj, offset):
     print("'offset_stk' function is unnecessary.")
@@ -72,6 +73,7 @@ def apply_warp(rendered_parts, affine):
     if affine is None:
         motor_warped = motor_unwarped
     else:
+        raise NotImplementedError('affine warping not yet implemented.')
         cell_traj = UtilMP.flatten_substrokes(motor_unwarped)
         com = com_char(cell_traj)
         b = torch.zeros(4, dtype=torch.float)
