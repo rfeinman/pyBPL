@@ -71,6 +71,9 @@ class RelationAttach(Relation):
         self.attach_spot = attach_spot
 
     def get_attach_point(self, prev_rendered_parts):
+        # TODO - This should be generalized so that it is applicable to all
+        # TODO - types of relations. Right now motor/motor_spline is specific
+        # TODO - to characters.
         rendered_part = prev_rendered_parts[self.attach_spot]
         if self.type == 'start':
             subtraj = rendered_part.motor[0]
@@ -101,6 +104,8 @@ class RelationAttachAlong(RelationAttach):
         rendered_part = prev_rendered_parts[self.attach_spot]
         bspline = rendered_part.motor_spline[:, :, self.subid_spot]
         pos, _ = bspline_eval(eval_spot_token, bspline)
+        # convert (1,2) tensor -> (2,) tensor
+        pos = torch.squeeze(pos, dim=0)
 
         return pos
 

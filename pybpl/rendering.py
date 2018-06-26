@@ -7,6 +7,9 @@ import torch
 from . import splines
 from . import UtilMP
 
+def com_char(char):
+    raise NotImplementedError
+
 def offset_stk(traj, offset):
     print("'offset_stk' function is unnecessary.")
     raise NotImplementedError
@@ -60,16 +63,35 @@ def vanilla_to_motor(shapes, invscales, first_pos, neval=200):
 
     return motor, motor_spline
 
+def affine_warp(stk, affine):
+    raise NotImplementedError
+
 def apply_warp(rendered_parts, affine):
+
     motor_unwarped = [rp.motor for rp in rendered_parts]
     if affine is None:
         motor_warped = motor_unwarped
     else:
-        raise NotImplementedError
+        cell_traj = UtilMP.flatten_substrokes(motor_unwarped)
+        com = com_char(cell_traj)
+        b = torch.zeros(4, dtype=torch.float)
+        b[:2] = affine[:2]
+        b[2:4] = affine[2:4] - (affine[:2]-1)*com
+        fn = lambda stk: affine_warp(stk, b)
+        motor_warped = UtilMP.apply_each_substroke(motor_unwarped, fn)
 
     return motor_warped
 
 def apply_render(rendered_parts, affine, epsilon, blur_sigma, parameters):
+    """
+
+    :param rendered_parts: [list of RenderedStroke]
+    :param affine: [(4,) tensor]
+    :param epsilon: [float]
+    :param blur_sigma: [float]
+    :param parameters: []
+    :return:
+    """
     motor_warped = apply_warp(rendered_parts, affine)
     flat_warped = UtilMP.flatten_substrokes(motor_warped)
     pimg, ink_off_page = render_image(

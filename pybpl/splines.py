@@ -17,6 +17,8 @@ def bspline_eval(sval, cpts):
         y: [(neval,2) tensor] the output of spline
         Cof: [(neval,ncpt) tensor] TODO
     """
+    if sval.shape == torch.Size([]):
+        sval = sval.view(1)
     assert len(sval.shape) == 1
     assert len(cpts.shape) == 2
     neval = sval.shape[0]

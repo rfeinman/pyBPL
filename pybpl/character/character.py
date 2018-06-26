@@ -60,7 +60,7 @@ class Character(Concept):
         rendered_parts = super(Character, self).sample_token()
 
         # sample affine warp
-        affine = self.sample_affine()
+        affine = self.sample_affine() # (4,) tensor
 
         # sample rendering parameters
         epsilon = self.sample_image_noise()
@@ -81,9 +81,13 @@ class Character(Concept):
 
         return token
 
-    def sample_affine(self):
+    def sample_affine(self, nsamp=1):
         raise NotImplementedError
-        return None
+
+        affine = None
+        affine = torch.squeeze(affine, 0)
+
+        return affine
 
     def sample_image_noise(self):
         #epsilon = CPD.sample_image_noise(self.parameters)
