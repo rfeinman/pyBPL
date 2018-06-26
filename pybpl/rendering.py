@@ -5,7 +5,8 @@ from __future__ import print_function, division
 import torch
 
 from . import splines
-from . import util_character
+from .character import util_character
+
 
 def com_char(char):
     raise NotImplementedError
