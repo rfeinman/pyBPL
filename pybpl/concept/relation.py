@@ -6,6 +6,7 @@ from abc import ABCMeta, abstractmethod
 import torch
 import torch.distributions as dist
 
+from .part import RenderedPart
 from ..splines import bspline_eval, bspline_gen_s
 
 types_allowed = ['unihist', 'start', 'end', 'mid']
@@ -28,6 +29,8 @@ class Relation(object):
         )
 
     def sample_position(self, prev_rendered_parts):
+        for rp in prev_rendered_parts:
+            assert isinstance(rp, RenderedPart)
         base = self.get_attach_point(prev_rendered_parts)
         assert base.shape == torch.Size([2])
         pos = base + self.pos_dist.sample()
