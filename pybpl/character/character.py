@@ -57,7 +57,7 @@ class Character(Concept):
         :return:
             token: [CharacterToken] character token
         """
-        rendered_parts = super(Character, self).sample_token()
+        rendered_strokes = super(Character, self).sample_token()
 
         # sample affine warp
         affine = self.sample_affine() # (4,) tensor
@@ -68,7 +68,7 @@ class Character(Concept):
 
         # get probability map of an image
         pimg, _ = rendering.apply_render(
-            rendered_parts, affine, epsilon, blur_sigma, self.parameters
+            rendered_strokes, affine, epsilon, blur_sigma, self.parameters
         )
 
         # sample the image
@@ -76,7 +76,7 @@ class Character(Concept):
 
         # create the character token
         token = CharacterToken(
-            rendered_parts, affine, epsilon, blur_sigma, image
+            rendered_strokes, affine, epsilon, blur_sigma, image
         )
 
         return token

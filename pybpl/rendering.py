@@ -5,6 +5,7 @@ from __future__ import print_function, division
 import torch
 
 from . import splines
+from .concept.part import RenderedPart
 from .character import util_character
 
 
@@ -69,7 +70,6 @@ def affine_warp(stk, affine):
     raise NotImplementedError
 
 def apply_warp(rendered_parts, affine):
-
     motor_unwarped = [rp.motor for rp in rendered_parts]
     if affine is None:
         motor_warped = motor_unwarped
@@ -95,6 +95,8 @@ def apply_render(rendered_parts, affine, epsilon, blur_sigma, parameters):
     :param parameters: []
     :return:
     """
+    for rp in rendered_parts:
+        assert isinstance(rp, RenderedPart)
     motor_warped = apply_warp(rendered_parts, affine)
     flat_warped = util_character.flatten_substrokes(motor_warped)
     pimg, ink_off_page = render_image(
