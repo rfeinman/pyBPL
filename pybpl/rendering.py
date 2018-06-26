@@ -9,6 +9,7 @@ from . import UtilMP
 
 def offset_stk(traj, offset):
     print("'offset_stk' function is unnecessary.")
+    raise NotImplementedError
 
 def space_motor_to_img(pt):
     raise NotImplementedError
@@ -59,8 +60,8 @@ def vanilla_to_motor(shapes, invscales, first_pos, neval=200):
 
     return motor, motor_spline
 
-def apply_warp(list_st, list_pos, affine):
-    motor_unwarped = [st.motor(pos) for st, pos in zip(list_st, list_pos)]
+def apply_warp(rendered_parts, affine):
+    motor_unwarped = [rp.motor for rp in rendered_parts]
     if affine is None:
         motor_warped = motor_unwarped
     else:
@@ -68,8 +69,8 @@ def apply_warp(list_st, list_pos, affine):
 
     return motor_warped
 
-def apply_render(list_st, list_pos, affine, epsilon, blur_sigma, parameters):
-    motor_warped = apply_warp(list_st, list_pos, affine)
+def apply_render(rendered_parts, affine, epsilon, blur_sigma, parameters):
+    motor_warped = apply_warp(rendered_parts, affine)
     flat_warped = UtilMP.flatten_substrokes(motor_warped)
     pimg, ink_off_page = render_image(
         flat_warped, epsilon, blur_sigma, parameters
