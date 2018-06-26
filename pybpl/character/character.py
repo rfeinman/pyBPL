@@ -81,17 +81,15 @@ class Character(Concept):
 
         return token
 
-    def sample_affine(self, nsamp=1):
-        raise NotImplementedError
-
+    def sample_affine(self):
+        warnings.warn('skipping affine warp for now.')
         affine = None
-        affine = torch.squeeze(affine, 0)
 
         return affine
 
     def sample_image_noise(self):
         #epsilon = CPD.sample_image_noise(self.parameters)
-        warnings.warn('using fixed image noise for now...')
+        warnings.warn('using fixed image noise for now.')
         # set rendering parameters to minimum noise
         epsilon = self.parameters.min_epsilon
 
@@ -99,7 +97,7 @@ class Character(Concept):
 
     def sample_image_blur(self):
         #blur_sigma = CPD.sample_image_blur(self.parameters)
-        warnings.warn('using fixed image blur for now...')
+        warnings.warn('using fixed image blur for now.')
         # set rendering parameters to minimum noise
         blur_sigma = self.parameters.min_blur_sigma
 
