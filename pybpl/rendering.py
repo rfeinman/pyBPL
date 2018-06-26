@@ -5,7 +5,7 @@ from __future__ import print_function, division
 import torch
 
 from . import splines
-from . import UtilMP
+from . import util_character
 
 def com_char(char):
     raise NotImplementedError
@@ -74,13 +74,13 @@ def apply_warp(rendered_parts, affine):
         motor_warped = motor_unwarped
     else:
         raise NotImplementedError('affine warping not yet implemented.')
-        cell_traj = UtilMP.flatten_substrokes(motor_unwarped)
+        cell_traj = util_character.flatten_substrokes(motor_unwarped)
         com = com_char(cell_traj)
         b = torch.zeros(4, dtype=torch.float)
         b[:2] = affine[:2]
         b[2:4] = affine[2:4] - (affine[:2]-1)*com
         fn = lambda stk: affine_warp(stk, b)
-        motor_warped = UtilMP.apply_each_substroke(motor_unwarped, fn)
+        motor_warped = util_character.apply_each_substroke(motor_unwarped, fn)
 
     return motor_warped
 
@@ -95,7 +95,7 @@ def apply_render(rendered_parts, affine, epsilon, blur_sigma, parameters):
     :return:
     """
     motor_warped = apply_warp(rendered_parts, affine)
-    flat_warped = UtilMP.flatten_substrokes(motor_warped)
+    flat_warped = util_character.flatten_substrokes(motor_warped)
     pimg, ink_off_page = render_image(
         flat_warped, epsilon, blur_sigma, parameters
     )
