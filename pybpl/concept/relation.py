@@ -3,7 +3,6 @@ Relation class definitions
 """
 from __future__ import print_function, division
 from abc import ABCMeta, abstractmethod
-import numpy as np
 import torch
 import torch.distributions as dist
 
@@ -53,7 +52,7 @@ class RelationIndependent(Relation):
     def __init__(self, rtype, sigma_x, sigma_y, gpos):
         assert rtype == 'unihist'
         assert gpos.shape == torch.Size([2])
-        Relation.__init__(self, rtype, sigma_x, sigma_y)
+        super(RelationIndependent, self).__init__(rtype, sigma_x, sigma_y)
         self.gpos = gpos
 
     def get_attach_point(self, prev_rendered_parts):
@@ -65,17 +64,17 @@ class RelationIndependent(Relation):
 class RelationAttach(Relation):
     def __init__(self, rtype, sigma_x, sigma_y, attach_spot):
         assert rtype in ['start', 'end', 'mid']
-        Relation.__init__(self, rtype, sigma_x, sigma_y)
+        super(RelationAttach, self).__init__(rtype, sigma_x, sigma_y)
         self.attach_spot = attach_spot
 
-    def get_attach_point(self, prev_parts):
-        part = prev_parts[self.attach_spot]
+    def get_attach_point(self, prev_rendered_parts):
+        rendered_part = prev_rendered_parts[self.attach_spot]
         if self.type == 'start':
-            subtraj = part.motor[0]
+            subtraj = rendered_part.motor[0]
             pos = subtraj[0]
         else:
             assert self.type == 'end'
-            subtraj = part.motor[-1]
+            subtraj = rendered_part.motor[-1]
             pos = subtraj[-1]
 
         return pos
@@ -87,26 +86,26 @@ class RelationAttachAlong(RelationAttach):
             subid_spot, ncpt, eval_spot_type
     ):
         assert rtype == 'mid'
-        RelationAttach.__init__(
-            self, rtype, sigma_x, sigma_y, attach_spot
+        super(RelationAttachAlong, self).__init__(
+            rtype, sigma_x, sigma_y, attach_spot
         )
         self.subid_spot = subid_spot
         self.ncpt = ncpt
         self.eval_spot_dist = dist.normal.Normal(eval_spot_type, sigma_attach)
 
-    def get_attach_point(self, prev_parts):
+    def get_attach_point(self, prev_rendered_parts):
         eval_spot_token = self.sample_eval_spot_token()
-        part = prev_parts[self.attach_spot]
-        bspline = part.motor_spline[:, :, self.subid_spot]
-        pos = bspline_eval(eval_spot_token, bspline)
+        rendered_part = prev_rendered_parts[self.attach_spot]
+        bspline = rendered_part.motor_spline[:, :, self.subid_spot]
+        pos, _ = bspline_eval(eval_spot_token, bspline)
 
         return pos
 
     def sample_eval_spot_token(self):
-        ll = torch.tensor(-np.inf)
-        while np.isinf(ll):
+        ll = torch.tensor(-float('inf'))
+        while ll == -float('inf'):
             eval_spot_token = self.eval_spot_dist.sample()
-            score = self.score_eval_spot_token(eval_spot_token)
+            ll = self.score_eval_spot_token(eval_spot_token)
 
         return eval_spot_token
 
@@ -116,7 +115,7 @@ class RelationAttachAlong(RelationAttach):
                 eval_spot_token.shape == torch.Size([]))
         _, lb, ub = bspline_gen_s(self.ncpt, 1)
         if eval_spot_token < lb or eval_spot_token > ub:
-            ll = torch.tensor(-np.inf)
+            ll = torch.tensor(-float('inf'))
             return ll
         ll = self.eval_spot_dist.log_prob(eval_spot_token)
 
