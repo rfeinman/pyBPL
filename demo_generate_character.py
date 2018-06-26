@@ -6,6 +6,14 @@ from pybpl.character.character import Character
 from pybpl.generate_character import generate_type
 
 
+def display_type(S, R):
+    print('----CHARACTER TYPE INFO----')
+    print('num strokes: %i' % len(S))
+    for i in range(len(S)):
+        print('Stroke #%i:' % i)
+        print('\tsub-stroke ids: ', list(S[i].ids.numpy()))
+        print('\trelation type: %s' % R[i].type)
+
 def main():
     print('generating character...')
     warnings.warn(
@@ -14,8 +22,7 @@ def main():
     )
     lib = Library(lib_dir='./lib_data')
     S, R = generate_type(lib)
-    print('strokes: ', S)
-    print('relations: ', R)
+    display_type(S, R)
     # char = Character(S, R, lib)
     # exemplar = char.sample_token()
 
