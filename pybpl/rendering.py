@@ -36,8 +36,8 @@ def vanilla_to_motor(shapes, invscales, first_pos, neval=200):
     :param neval: [tensor] int; the number of evaluations to use for each motor
                     trajectory
     :return:
-        motor: [list] nsub-length fine motor sequence
-        motor_spline: [list] nsub-length fine motor sequence in spline space
+        motor: [(nsub,neval,2) tensor] fine motor sequence
+        motor_spline: [(ncpt,2,nsub) tensor] fine motor sequence in spline space
     """
     for elt in [shapes, invscales, first_pos]:
         assert elt is not None

@@ -2,39 +2,25 @@
 Stroke class definition.
 """
 from __future__ import print_function, division
-import numpy as np
 import torch
 import torch.distributions as dist
 
-from .. import rendering
-from ..concept.part import Part, PartToken
+from ..concept.part import Part, PartToken, RenderedPart
+
+
+class RenderedStroke(RenderedPart):
+    def __init__(self, motor, motor_spline):
+        super(RenderedStroke, self).__init__()
+        self.motor = motor
+        self.motor_spline = motor_spline
 
 
 class StrokeToken(PartToken):
     def __init__(self, shapes, invscales):
-        PartToken.__init__(self)
+        super(StrokeToken, self).__init__()
         self.shapes = shapes
         self.invscales = invscales
 
-    def motor(self, position):
-        """
-        Compute the [x,y,t] trajectory of this stroke
-        """
-        motor, _ = rendering.vanilla_to_motor(
-            self.shapes, self.invscales, position
-        )
-
-        return motor
-
-    def motor_spline(self, position):
-        """
-        Compute the spline trajectory of this stroke
-        """
-        _, motor_spline = rendering.vanilla_to_motor(
-            self.shapes, self.invscales, position
-        )
-
-        raise NotImplementedError
 
 class Stroke(Part):
     """
@@ -52,7 +38,7 @@ class Stroke(Part):
         :param lib:
         """
         # parent init
-        Part.__init__(self)
+        super(Stroke, self).__init__()
 
         # type-level parameters
         self.ids = ids

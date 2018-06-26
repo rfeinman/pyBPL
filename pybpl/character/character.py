@@ -6,9 +6,8 @@ import warnings
 import torch
 import torch.distributions as dist
 
-from .stroke import Stroke
+from .stroke import Stroke, RenderedStroke
 from .parameters import defaultps
-from ..concept.relation import Relation
 from ..library.library import Library
 from .. import CPD
 from .. import rendering
@@ -16,9 +15,9 @@ from ..concept.concept import Concept, ConceptToken
 
 
 class CharacterToken(ConceptToken):
-    def __init__(self, list_st, list_pos, affine, epsilon, blur_sigma, image):
-        self.list_st = list_st
-        self.list_pos = list_pos
+    def __init__(self, rendered_parts, affine, epsilon, blur_sigma, image):
+        super(CharacterToken, self).__init__()
+        self.rendered_parts = rendered_parts
         self.affine = affine
         self.epsilon = epsilon
         self.blur_sigma = blur_sigma
@@ -36,22 +35,20 @@ class Character(Concept):
         :param R: [list of Relation] TODO
         :param lib: [Library] TODO
         """
-        assert len(S) == len(R)
-        assert len(S) > 0
-        for s, r in zip(S, R):
+        for s in S:
             assert isinstance(s, Stroke)
-            assert isinstance(r, Relation)
         assert isinstance(lib, Library)
-        Concept.__init__(self)
-        self.S = S
-        self.R = R
+        super(Character, self).__init__(P=S, R=R)
         self.lib = lib
         self.parameters = defaultps()
 
-    @property
-    def ns(self):
-        # get number of strokes
-        return len(self.S)
+    def render_part(self, part_token, part_location):
+        motor, motor_spline = rendering.vanilla_to_motor(
+            part_token.shapes, part_token.invscales, part_location
+        )
+        rendered_stroke = RenderedStroke(motor, motor_spline)
+
+        return rendered_stroke
 
     def sample_token(self):
         """
@@ -60,14 +57,7 @@ class Character(Concept):
         :return:
             token: [CharacterToken] character token
         """
-        # sample the stroke tokens and the start positions
-        list_st = []
-        list_pos = []
-        for s, r in zip(self.S, self.R):
-            st = s.sample_token()
-            pos = r.sample_position(prev_parts=list_st)
-            list_st.append(st)
-            list_pos.append(pos)
+        rendered_parts = super(Character, self).sample_token()
 
         # sample affine warp
         affine = self.sample_affine()
@@ -78,15 +68,15 @@ class Character(Concept):
 
         # get probability map of an image
         pimg, _ = rendering.apply_render(
-            list_st, list_pos, affine, epsilon, blur_sigma, self.parameters
+            rendered_parts, affine, epsilon, blur_sigma, self.parameters
         )
 
         # sample the image
         image = sample_image(pimg)
 
         # create the character token
-        token = ConceptToken(
-            list_st, list_pos, affine, epsilon, blur_sigma, image
+        token = CharacterToken(
+            rendered_parts, affine, epsilon, blur_sigma, image
         )
 
         return token
