@@ -113,7 +113,10 @@ class SpatialHist(object):
         """
         assert type(nsamp) is int
         # Pick which bins the samples are from
-        logpvec = self.logpYX.view(-1)
+        # NOTE: transpose here so that torch.Tensor.view(-1) is equivalent
+        # to matlab's A(:) functionality
+        logpvec = torch.transpose(self.logpYX, 0, 1)
+        logpvec = logpvec.contiguous().view(-1)
         pvec = torch.exp(logpvec)
         pvec = pvec / torch.sum(pvec)
         lin = Categorical(probs=pvec).sample(torch.Size([nsamp]))
@@ -255,8 +258,8 @@ def fast_hclassif(pt, logpYX, edges):
 
 def myhist3(data, edges):
     """
-    Modified histogram function, where datapoints on the edge are mapped to
-    the last cell, not their own cell
+    Since PyTorch doesn't have a histogram function, we'll have to do histogram
+    in numpy and then convert back
 
     :param data: [(n,2) tensor] data to model
     :param edges: [list of 2 tensors] (array array); the x and y bins
@@ -270,18 +273,6 @@ def myhist3(data, edges):
     edges = [edges[0].numpy(), edges[1].numpy()]
     # Cluster with histogram function
     N, _, _ = np.histogram2d(data[:,0], data[:,1], bins=edges)
-
-    # Move the last row/col to the second to last
-    lastcol = N[:,-1]
-    lastrow = N[-1,:]
-    last = N[-1,-1]
-    N[:,-2] = N[:,-2] + lastcol
-    N[-2,:] = N[-2,:] + lastrow
-    #N[-2,-2] = N[-2,-2] + last # <--- TODO: is this necessary?
-
-    # Delete last row and column
-    N = np.delete(N, -1, axis=0)
-    N = np.delete(N, -1, axis=1)
 
     # convert back to torch
     N = torch.tensor(N, dtype=torch.float32)

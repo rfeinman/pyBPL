@@ -13,14 +13,14 @@ class TestSpatialHist(unittest.TestCase):
         # Parameters
         nbin_per_side = 50
         prior_count = 0.1
-        xlm = [-10, 10]
-        ylm = [-10, 10]
+        xlm = [-30, 20]
+        ylm = [-15, 15]
 
         n = 1000  # number of training points in each slice
 
         # Shape of distribution
-        mu1 = torch.tensor([-5., 0.])
-        mu2 = torch.tensor([0., 5.])
+        mu1 = torch.tensor([-22., 0.])
+        mu2 = torch.tensor([-0, 8.])
         Sigma = torch.eye(2)
 
         # Sample the data

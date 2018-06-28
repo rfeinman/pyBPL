@@ -19,10 +19,10 @@ def ind2sub(shape, index):
     if not len(shape) == 2:
         raise NotImplementedError('only implemented for 2D case.')
     # compute inds
-    xi = index % shape[0]
-    yi = index / shape[0]
+    rows = index % shape[0]
+    cols = index / shape[0]
 
-    return yi, xi
+    return rows, cols
 
 def aeq(x, y, tol=2.22e-6):
     if isinstance(x, list):
