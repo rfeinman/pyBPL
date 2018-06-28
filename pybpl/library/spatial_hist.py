@@ -119,7 +119,7 @@ class SpatialHist(object):
         lin = Categorical(probs=pvec).sample(torch.Size([nsamp]))
 
         # Retrieve the [x, y] indices of these bins
-        xi, yi = unravel_index(lin, self.logpYX.shape)
+        yi, xi = ind2sub(self.logpYX.shape, lin)
 
         # Retrieve the edges for each of these bins
         xmin = self.xlab[xi]
@@ -289,20 +289,26 @@ def myhist3(data, edges):
     return N
 
 
-def unravel_index(index, shape):
+def ind2sub(shape, index):
     """
-    A PyTorch implementation of np.unravel_index
+    A PyTorch implementation of MATLAB's "ind2sub" function
 
-    :param index: [(n,) tensor] TODO
-    :param shape: [torch.Size] TODO
+    :param shape: [torch.Size] shape of the hypothetical 2D matrix
+    :param index: [(n,) tensor] indices to convert
     :return:
-        xi: [(n,) tensor] TODO
-        yi: [(n,) tensor] TODO
+        yi: [(n,) tensor] y sub-indices
+        xi: [(n,) tensor] x sub-indices
     """
+    # checks
+    assert isinstance(index, torch.Tensor)
+    assert isinstance(shape, torch.Size)
+    if not len(shape) == 2:
+        raise NotImplementedError('only implemented for 2D case.')
+    # compute inds
     xi = index % shape[0]
     yi = index / shape[0]
 
-    return xi, yi
+    return yi, xi
 
 def logsumexp_t(tensor):
     """
