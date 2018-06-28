@@ -2,6 +2,28 @@ from __future__ import division, print_function
 import numpy as np
 import torch
 
+
+def ind2sub(shape, index):
+    """
+    A PyTorch implementation of MATLAB's "ind2sub" function
+
+    :param shape: [torch.Size] shape of the hypothetical 2D matrix
+    :param index: [(n,) tensor] indices to convert
+    :return:
+        yi: [(n,) tensor] y sub-indices
+        xi: [(n,) tensor] x sub-indices
+    """
+    # checks
+    assert isinstance(index, torch.Tensor)
+    assert isinstance(shape, torch.Size)
+    if not len(shape) == 2:
+        raise NotImplementedError('only implemented for 2D case.')
+    # compute inds
+    xi = index % shape[0]
+    yi = index / shape[0]
+
+    return yi, xi
+
 def aeq(x, y, tol=2.22e-6):
     if isinstance(x, list):
         assert isinstance(y, list)

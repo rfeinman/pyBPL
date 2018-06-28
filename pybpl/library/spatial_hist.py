@@ -10,7 +10,7 @@ import torch
 from torch.distributions.uniform import Uniform
 from torch.distributions.categorical import Categorical
 
-from ..general_util import aeq
+from ..general_util import aeq, ind2sub
 
 class SpatialHist(object):
     """
@@ -287,28 +287,6 @@ def myhist3(data, edges):
     N = torch.tensor(N, dtype=torch.float32)
 
     return N
-
-
-def ind2sub(shape, index):
-    """
-    A PyTorch implementation of MATLAB's "ind2sub" function
-
-    :param shape: [torch.Size] shape of the hypothetical 2D matrix
-    :param index: [(n,) tensor] indices to convert
-    :return:
-        yi: [(n,) tensor] y sub-indices
-        xi: [(n,) tensor] x sub-indices
-    """
-    # checks
-    assert isinstance(index, torch.Tensor)
-    assert isinstance(shape, torch.Size)
-    if not len(shape) == 2:
-        raise NotImplementedError('only implemented for 2D case.')
-    # compute inds
-    xi = index % shape[0]
-    yi = index / shape[0]
-
-    return yi, xi
 
 def logsumexp_t(tensor):
     """
