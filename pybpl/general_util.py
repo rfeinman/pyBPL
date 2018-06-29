@@ -52,7 +52,7 @@ def sub2ind(shape, rows, cols):
 
     return index
 
-def imfilter(A, h):
+def imfilter(A, h, mode='conv'):
     """
     A PyTorch implementation of MATLAB's "imfilter" function
 
@@ -60,6 +60,8 @@ def imfilter(A, h):
     :param h: [tensor] filter kernel
     :return:
     """
+    if not mode == 'conv':
+        raise NotImplementedError("Only 'conv' mode imfilter implemented.")
     assert isinstance(A, torch.Tensor)
     assert isinstance(h, torch.Tensor)
 
@@ -76,7 +78,7 @@ def fspecial(hsize, sigma, ftype='gaussian'):
     :return:
     """
     if not ftype == 'gaussian':
-        raise NotImplementedError("Only Gaussain kernel implemented")
+        raise NotImplementedError("Only Gaussain kernel implemented.")
     assert isinstance(hsize, int)
     assert isinstance(sigma, float) or isinstance(sigma, int)
     assert hsize % 2 == 1, 'Image size must be odd'
@@ -92,6 +94,10 @@ def fspecial(hsize, sigma, ftype='gaussian'):
             kernel[xi, yi] = multivariate_normal.pdf([mid-xi, mid-yi], cov=cov)
 
     return torch.tensor(kernel, dtype=torch.float32)
+
+# ----
+# Other functions
+# ----
 
 def aeq(x, y, tol=2.22e-6):
     if isinstance(x, list):
