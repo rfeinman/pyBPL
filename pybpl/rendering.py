@@ -2,9 +2,10 @@
 All the functions and modules for differentiable rendering go here
 """
 from __future__ import print_function, division
+
 import torch
 
-from .general_util import aeq
+from .general_util import aeq, sub2ind, fspecial, imfilter
 from . import splines
 from .concept.part import RenderedPart
 from .character import util_character
@@ -85,23 +86,33 @@ def apply_warp(rendered_parts, affine):
 # render the image
 # ----
 
-def check_bounds():
-    pass
+def check_bounds(myt, imsize):
+    xt = myt[:,0]
+    yt = myt[:,1]
+    x_out = torch.floor(xt) < 0 | torch.ceil(xt) > imsize[0]
+    y_out = torch.floor(yt) < 0 | torch.ceil(yt) > imsize[1]
+    out = x_out | y_out
 
-def pair_dist():
-    pass
+    return out
 
-def sub2ind(shape, x, y):
-    pass
+def pair_dist(D):
+    x1 = D[:-1]
+    x2 = D[1:]
+    z = torch.sqrt(
+        torch.sum(
+            torch.pow(x1-x2, 2),
+            dim=1
+        )
+    )
 
-def seqadd():
-    pass
+    return z
 
-def imfilter():
-    pass
+def seqadd(x, lind, inkval):
+    numel = len(lind.view(-1))
+    for i in range(numel):
+        x[lind[i]] = x[lind[i]] + inkval[i]
 
-def fspecial():
-    pass
+    return x
 
 def space_motor_to_img(pt):
     """
