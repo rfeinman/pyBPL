@@ -87,6 +87,13 @@ def apply_warp(rendered_parts, affine):
 # ----
 
 def check_bounds(myt, imsize):
+    """
+
+    :param myt: [(k,2) tensor]
+    :param imsize: [list or tuple]
+    :return:
+        out: [(k,) Byte tensor]
+    """
     xt = myt[:,0]
     yt = myt[:,1]
     x_out = torch.floor(xt) < 0 | torch.ceil(xt) > imsize[0]
@@ -96,6 +103,12 @@ def check_bounds(myt, imsize):
     return out
 
 def pair_dist(D):
+    """
+
+    :param D: [(k,2) tensor]
+    :return:
+        z: [(k,) tensor]
+    """
     x1 = D[:-1]
     x2 = D[1:]
     z = torch.sqrt(
@@ -108,6 +121,13 @@ def pair_dist(D):
     return z
 
 def seqadd(x, lind, inkval):
+    """
+
+    :param x: [(m,n) tensor]
+    :param lind: [(k,) tensor]
+    :param inkval: [(k,) tensor]
+    :return:
+    """
     numel = len(lind.view(-1))
     for i in range(numel):
         x[lind[i]] = x[lind[i]] + inkval[i]
@@ -136,6 +156,15 @@ def space_motor_to_img(pt):
 
     return new_pt
 
+def add_header(dist):
+    assert isinstance(dist, torch.Tensor)
+    assert len(dist.shape) == 1
+    dist_p = torch.zeros(len(dist)+1)
+    dist_p[0] = dist[0]
+    dist_p[1:] = dist
+
+    return dist_p
+
 def render_image(cell_traj, epsilon, blur_sigma, parameters):
     """
 
@@ -146,36 +175,97 @@ def render_image(cell_traj, epsilon, blur_sigma, parameters):
     :return:
     """
     # convert to image space
-    traj_img = space_motor_to_img(cell_traj)
+    traj_img = space_motor_to_img(cell_traj) # same shape as cell_traj
 
     # get relevant parameters
     imsize = parameters.imsize
     ink = parameters.ink_pp
     max_dist = parameters.ink_max_dist
-    a = parameters.ink_a
-    b = parameters.ink_b
-    ink_ncon = parameters.ink_ncon
 
     # draw the trajectories on the image
     template = torch.zeros(imsize, dtype=torch.float)
     nsub_total = traj_img.shape[0]
     ink_off_page = False
     for i in range(nsub_total):
-        pass
         # check boundaries
-        myt = traj_img[i]
+        myt = traj_img[i] # shape (neval,2)
+        out = check_bounds(myt, imsize)
+        if out.any():
+            ink_off_page = True
+        if out.all():
+            continue
+        myt = myt[~out]
 
         # compute distance between each trajectory point and the next one
+        if myt.shape[0] == 1:
+            myink = ink
+        else:
+            dist = pair_dist(myt) # shape (k,)
+            dist[dist>max_dist] = max_dist
+            dist = add_header(dist)
+            myink = (ink/max_dist)*dist # shape (k,)
 
         # make sure we have the minimum amount of ink, if a particular
         # trajectory is very small
+        sumink = torch.sum(myink)
+        if aeq(sumink, torch.tensor(0.)):
+            nink = myink.shape[0]
+            myink = (ink/nink)*torch.ones_like(myink)
+        elif sumink < ink:
+            myink = (ink/sumink)*myink
+        assert torch.sum(myink) > (ink-1e-4)
 
         # share ink with the neighboring 4 pixels
+        x = myt[:,0]
+        y = myt[:,1]
+        xfloor = torch.floor(x)
+        yfloor = torch.floor(y)
+        xceil = torch.ceil(x)
+        yceil = torch.ceil(y)
+        x_c_ratio = x - xfloor
+        y_c_ratio = y - yfloor
+        x_f_ratio = 1 - x_c_ratio
+        y_f_ratio = 1 - y_c_ratio
+        lin_ff = sub2ind(imsize, xfloor, yfloor)
+        lin_cf = sub2ind(imsize, xceil, yfloor)
+        lin_fc = sub2ind(imsize, xfloor, yceil)
+        lin_cc = sub2ind(imsize, xceil, yceil)
 
         # paint the image
+        template = seqadd(template, lin_ff, myink*x_f_ratio*y_f_ratio)
+        template = seqadd(template, lin_cf, myink*x_c_ratio*y_f_ratio)
+        template = seqadd(template, lin_fc, myink*x_f_ratio*y_c_ratio)
+        template = seqadd(template, lin_cc, myink*x_c_ratio*y_c_ratio)
 
     # filter the image to get the desired brush-stroke size
+    a = parameters.ink_a
+    b = parameters.ink_b
+    ink_ncon = parameters.ink_ncon
+    H_broaden = b*torch.tensor(
+        [[a/12, a/6, a/12],[a/6, 1-a, a/6],[a/12, a/6, a/12]]
+    )
+    widen = template
+    for i in range(ink_ncon):
+        widen = imfilter(widen, H_broaden, mode='conv')
 
+    # threshold again
+    widen[widen>1] = 1
+
+    # filter the image to get Gaussian
+    # noise around the area with ink
+    pblur = widen
+    if blur_sigma > 0:
+        fsize = 11
+        H_gaussian = fspecial(fsize, blur_sigma, ftype='gaussian')
+        pblur = imfilter(pblur, H_gaussian, mode='conv')
+        pblur = imfilter(pblur, H_gaussian, mode='conv')
+
+    # final truncation
+    pblur[pblur>1] = 1
+    pblur[pblur<0] = 0
+
+    # probability of each pixel being on
+    prob_on = (1-epsilon)*pblur + epsilon*(1-pblur)
 
     return prob_on, ink_off_page
 
