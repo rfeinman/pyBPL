@@ -29,7 +29,7 @@ def sample_relation_type(lib, prev_strokes):
     sigma_y = lib.rel['sigma_y']
     sigma_attach = lib.tokenvar['sigma_attach']
     if nprev == 0:
-        indx = torch.tensor(0, dtype=torch.int64, requires_grad=True)
+        indx = torch.tensor(0, dtype=torch.int64)
     else:
         indx = Categorical(probs=mixprob).sample()
 
