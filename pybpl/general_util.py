@@ -12,15 +12,21 @@ def ind2sub(shape, index):
     """
     A PyTorch implementation of MATLAB's "ind2sub" function
 
-    :param shape: [torch.Size] shape of the hypothetical 2D matrix
+    :param shape: [torch.Size or list or array] shape of the hypothetical 2D
+                    matrix
     :param index: [(n,) tensor] indices to convert
     :return:
         yi: [(n,) tensor] y sub-indices
         xi: [(n,) tensor] x sub-indices
     """
     # checks
-    assert isinstance(shape, torch.Size)
+    assert isinstance(shape, torch.Size) or \
+           isinstance(shape, list) or \
+           isinstance(shape, tuple) or \
+           isinstance(shape, np.ndarray)
     assert isinstance(index, torch.Tensor)
+    valid_index = index < shape[0]*shape[1]
+    assert valid_index.all()
     if not len(shape) == 2:
         raise NotImplementedError('only implemented for 2D case.')
     # compute inds
@@ -39,16 +45,23 @@ def sub2ind(shape, rows, cols):
     :return:
     """
     # checks
-    assert isinstance(shape, torch.Size)
-    assert isinstance(rows, torch.Tensor)
-    assert isinstance(cols, torch.Tensor)
+    assert isinstance(shape, torch.Size) or \
+           isinstance(shape, list) or \
+           isinstance(shape, tuple) or \
+           isinstance(shape, np.ndarray)
+    assert isinstance(rows, torch.Tensor) and len(rows.shape) == 1
+    assert isinstance(cols, torch.Tensor) and len(cols.shape) == 1
+    assert len(rows) == len(cols)
+    valid_rows = rows < shape[0]
+    valid_cols = cols < shape[1]
+    assert valid_cols.all() and valid_cols.all()
     if not len(shape) == 2:
         raise NotImplementedError('only implemented for 2D case.')
     # compute inds
     n_inds = shape[0]*shape[1]
     ind_mat = torch.arange(n_inds).view(shape[1], shape[0])
     ind_mat = torch.transpose(ind_mat, 0, 1)
-    index = ind_mat[rows,cols]
+    index = ind_mat[rows.long(), cols.long()]
 
     return index
 
@@ -56,16 +69,23 @@ def imfilter(A, h, mode='conv'):
     """
     A PyTorch implementation of MATLAB's "imfilter" function
 
-    :param A: [tensor] image
-    :param h: [tensor] filter kernel
+    :param A: [(m,n) tensor] image
+    :param h: [(k,l) tensor] filter kernel
     :return:
     """
     if not mode == 'conv':
         raise NotImplementedError("Only 'conv' mode imfilter implemented.")
     assert isinstance(A, torch.Tensor)
     assert isinstance(h, torch.Tensor)
+    assert len(A.shape) == 2
+    assert len(h.shape) == 2
+    m, n = A.shape
+    k, l = h.shape
 
-    return torch.nn.functional.conv2d(A, h)
+    A_filt = torch.nn.functional.conv2d(A.view(1,1,m,n), h.view(1,1,k,l))
+    A_filt = A_filt[0,0]
+
+    return A_filt
 
 def fspecial(hsize, sigma, ftype='gaussian'):
     """

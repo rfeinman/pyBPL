@@ -15,10 +15,6 @@ from .character import util_character
 # vanilla to motor
 # ----
 
-def offset_stk(traj, offset):
-    print("'offset_stk' function is unnecessary.")
-    raise NotImplementedError
-
 def vanilla_to_motor(shapes, invscales, first_pos, neval=200):
     """
     Create the fine-motor trajectory of a stroke (denoted 'f()' in pseudocode)
@@ -27,7 +23,7 @@ def vanilla_to_motor(shapes, invscales, first_pos, neval=200):
     :param shapes: [(ncpt,2,nsub) tensor] spline points in normalized space
     :param invscales: [(nsub,) tensor] inverse scales for each sub-stroke
     :param first_pos: [(2,) tensor] starting location of stroke
-    :param neval: [tensor] int; the number of evaluations to use for each motor
+    :param neval: [int] number of evaluations to use for each motor
                     trajectory
     :return:
         motor: [(nsub,neval,2) tensor] fine motor sequence
@@ -35,6 +31,11 @@ def vanilla_to_motor(shapes, invscales, first_pos, neval=200):
     """
     for elt in [shapes, invscales, first_pos]:
         assert elt is not None
+        assert isinstance(elt, torch.Tensor)
+    assert len(shapes.shape) == 3
+    assert shapes.shape[1] == 2
+    assert len(invscales.shape) == 1
+    assert first_pos.shape == torch.Size([2])
     ncpt, _, nsub = shapes.shape
     motor = torch.zeros(nsub, neval, 2, dtype=torch.float)
     motor_spline = torch.zeros_like(shapes, dtype=torch.float)
@@ -96,8 +97,8 @@ def check_bounds(myt, imsize):
     """
     xt = myt[:,0]
     yt = myt[:,1]
-    x_out = torch.floor(xt) < 0 | torch.ceil(xt) > imsize[0]
-    y_out = torch.floor(yt) < 0 | torch.ceil(yt) > imsize[1]
+    x_out = (torch.floor(xt) < 0) | (torch.ceil(xt) > imsize[0])
+    y_out = (torch.floor(yt) < 0) | (torch.ceil(yt) > imsize[1])
     out = x_out | y_out
 
     return out
@@ -120,19 +121,26 @@ def pair_dist(D):
 
     return z
 
-def seqadd(x, lind, inkval):
+def seqadd(D, lind_x, lind_y, inkval):
     """
 
-    :param x: [(m,n) tensor]
-    :param lind: [(k,) tensor]
+    :param D: [(m,n) tensor]
+    :param lind_x: [(k,) tensor]
+    :param lind_y: [(k,) tensor]
     :param inkval: [(k,) tensor]
     :return:
     """
-    numel = len(lind.view(-1))
+    assert len(lind_x) == len(lind_y) == len(inkval)
+    valid_lind_x = lind_x < D.shape[0]
+    valid_lind_y = lind_y < D.shape[1]
+    assert valid_lind_x.all() and valid_lind_y.all()
+    lind_x = lind_x.long()
+    lind_y = lind_y.long()
+    numel = len(lind_x)
     for i in range(numel):
-        x[lind[i]] = x[lind[i]] + inkval[i]
+        D[lind_x[i],lind_y[i]] = D[lind_x[i],lind_y[i]] + inkval[i]
 
-    return x
+    return D
 
 def space_motor_to_img(pt):
     """
@@ -198,7 +206,7 @@ def render_image(cell_traj, epsilon, blur_sigma, parameters):
 
         # compute distance between each trajectory point and the next one
         if myt.shape[0] == 1:
-            myink = ink
+            myink = torch.tensor(ink, dtype=torch.float32)
         else:
             dist = pair_dist(myt) # shape (k,)
             dist[dist>max_dist] = max_dist
@@ -226,16 +234,16 @@ def render_image(cell_traj, epsilon, blur_sigma, parameters):
         y_c_ratio = y - yfloor
         x_f_ratio = 1 - x_c_ratio
         y_f_ratio = 1 - y_c_ratio
-        lin_ff = sub2ind(imsize, xfloor, yfloor)
-        lin_cf = sub2ind(imsize, xceil, yfloor)
-        lin_fc = sub2ind(imsize, xfloor, yceil)
-        lin_cc = sub2ind(imsize, xceil, yceil)
+        # Reuben's fix... don't want to access last array index
+        # TODO - update this?
+        xceil[xceil == imsize[0]] = imsize[0] - 1
+        yceil[yceil == imsize[1]] = imsize[1] - 1
 
         # paint the image
-        template = seqadd(template, lin_ff, myink*x_f_ratio*y_f_ratio)
-        template = seqadd(template, lin_cf, myink*x_c_ratio*y_f_ratio)
-        template = seqadd(template, lin_fc, myink*x_f_ratio*y_c_ratio)
-        template = seqadd(template, lin_cc, myink*x_c_ratio*y_c_ratio)
+        template = seqadd(template, xfloor, yfloor, myink*x_f_ratio*y_f_ratio)
+        template = seqadd(template, xceil, yfloor, myink*x_c_ratio*y_f_ratio)
+        template = seqadd(template, xfloor, yceil, myink*x_f_ratio*y_c_ratio)
+        template = seqadd(template, xceil, yceil, myink*x_c_ratio*y_c_ratio)
 
     # filter the image to get the desired brush-stroke size
     a = parameters.ink_a

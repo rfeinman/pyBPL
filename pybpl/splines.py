@@ -31,7 +31,8 @@ def bspline_eval(sval, cpts):
         dim=1
     )
     I = torch.cat(
-        [torch.arange(ncpt).view(1,-1) for _ in range(neval)],
+        [torch.arange(ncpt, dtype=torch.float32).view(1,-1)
+         for _ in range(neval)],
         dim=0
     )
     # this will have shape (neval,ncpt)
@@ -109,6 +110,9 @@ def get_stk_from_bspline(P, neval=None):
     :return:
         stk: [(m,2) array] trajectory
     """
+    assert isinstance(P, torch.Tensor)
+    assert len(P.shape) == 2
+    assert P.shape[1] == 2
     nland = P.shape[0]
 
     # brenden's code finds number of eval points adaptively.
@@ -144,6 +148,7 @@ def vectorized_bspline_coeff(vi, vs):
         C: [(neval, ncpt) tensor] the coefficients
     """
     assert vi.shape == vs.shape
+    assert vi.dtype == vs.dtype
 
     # step through the conditions
     # NOTE: in the following, * stands in for 'and'
