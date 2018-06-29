@@ -66,19 +66,15 @@ def com_char(char):
 def affine_warp(stk, affine):
     raise NotImplementedError
 
-def apply_warp(rendered_parts, affine):
-    motor_unwarped = [rp.motor for rp in rendered_parts]
-    if affine is None:
-        motor_warped = motor_unwarped
-    else:
-        raise NotImplementedError('affine warping not yet implemented.')
-        cell_traj = util_character.flatten_substrokes(motor_unwarped)
-        com = com_char(cell_traj)
-        b = torch.zeros(4, dtype=torch.float)
-        b[:2] = affine[:2]
-        b[2:4] = affine[2:4] - (affine[:2]-1)*com
-        fn = lambda stk: affine_warp(stk, b)
-        motor_warped = util_character.apply_each_substroke(motor_unwarped, fn)
+def apply_warp(motor_unwarped, affine):
+    raise NotImplementedError('affine warping not yet implemented.')
+    cell_traj = util_character.flatten_substrokes(motor_unwarped)
+    com = com_char(cell_traj)
+    b = torch.zeros(4, dtype=torch.float)
+    b[:2] = affine[:2]
+    b[2:4] = affine[2:4] - (affine[:2]-1)*com
+    fn = lambda stk: affine_warp(stk, b)
+    motor_warped = util_character.apply_each_substroke(motor_unwarped, fn)
 
     return motor_warped
 
@@ -294,10 +290,14 @@ def apply_render(rendered_parts, affine, epsilon, blur_sigma, parameters):
     """
     for rp in rendered_parts:
         assert isinstance(rp, RenderedPart)
-    motor_warped = apply_warp(rendered_parts, affine)
-    flat_warped = util_character.flatten_substrokes(motor_warped)
+    # get motor for each part
+    motor = [rp.motor for rp in rendered_parts]
+    # apply affine transformation if needed
+    if affine is not None:
+        motor = apply_warp(motor, affine)
+    motor_flat = util_character.flatten_substrokes(motor)
     pimg, ink_off_page = render_image(
-        flat_warped, epsilon, blur_sigma, parameters
+        motor_flat, epsilon, blur_sigma, parameters
     )
 
     return pimg, ink_off_page
