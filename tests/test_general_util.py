@@ -24,6 +24,7 @@ class TestGeneralUtil(unittest.TestCase):
         mean_yi, mean_xi = ind2sub(kernel.shape, mean_i)
         self.assertEqual(mean_yi, torch.tensor(5))
         self.assertEqual(mean_xi, torch.tensor(5))
+        # TODO - more tests?
         # show the filter
         plt.figure(figsize=(1, 1))
         plt.imshow(kernel.numpy())
@@ -31,6 +32,13 @@ class TestGeneralUtil(unittest.TestCase):
         plt.show()
 
     def testImfilter(self):
+        # make sure error is raised if either element is not a tensor
+        im = np.random.normal(size=(150,150))
+        kernel = np.random.normal(size=(11,11))
+        with self.assertRaises(AssertionError):
+            imfilter(im, torch.tensor(kernel))
+        with self.assertRaises(AssertionError):
+            imfilter(torch.tensor(im), kernel)
         # load the test image
         im_path = os.path.join(os.environ['PYBPL_DIR'], 'tests/Curtis.jpg')
         im = plt.imread(im_path)
@@ -54,6 +62,15 @@ class TestGeneralUtil(unittest.TestCase):
             plt.axis('off')
             plt.title('Blur sigma = %0.1f' % sigma)
         plt.show()
+
+    def testInd2sub(self):
+        pass
+
+    def testSub2ind(self):
+        pass
+
+    def testAEQ(self):
+        pass
 
 
 if __name__ == "__main__":
