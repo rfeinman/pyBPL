@@ -5,9 +5,9 @@ from __future__ import print_function, division
 
 import torch
 
-from .general_util import aeq, sub2ind, fspecial, imfilter
+from .general_util import aeq, fspecial, imfilter
 from . import splines
-from .concept.part import RenderedPart
+from .character.stroke import RenderedStroke
 from .character import util_character
 
 
@@ -53,7 +53,6 @@ def vanilla_to_motor(shapes, invscales, first_pos, neval=200):
         previous_pos = motor[i,-1]
 
     return motor, motor_spline
-
 
 
 # ----
@@ -278,20 +277,20 @@ def render_image(cell_traj, epsilon, blur_sigma, parameters):
 # apply render
 # ----
 
-def apply_render(rendered_parts, affine, epsilon, blur_sigma, parameters):
+def apply_render(rendered_strokes, affine, epsilon, blur_sigma, parameters):
     """
 
-    :param rendered_parts: [list of RenderedStroke]
+    :param rendered_strokes: [list of RenderedStroke]
     :param affine: [(4,) tensor]
     :param epsilon: [float]
     :param blur_sigma: [float]
     :param parameters: []
     :return:
     """
-    for rp in rendered_parts:
-        assert isinstance(rp, RenderedPart)
+    for rs in rendered_strokes:
+        assert isinstance(rs, RenderedStroke)
     # get motor for each part
-    motor = [rp.motor for rp in rendered_parts]
+    motor = [rs.motor for rs in rendered_strokes]
     # apply affine transformation if needed
     if affine is not None:
         motor = apply_warp(motor, affine)
