@@ -1,5 +1,6 @@
 from __future__ import division, print_function
 import unittest
+import os
 import torch
 
 from pybpl import CPD
@@ -9,7 +10,8 @@ from pybpl import rendering
 class TestRendering(unittest.TestCase):
 
     def setUp(self):
-        self.lib = Library('../lib_data')
+        lib_dir = os.path.join(os.environ['PYBPL_DIR'], 'lib_data')
+        self.lib = Library(lib_dir)
 
     def testVanillaToMotor(self):
         ncpt = 5

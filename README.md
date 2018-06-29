@@ -17,6 +17,12 @@ enable imports from any folder:
 export PYTHONPATH="/path/to/pyPBL:$PYTHONPATH"
 ```
 
+NOTE: unit tests require an additional environment variable, `PYBPL_DIR` to
+be set:
+```
+export PYBPL_DIR="/path/to/pyBPL"
+```
+
 ## Demo
 Currently there are 2 working demos.
 
