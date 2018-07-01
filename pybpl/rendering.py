@@ -105,6 +105,9 @@ def pair_dist(D):
     :return:
         z: [(k,) tensor]
     """
+    assert isinstance(D, torch.Tensor)
+    assert len(D.shape) == 2
+    assert D.shape[1] == 2
     x1 = D[:-1]
     x2 = D[1:]
     z = torch.sqrt(
