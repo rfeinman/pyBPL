@@ -7,79 +7,76 @@ from ..concept.relation import (RelationIndependent, RelationAttach,
                                 RelationAttachAlong)
 from ..character.stroke import Stroke
 from ..splines import bspline_gen_s
-
-# list of acceptable dtypes for 'np' parameter
-int_types = [torch.uint8, torch.int8, torch.int16, torch.int32, torch.int64]
+from .. import CPDUnif
 
 
 class CharacterTypeDist(ConceptTypeDist):
     relation_types = ['unihist', 'start', 'end', 'mid']
 
     def __init__(self, lib):
-        super(CharacterTypeDist, self).__init__(lib)
+        super(CharacterTypeDist, self).__init__()
         assert len(lib.pkappa.shape) == 1
-        # num control points
+        # number of control points
         self.ncpt = lib.ncpt
-        # distribution of 'np' (num parts)
+        # distribution of 'k' (number of strokes)
         self.kappa = dist.Categorical(probs=lib.pkappa)
         # distribution of unihist relation positions
         self.Spatial = lib.Spatial
         # distribution of relation types
         self.rel_mixdist = dist.Categorical(probs=lib.rel['mixprob'])
-        # token-level variance parameters for relations
-        self.rel_pos_dist = get_rel_pos_dist(
-            lib.rel['sigma_x'], lib.rel['sigma_y']
-        )
+        # token-level variance distributions for relations
+        mu = torch.zeros(2)
+        Cov = torch.tensor([[lib.rel['sigma_x'],0.], [0.,lib.rel['sigma_y']]])
+        self.rel_pos_dist = dist.MultivariateNormal(mu, Cov)
         self.rel_sigma_attach = lib.tokenvar['sigma_attach']
         # substroke distributions
         self.pmat_nsub = lib.pmat_nsub
         self.logStart = lib.logStart
         self.pT = lib.pT
         # shapes distribution
-        shape_mu = lib.shape['mu']
-        shape_Cov = lib.shape['Sigma']
-        self.get_shapes_dist = \
-            lambda subid: get_shapes_dist(shape_mu, shape_Cov, subid)
+        if lib.isunif:
+            self.sample_shapes_type = \
+                lambda subid: CPDUnif.sample_shape_type(lib, subid)
+        else:
+            shape_mu = lib.shape['mu']
+            shape_Cov = lib.shape['Sigma'].permute([2,0,1])
+            self.sample_shapes_type = \
+                lambda subid: sample_shapes_type(shape_mu, shape_Cov, subid, self.ncpt)
 
-    def sample_np(self, nsamp=1):
+    def sample_k(self):
         """
-        See ConceptTypeDist.sample_np for description
+        See ConceptTypeDist.sample_k for description
         """
         # sample from kappa
         # NOTE: add 1 to 0-indexed samples
-        np = self.kappa.sample(torch.Size([nsamp])) + 1
-        # make sure np is a vector
-        assert len(np.shape) == 1
-        # convert vector to scalar if nsamp=1
-        np = torch.squeeze(np)
+        k = self.kappa.sample() + 1
 
-        return np
+        return k
 
-    def score_np(self, np):
+    def score_k(self, k):
         """
-        See ConceptTypeDist.score_np for description
+        See ConceptTypeDist.score_k for description
         """
         # check if any values are out of bounds
-        out_of_bounds = np > len(self.kappa.probs)
-        if out_of_bounds.any():
+        if k > len(self.kappa.probs):
             ll = torch.tensor(-float('Inf'))
-            return ll
-        # score points using kappa
-        # NOTE: subtract 1 to get 0-indexed samples
-        ll = self.kappa.log_prob(np - 1)
+        else:
+            # score points using kappa
+            # NOTE: subtract 1 to get 0-indexed samples
+            ll = self.kappa.log_prob(k-1)
 
         return ll
 
-    def sample_part_type(self, np):
+    def sample_part_type(self, k):
         """
         See ConceptTypeDist.sample_part_type for description
         """
         # sample the number of sub-strokes
-        nsub = sample_nsub(self.pmat_nsub, np)
+        nsub = sample_nsub(self.pmat_nsub, k)
         # sample the sub-stroke sequence
         ss_seq = sample_sequence(self.logStart, self.pT, nsub)
         # sample control points for each sub-stroke in the sequence
-        cpts = CPD.sample_shape_type(lib, ss_seq)
+        cpts = self.sample_shapes_type(ss_seq)
         # sample scales for each sub-stroke in the sequence
         scales = CPD.sample_invscale_type(lib, ss_seq)
         # initialize the stroke type
@@ -144,19 +141,19 @@ class CharacterTypeDist(ConceptTypeDist):
 # Substrokes model helper functions
 # ----
 
-def sample_nsub(pmat_nsub, ns, nsamp=1):
+def sample_nsub(pmat_nsub, k, nsamp=1):
     """
     Sample a sub-stroke count (or a vector of sub-stroke counts if nsamp>1)
 
     :param pmat_nsub: TODO
-    :param ns: [tensor] stroke count. scalar
+    :param k: [tensor] stroke count. scalar
     :param nsamp: [int] number of samples to draw
     :return:
         nsub: [(n,) tensor] vector of sub-stroke counts. scalar if nsamp=1
     """
     # probability of each sub-stroke count, conditioned on the number of strokes
     # NOTE: subtract 1 from stroke counts to get Python index
-    pvec = pmat_nsub[ns-1]
+    pvec = pmat_nsub[k-1]
     # make sure pvec is a vector
     assert len(pvec.shape) == 1
     # sample from the categorical distribution. Add 1 to 0-indexed samples
@@ -224,16 +221,18 @@ def get_shapes_dist(mu, Cov, subid):
     # get sub-set of mu and Cov according to subid
     Cov_sub = Cov[subid]
     mu_sub = mu[subid]
-    mvn = dist.multivariate_normal.MultivariateNormal(mu_sub, Cov_sub)
+    mvn = dist.MultivariateNormal(mu_sub, Cov_sub)
 
     return mvn
 
-def sample_shape_type(dist):
+def sample_shapes_type(mu, Cov, subid, ncpt):
     """
     Sample the control points for each sub-stroke
 
-    :param lib: [Library] library class instance
+    :param mu: TODO
+    :param Cov: TODO
     :param subid: [(nsub,) tensor] vector of sub-stroke ids
+    :param ncpt: TODO
     :return:
         bspline_stack: [(ncpt, 2, nsub) tensor] sampled spline
     """
@@ -241,41 +240,11 @@ def sample_shape_type(dist):
     assert len(subid.shape) == 1
     # record vector length
     nsub = len(subid)
-    # if uniform, sample using CPDUnif and return
-    if lib.isunif:
-        bspline_stack = CPDUnif.sample_shape_type(lib, subid)
-        return bspline_stack
-    # record num control points
-    ncpt = lib.ncpt
     # create multivariate normal distribution
-    mvn = __get_dist(
-        lib.shape['mu'], lib.shape['Sigma'].permute([2,0,1]), subid
-    )
+    mvn = get_shapes_dist(mu, Cov, subid)
     # sample points from the multivariate normal distribution
     rows_bspline = mvn.sample()
     # convert (nsub, ncpt*2) tensor into (ncpt, 2, nsub) tensor
     bspline_stack = torch.transpose(rows_bspline,0,1).view(ncpt,2,nsub)
 
     return bspline_stack
-
-
-# ----
-# Relation token-level position distribution
-# ----
-
-def get_rel_pos_dist(sigma_x, sigma_y):
-    """
-    The token-level position distribution
-
-    :param sigma_x:
-    :param sigma_y:
-    :return:
-    """
-    Cov = torch.eye(2)
-    Cov[0,0] = sigma_x
-    Cov[1,1] = sigma_y
-    pos_dist = dist.multivariate_normal.MultivariateNormal(
-        torch.zeros(2), Cov
-    )
-
-    return pos_dist
