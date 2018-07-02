@@ -15,18 +15,11 @@ types_allowed = ['unihist', 'start', 'end', 'mid']
 class Relation(object):
     __metaclass__ = ABCMeta
 
-    def __init__(self, rtype, sigma_x, sigma_y):
+    def __init__(self, rtype, pos_dist):
         # make sure type is valid
         assert rtype in types_allowed
         self.type = rtype
-
-        # build the position distribution
-        Cov = torch.eye(2)
-        Cov[0,0] = sigma_x
-        Cov[1,1] = sigma_y
-        self.pos_dist = dist.multivariate_normal.MultivariateNormal(
-            torch.zeros(2), Cov
-        )
+        self.pos_dist = pos_dist
 
     def sample_position(self, prev_rendered_parts):
         for rp in prev_rendered_parts:
@@ -52,10 +45,10 @@ class Relation(object):
 
 
 class RelationIndependent(Relation):
-    def __init__(self, rtype, sigma_x, sigma_y, gpos):
+    def __init__(self, rtype, pos_dist, gpos):
         assert rtype == 'unihist'
         assert gpos.shape == torch.Size([2])
-        super(RelationIndependent, self).__init__(rtype, sigma_x, sigma_y)
+        super(RelationIndependent, self).__init__(rtype, pos_dist)
         self.gpos = gpos
 
     def get_attach_point(self, prev_rendered_parts):
@@ -65,9 +58,9 @@ class RelationIndependent(Relation):
 
 
 class RelationAttach(Relation):
-    def __init__(self, rtype, sigma_x, sigma_y, attach_spot):
+    def __init__(self, rtype, pos_dist, attach_spot):
         assert rtype in ['start', 'end', 'mid']
-        super(RelationAttach, self).__init__(rtype, sigma_x, sigma_y)
+        super(RelationAttach, self).__init__(rtype, pos_dist)
         self.attach_spot = attach_spot
 
     def get_attach_point(self, prev_rendered_parts):
@@ -88,13 +81,11 @@ class RelationAttach(Relation):
 
 class RelationAttachAlong(RelationAttach):
     def __init__(
-            self, rtype, sigma_x, sigma_y, sigma_attach, attach_spot,
+            self, rtype, pos_dist, sigma_attach, attach_spot,
             subid_spot, ncpt, eval_spot_type
     ):
         assert rtype == 'mid'
-        super(RelationAttachAlong, self).__init__(
-            rtype, sigma_x, sigma_y, attach_spot
-        )
+        super(RelationAttachAlong, self).__init__(rtype, pos_dist, attach_spot)
         self.subid_spot = subid_spot
         self.ncpt = ncpt
         self.eval_spot_dist = dist.normal.Normal(eval_spot_type, sigma_attach)

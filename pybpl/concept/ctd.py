@@ -37,7 +37,7 @@ class ConceptTypeDist(object):
     @abstractmethod
     def sample_part_type(self, np):
         """
-
+        Sample a part type
 
         :param np:
         :return:

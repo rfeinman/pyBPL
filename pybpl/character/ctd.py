@@ -23,6 +23,13 @@ class CharacterTypeDist(ConceptTypeDist):
         self.kappa = dist.Categorical(probs=lib.pkappa)
         # distribution of unihist relation positions
         self.Spatial = lib.Spatial
+        # distribution of relation types
+        self.rel_mixdist = dist.Categorical(probs=lib.rel['mixprob'])
+        # token-level variance parameters for relations
+        self.rel_pos_dist = get_rel_pos_dist(
+            lib.rel['sigma_x'], lib.rel['sigma_y']
+        )
+        self.rel_sigma_attach = lib.tokenvar['sigma_attach']
 
     def sample_np(self, nsamp=1):
         """
@@ -64,32 +71,28 @@ class CharacterTypeDist(ConceptTypeDist):
         """
         nprev = len(prev_parts)
         stroke_num = nprev + 1
-        ncpt = lib.ncpt
-        mixprob = lib.rel['mixprob']
-        sigma_x = lib.rel['sigma_x']
-        sigma_y = lib.rel['sigma_y']
-        sigma_attach = lib.tokenvar['sigma_attach']
+        ncpt = self.ncpt
+        pos_dist = self.rel_pos_dist
+        sigma_attach = self.rel_sigma_attach
         if nprev == 0:
             rtype = 'unihist'
         else:
-            indx = dist.Categorical(probs=mixprob).sample()
+            indx = self.rel_mixdist.sample()
             rtype = self.relation_types[indx]
-
-        rtype = types[indx]
 
         if rtype == 'unihist':
             data_id = torch.tensor([stroke_num])
-            gpos = lib.Spatial.sample(data_id)
+            gpos = self.Spatial.sample(data_id)
             # convert (1,2) tensor to (2,) tensor
             gpos = torch.squeeze(gpos)
             # create relation
-            r = RelationIndependent(rtype, sigma_x, sigma_y, gpos)
+            r = RelationIndependent(rtype, pos_dist, gpos)
         elif rtype in ['start', 'end']:
             # sample random attach spot uniformly
             probs = torch.ones(nprev, requires_grad=True)
             attach_spot = dist.Categorical(probs=probs).sample()
             # create relation
-            r = RelationAttach(rtype, sigma_x, sigma_y, attach_spot)
+            r = RelationAttach(rtype, pos_dist, attach_spot)
         elif rtype == 'mid':
             # sample random attach spot uniformly
             probs = torch.ones(nprev, requires_grad=True)
@@ -97,18 +100,34 @@ class CharacterTypeDist(ConceptTypeDist):
             # sample random subid spot uniformly
             nsub = prev_parts[attach_spot].nsub
             probs = torch.ones(nsub, requires_grad=True)
-            subid_spot = Categorical(probs=probs).sample()
+            subid_spot = dist.Categorical(probs=probs).sample()
             # sample eval_spot_type
             _, lb, ub = bspline_gen_s(ncpt, 1)
-            eval_spot_type = Uniform(lb, ub).sample()
+            eval_spot_type = dist.Uniform(lb, ub).sample()
             # create relation
             r = RelationAttachAlong(
-                rtype, sigma_x, sigma_y, sigma_attach, attach_spot,
+                rtype, pos_dist, sigma_attach, attach_spot,
                 subid_spot, ncpt, eval_spot_type
             )
-
         else:
             raise TypeError('invalid relation')
 
         return r
 
+
+def get_rel_pos_dist(sigma_x, sigma_y):
+    """
+    The token-level position distribution
+
+    :param sigma_x:
+    :param sigma_y:
+    :return:
+    """
+    Cov = torch.eye(2)
+    Cov[0,0] = sigma_x
+    Cov[1,1] = sigma_y
+    pos_dist = dist.multivariate_normal.MultivariateNormal(
+        torch.zeros(2), Cov
+    )
+
+    return pos_dist
