@@ -1,47 +1,16 @@
 from __future__ import division, print_function
 import torch
-from . import CPD
 from .character.character import Character
+from .character.ctd import CharacterTypeDist
 
 
 # list of acceptable dtypes for 'ns' parameter
 int_types = [torch.uint8, torch.int8, torch.int16, torch.int32, torch.int64]
 
 def generate_type(lib, ns=None):
-    """
-    Generate a character type by sampling from the prior.
+    ctd = CharacterTypeDist(lib)
+    S, R = ctd.sample_type(k=ns)
 
-    :param lib: [Library] library class instance
-    :param ns: [int or tensor] number of strokes for the character
-    :return:
-        ctype: [CharacterType] character type
-    """
-
-    if ns is None:
-        # sample the number of strokes 'ns'
-        ns = CPD.sample_number(lib)
-    else:
-        # make sure 'ns' is correct dtype
-        isint = isinstance(ns, int)
-        istensorint = isinstance(ns, torch.Tensor) and \
-                      ns.shape == torch.Size([]) and \
-                      ns.dtype in int_types
-        assert isint or istensorint
-
-    # initialize stroke and relation lists
-    S = []
-    R = []
-    # for each stroke, sample stroke parameters
-    for _ in range(ns):
-        # sample the stroke type
-        stroke = CPD.sample_stroke_type(lib, ns)
-        # sample the relation of this stroke to previous strokes
-        relation = CPD.sample_relation_type(lib, S)
-        # append stroke type and relation to their respective lists
-        S.append(stroke)
-        R.append(relation)
-
-    # return the character type (a stencil for a character)
     return S, R
 
 def generate_token(lib, ns=None):

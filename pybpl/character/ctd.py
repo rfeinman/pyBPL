@@ -7,7 +7,6 @@ from ..concept.relation import (RelationIndependent, RelationAttach,
                                 RelationAttachAlong)
 from ..character.stroke import Stroke
 from ..splines import bspline_gen_s
-from .. import CPDUnif
 
 
 class CharacterTypeDist(ConceptTypeDist):
@@ -59,7 +58,7 @@ class CharacterTypeDist(ConceptTypeDist):
         self.sigma_invscale = lib.tokenvar['sigma_invscale']
         # invscales distribution
         scales_theta = lib.scale['theta']
-        assert len(scales_theta.shape) == 0
+        assert len(scales_theta.shape) == 2
         self.scales_con = scales_theta[:,0] # gamma concentration
         # NOTE: PyTorch gamma dist uses rate parameter, which is inv of scale
         self.scales_rate = 1/scales_theta[:,1] # gamma rate
@@ -190,7 +189,7 @@ class CharacterTypeDist(ConceptTypeDist):
         # sample points from the multivariate normal distribution
         rows_bspline = mvn.sample()
         # convert (nsub, ncpt*2) tensor into (ncpt, 2, nsub) tensor
-        bspline_stack = torch.transpose(rows_bspline, 0, 1).view(ncpt, 2, nsub)
+        bspline_stack = torch.transpose(rows_bspline, 0, 1).view(self.ncpt, 2, nsub)
 
         return bspline_stack
 

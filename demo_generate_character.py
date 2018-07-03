@@ -8,12 +8,13 @@ from pybpl.generate_character import generate_type
 
 
 def display_type(S, R):
-    print('----CHARACTER TYPE INFO----')
+    print('----BEGIN CHARACTER TYPE INFO----')
     print('num strokes: %i' % len(S))
     for i in range(len(S)):
         print('Stroke #%i:' % i)
         print('\tsub-stroke ids: ', list(S[i].ids.numpy()))
         print('\trelation type: %s' % R[i].type)
+    print('----END CHARACTER TYPE INFO----')
 
 def main():
     print('generating character...')
