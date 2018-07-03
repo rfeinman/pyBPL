@@ -6,7 +6,6 @@ import torch
 
 from .spatial_hist import SpatialHist
 from .spatial_model import SpatialModel
-from .. import CPD
 from ..splines import bspline_gen_s
 from ..general_util import aeq
 
@@ -164,7 +163,7 @@ class Library(object):
             ll = -np.inf
             return ll
         def fll(x):
-            score = CPD.score_relation_token(self, eval_spot_token, x)
+            #score = CPD.score_relation_token(self, eval_spot_token, x)
             score = score - torch.log(ub - lb)
             return torch.exp(score)
 
