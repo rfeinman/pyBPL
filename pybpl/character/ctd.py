@@ -11,37 +11,63 @@ from .. import CPDUnif
 
 
 class CharacterTypeDist(ConceptTypeDist):
+    """
+    A CharacterTypeDist is a probabilistic program that samples Character types
+    from the prior. It can also score the log-likelihood of Character types.
+    """
     relation_types = ['unihist', 'start', 'end', 'mid']
 
     def __init__(self, lib):
+        """
+        Initialize the CharacterTypeDist instance
+
+        :param lib:
+        """
         super(CharacterTypeDist, self).__init__()
-        assert len(lib.pkappa.shape) == 1
+        # is uniform?
+        self.isunif = lib.isunif
         # number of control points
         self.ncpt = lib.ncpt
         # distribution of 'k' (number of strokes)
+        assert len(lib.pkappa.shape) == 1
         self.kappa = dist.Categorical(probs=lib.pkappa)
         # distribution of unihist relation positions
         self.Spatial = lib.Spatial
         # distribution of relation types
         self.rel_mixdist = dist.Categorical(probs=lib.rel['mixprob'])
-        # token-level variance distributions for relations
-        mu = torch.zeros(2)
-        Cov = torch.tensor([[lib.rel['sigma_x'],0.], [0.,lib.rel['sigma_y']]])
-        self.rel_pos_dist = dist.MultivariateNormal(mu, Cov)
+        # token-level variance relations parameters
+        pos_mu = torch.zeros(2)
+        pos_Cov = torch.tensor([[lib.rel['sigma_x'],0.], [0.,lib.rel['sigma_y']]])
+        self.rel_pos_dist = dist.MultivariateNormal(pos_mu, pos_Cov)
         self.rel_sigma_attach = lib.tokenvar['sigma_attach']
         # substroke distributions
         self.pmat_nsub = lib.pmat_nsub
         self.logStart = lib.logStart
         self.pT = lib.pT
         # shapes distribution
-        if lib.isunif:
-            self.sample_shapes_type = \
-                lambda subid: CPDUnif.sample_shape_type(lib, subid)
-        else:
-            shape_mu = lib.shape['mu']
-            shape_Cov = lib.shape['Sigma'].permute([2,0,1])
-            self.sample_shapes_type = \
-                lambda subid: sample_shapes_type(shape_mu, shape_Cov, subid, self.ncpt)
+        shapes_mu = lib.shape['mu']
+        shapes_Cov = lib.shape['Sigma'].permute([2,0,1])
+        assert len(shapes_mu.shape) == 2
+        assert len(shapes_Cov.shape) == 3
+        assert shapes_mu.shape[0] == shapes_Cov.shape[0]
+        assert shapes_Cov.shape[1] == shapes_Cov.shape[2]
+        self.shapes_mu = shapes_mu
+        self.shapes_Cov = shapes_Cov
+        self.newscale = lib.newscale
+        # token-level shapes parameters
+        self.sigma_shape = lib.tokenvar['sigma_shape']
+        self.sigma_invscale = lib.tokenvar['sigma_invscale']
+        # invscales distribution
+        scales_theta = lib.scale['theta']
+        assert len(scales_theta.shape) == 0
+        self.scales_con = scales_theta[:,0] # gamma concentration
+        # NOTE: PyTorch gamma dist uses rate parameter, which is inv of scale
+        self.scales_rate = 1/scales_theta[:,1] # gamma rate
+
+
+    # ----
+    # Num strokes model methods
+    # ----
 
     def sample_k(self):
         """
@@ -67,26 +93,182 @@ class CharacterTypeDist(ConceptTypeDist):
 
         return ll
 
+
+    # ----
+    # Sub-strokes model methods
+    # ----
+
+    def sample_nsub(self, k, nsamp=1):
+        """
+        Sample a sub-stroke count (or a vector of sub-stroke counts if nsamp>1)
+
+        :param pmat_nsub: TODO
+        :param k: [tensor] stroke count. scalar
+        :param nsamp: [int] number of samples to draw
+        :return:
+            nsub: [(n,) tensor] vector of sub-stroke counts. scalar if nsamp=1
+        """
+        # probability of each sub-stroke count, conditioned on the number of strokes
+        # NOTE: subtract 1 from stroke counts to get Python index
+        pvec = self.pmat_nsub[k-1]
+        # make sure pvec is a vector
+        assert len(pvec.shape) == 1
+        # sample from the categorical distribution. Add 1 to 0-indexed samples
+        nsub = dist.Categorical(probs=pvec).sample(torch.Size([nsamp])) + 1
+        # convert vector to scalar if nsamp=1
+        nsub = torch.squeeze(nsub)
+
+        return nsub
+
+    def score_nsub(self, k, nsub):
+        raise NotImplementedError
+
+    def sample_subid(self, nsub, nsamp=1):
+        """
+        Sample the sequence of sub-strokes for this stroke
+
+        :param logStart: TODO
+        :param pT_func: TODO
+        :param nsub: [tensor] scalar; sub-stroke count
+        :param nsamp: [int] number of samples to draw
+        :return:
+            samps: [(nsamp, nsub) tensor] matrix of sequence samples. vector if
+                    nsamp=1
+        """
+        # nsub should be a scalar
+        assert nsub.shape == torch.Size([])
+
+        samps = []
+        for _ in range(nsamp):
+            # set initial transition probabilities
+            pT = torch.exp(self.logStart)
+            # sub-stroke sequence is a list
+            seq = []
+            # step through and sample 'nsub' sub-strokes
+            for _ in range(nsub):
+                # sample the sub-stroke
+                ss = dist.Categorical(probs=pT).sample()
+                seq.append(ss)
+                # update transition probabilities; condition on previous sub-stroke
+                pT = self.pT(ss)
+            # convert list into tensor
+            seq = torch.tensor(seq)
+            samps.append(seq.view(1, -1))
+        # concatenate list of samples into tensor (matrix)
+        samps = torch.cat(samps)
+        # if nsamp=1 this should be a vector
+        samps = torch.squeeze(samps, dim=0)
+
+        return samps
+
+    def score_subid(self, nsub, subid):
+        raise NotImplementedError
+
+
+    # ----
+    # Shapes model methods
+    # ----
+
+    def sample_shapes_type(self, subid):
+        """
+        Sample the control points for each sub-stroke
+
+        :param subid: [(nsub,) tensor] vector of sub-stroke ids
+        :return:
+            bspline_stack: [(ncpt, 2, nsub) tensor] sampled spline
+        """
+        if self.isunif:
+            raise NotImplementedError
+        # check that it is a vector
+        assert len(subid.shape) == 1
+        # record vector length
+        nsub = len(subid)
+        # create multivariate normal distribution
+        mvn = dist.MultivariateNormal(
+            self.shapes_mu[subid], self.shapes_Cov[subid]
+        )
+        # sample points from the multivariate normal distribution
+        rows_bspline = mvn.sample()
+        # convert (nsub, ncpt*2) tensor into (ncpt, 2, nsub) tensor
+        bspline_stack = torch.transpose(rows_bspline, 0, 1).view(ncpt, 2, nsub)
+
+        return bspline_stack
+
+    def score_shapes_type(self, subid, bspline_stack):
+        raise NotImplementedError
+
+
+    # ----
+    # Invscales model methods
+    # ----
+
+    def sample_invscale_type(self, subid):
+        """
+        Sample the scale parameters for each sub-stroke
+        :param lib: [Library] library class instance
+        :param subid: [(k,) tensor] vector of sub-stroke ids
+        :return:
+            invscales: [(k,) tensor] vector of scale values
+        """
+        if self.isunif:
+            raise NotImplementedError
+        # check that it is a vector
+        assert len(subid.shape) == 1
+        # create gamma distribution
+        gamma = dist.Gamma(self.scales_con[subid], self.scales_rate[subid])
+        # sample from the gamma distribution
+        invscales = gamma.sample()
+
+        return invscales
+
+    def score_invscale_type(self, subid, invscales):
+        """
+        Score the log-likelihood of each sub-stroke's scale parameter
+        :param lib:
+        :param invscales:
+        :param subid:
+        :return:
+        """
+        if self.isunif:
+            raise NotImplementedError
+        # make sure these are vectors
+        assert len(invscales.shape) == 1
+        assert len(subid.shape) == 1
+        assert len(invscales) == len(subid)
+        # create gamma distribution
+        gamma = dist.Gamma(self.scales_con[subid], self.scales_rate[subid])
+        # score points using the gamma distribution
+        ll = gamma.log_prob(invscales)
+
+        return ll
+
+    # ----
+    # Over-arching part & relation methods
+    # ----
+
     def sample_part_type(self, k):
         """
         See ConceptTypeDist.sample_part_type for description
         """
         # sample the number of sub-strokes
-        nsub = sample_nsub(self.pmat_nsub, k)
-        # sample the sub-stroke sequence
-        ss_seq = sample_sequence(self.logStart, self.pT, nsub)
+        nsub = self.sample_nsub(k)
+        # sample the sequence of sub-stroke IDs
+        subid = self.sample_subid(nsub)
         # sample control points for each sub-stroke in the sequence
-        cpts = self.sample_shapes_type(ss_seq)
+        cpts = self.sample_shapes_type(subid)
         # sample scales for each sub-stroke in the sequence
-        scales = CPD.sample_invscale_type(lib, ss_seq)
+        scales = self.sample_invscale_type(subid)
         # initialize the stroke type
         stroke = Stroke(
-            ss_seq, cpts, scales,
-            sigma_shape=lib.tokenvar['sigma_shape'],
-            sigma_invscale=lib.tokenvar['sigma_invscale']
+            subid, cpts, scales,
+            sigma_shape=self.sigma_shape,
+            sigma_invscale=self.sigma_invscale
         )
 
         return stroke
+
+    def score_part_type(self, k, p):
+        raise NotImplementedError
 
     def sample_relation_type(self, prev_parts):
         """
@@ -137,114 +319,5 @@ class CharacterTypeDist(ConceptTypeDist):
 
         return r
 
-# ----
-# Substrokes model helper functions
-# ----
-
-def sample_nsub(pmat_nsub, k, nsamp=1):
-    """
-    Sample a sub-stroke count (or a vector of sub-stroke counts if nsamp>1)
-
-    :param pmat_nsub: TODO
-    :param k: [tensor] stroke count. scalar
-    :param nsamp: [int] number of samples to draw
-    :return:
-        nsub: [(n,) tensor] vector of sub-stroke counts. scalar if nsamp=1
-    """
-    # probability of each sub-stroke count, conditioned on the number of strokes
-    # NOTE: subtract 1 from stroke counts to get Python index
-    pvec = pmat_nsub[k-1]
-    # make sure pvec is a vector
-    assert len(pvec.shape) == 1
-    # sample from the categorical distribution. Add 1 to 0-indexed samples
-    nsub = dist.Categorical(probs=pvec).sample(torch.Size([nsamp])) + 1
-    # convert vector to scalar if nsamp=1
-    nsub = torch.squeeze(nsub)
-
-    return nsub
-
-def sample_sequence(logStart, pT_func, nsub, nsamp=1):
-    """
-    Sample the sequence of sub-strokes for this stroke
-
-    :param logStart: TODO
-    :param pT_func: TODO
-    :param nsub: [tensor] scalar; sub-stroke count
-    :param nsamp: [int] number of samples to draw
-    :return:
-        samps: [(nsamp, nsub) tensor] matrix of sequence samples. vector if
-                nsamp=1
-    """
-    # nsub should be a scalar
-    assert nsub.shape == torch.Size([])
-
-    samps = []
-    for _ in range(nsamp):
-        # set initial transition probabilities
-        pT = torch.exp(logStart)
-        # sub-stroke sequence is a list
-        seq = []
-        # step through and sample 'nsub' sub-strokes
-        for _ in range(nsub):
-            # sample the sub-stroke
-            ss = dist.Categorical(probs=pT).sample()
-            seq.append(ss)
-            # update transition probabilities; condition on previous sub-stroke
-            pT = pT_func(ss)
-        # convert list into tensor
-        seq = torch.tensor(seq)
-        samps.append(seq.view(1,-1))
-    # concatenate list of samples into tensor (matrix)
-    samps = torch.cat(samps)
-    # if nsamp=1 this should be a vector
-    samps = torch.squeeze(samps, dim=0)
-
-    return samps
-
-# ----
-# Shapes model helper functions
-# ----
-
-def get_shapes_dist(mu, Cov, subid):
-    """
-    TODO
-
-    :param mu:
-    :param Cov:
-    :param subid:
-    :return:
-    """
-    assert len(mu.shape) == 2
-    assert len(Cov.shape) == 3
-    assert mu.shape[0] == Cov.shape[0]
-    assert Cov.shape[1] == Cov.shape[2]
-    # get sub-set of mu and Cov according to subid
-    Cov_sub = Cov[subid]
-    mu_sub = mu[subid]
-    mvn = dist.MultivariateNormal(mu_sub, Cov_sub)
-
-    return mvn
-
-def sample_shapes_type(mu, Cov, subid, ncpt):
-    """
-    Sample the control points for each sub-stroke
-
-    :param mu: TODO
-    :param Cov: TODO
-    :param subid: [(nsub,) tensor] vector of sub-stroke ids
-    :param ncpt: TODO
-    :return:
-        bspline_stack: [(ncpt, 2, nsub) tensor] sampled spline
-    """
-    # check that it is a vector
-    assert len(subid.shape) == 1
-    # record vector length
-    nsub = len(subid)
-    # create multivariate normal distribution
-    mvn = get_shapes_dist(mu, Cov, subid)
-    # sample points from the multivariate normal distribution
-    rows_bspline = mvn.sample()
-    # convert (nsub, ncpt*2) tensor into (ncpt, 2, nsub) tensor
-    bspline_stack = torch.transpose(rows_bspline,0,1).view(ncpt,2,nsub)
-
-    return bspline_stack
+    def score_relation_type(self, prev_parts, r):
+        raise NotImplementedError
