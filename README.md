@@ -31,7 +31,7 @@ export PYBPL_DIR="/path/to/pyBPL"
 ## Demo
 Currently there are 2 working demos.
 
-#### Generate character type
+#### Generate character
 You can generate a character type and sample a few tokens of the type by
 running the following command from the root folder:
 ```
