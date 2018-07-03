@@ -89,7 +89,7 @@ def main():
         if idx % 100 == 0:
             print('iteration #%i' % idx)
         score = obj_fun(S, R, ctd)
-        score.backward()
+        score.backward(retain_graph=True)
         score_list.append(score)
         with torch.no_grad():
             for ip, param in enumerate(parameters):
