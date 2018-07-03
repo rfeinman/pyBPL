@@ -9,7 +9,6 @@ import torch.distributions as dist
 from .stroke import Stroke, RenderedStroke
 from .parameters import defaultps
 from ..library.library import Library
-from .. import CPD
 from .. import rendering
 from ..concept.concept import Concept, ConceptToken
 
