@@ -2,7 +2,8 @@
 Python implementation of Bayesian Program Learning (BPL), using PyTorch.
 The BPL framework has been generalized to work with various types of concepts.
 Character learning with Omniglot is one manifestation of the BPL framework,
-and it is included here as the preliminary use case.
+and it is included here as the preliminary use case (see Lake et al. 2015
+"Human-level concept learning through probabilistic program induction").
 
 Not yet fully operational.
 
@@ -31,13 +32,13 @@ export PYBPL_DIR="/path/to/pyBPL"
 Currently there are 2 working demos.
 
 #### Generate character type
-You can generate a character type (i.e., a motor program) by
+You can generate a character type and sample a few tokens of the type by
 running the following command from the root folder:
 ```
 python demo_generate_character.py
 ```
-At the moment, the script will simply generate the type and exit, as there
-is no way to visualize the type.
+The script will sample a character type from the prior and then sample 4 tokens
+of the type, displaying the images.
 
 #### Optimize character type
 You can generate a character type and then optimize its parameters to maximize
@@ -49,15 +50,30 @@ python demo_optimize_type.py
 Optionally, you may add the integer parameter `--ns=<int>` to specify how many
 strokes you would like the generated character type to have.
 
+## Repository Structure
+
+The `pybpl` module has 3 key submodules:
+
+#### 1. concept
+
+The `concept` package contains the base classes for concepts, including their
+parts and relations. These are abstract classes and must be inherited from
+by derivative classes. The concept classes define the general overarching
+structure that child classes need to adhere to.
+
+#### 2. character
+
+The `character` package contains the implementation of the Omniglot BPL use
+case. Parts are Strokes and ... TODO
+
+#### 3. library
+
+The `library` package contains a Library class (and its dependencies) for
+loading the hyperparameters of a pre-fit BPL model. This is designed primarily
+for the Omniglot use case, enabling the transfer of parameters from the matlab
+BPL repo (see https://github.com/brendenlake/BPL).
+
 ## Status notes
-
-#### General
-
-Most things which exist are implemented. CPD.py should work,
-but has some shortcuts taken, meaning it is not entirely faithful to the
-original model. rendering.py is incomplete. The conversion from control points
-to a motor path is implemented, but the differential rendering, which takes a
-motor path and outputs an image, is unimplemented.
 
 #### Library
 
@@ -66,3 +82,9 @@ The library data is stored as a series of `.mat` files in the subfolder
 run inside the original BPL repository to obtain this folder of files.
 Library loading is fully functional... see loadlib.py for an example of how to
 load the library.
+
+#### General
+
+Most things required to sample character types and tokens (images) are now
+complete. I have not tested backprop through the level of character tokens,
+although it works well through types for now.
