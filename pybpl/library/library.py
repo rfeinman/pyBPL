@@ -6,7 +6,6 @@ import torch
 
 from .spatial_hist import SpatialHist
 from .spatial_model import SpatialModel
-from ..splines import bspline_gen_s
 from ..general_util import aeq
 
 
@@ -57,9 +56,6 @@ class Library(object):
 
         # Learned ink model
         self.check_consistent()
-
-        # Caching structure
-        #self.__create_eval_list()
 
     def restrict_library(self, keep):
         """
@@ -133,48 +129,9 @@ class Library(object):
 
         return p
 
-    def score_eval_marg(self, eval_spot_token):
-        raise NotImplementedError
-
     @property
     def isunif(self):
         return torch.isnan(self.shape['mu']).any()
-
-    def __create_eval_list(self):
-        """
-        Create caching structure for efficiently computing marginal likelihood
-        of attachment
-        """
-        _, lb, ub = bspline_gen_s(self.ncpt, 1)
-        step = self.__eval_int
-        x = torch.arange(lb, ub+step, step)
-        nint = len(x)
-        logy = torch.zeros(nint)
-        for i in range(nint):
-            logy[i] = self.__score_relation_eval_marginalize_exact(x[i])
-        self.__int_eval_marg = x
-        self.__prob_eval_marg = torch.exp(logy)
-
-    def __score_relation_eval_marginalize_exact(self, eval_spot_token):
-        assert eval_spot_token.shape == torch.Size([])
-        ncpt = self.ncpt
-        _, lb, ub = bspline_gen_s(ncpt, 1)
-        if eval_spot_token < lb or eval_spot_token > ub:
-            ll = -np.inf
-            return ll
-        def fll(x):
-            #score = CPD.score_relation_token(self, eval_spot_token, x)
-            score = score - torch.log(ub - lb)
-            return torch.exp(score)
-
-        step = self.__eval_int/100
-        x = torch.arange(lb, ub+step, step)
-        y = fll(x)
-        # TODO - update this to be fully torch
-        Z = torch.tensor(np.trapz(x.numpy(), y.numpy()))
-        ll = torch.log(Z)
-
-        return ll
 
 
 def get_dict(path):
