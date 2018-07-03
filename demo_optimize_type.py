@@ -7,9 +7,8 @@ import argparse
 import matplotlib.pyplot as plt
 import torch
 
-from pybpl import CPD
 from pybpl.library.library import Library
-from pybpl.generate_character import generate_type
+from pybpl.character.ctd import CharacterTypeDist
 
 dtype = torch.float
 
@@ -51,7 +50,7 @@ def get_variables(S, R):
 
     return parameters, lbs, ubs
 
-def obj_fun(S, R, lib):
+def obj_fun(S, R, ctd):
     """
     Evaluate the log-likelihood of a character type under the prior
 
@@ -66,13 +65,9 @@ def obj_fun(S, R, lib):
     # loop through the strokes
     for s, r in zip(S, R):
         # log-prob of the control points for each sub-stroke in this stroke
-        ll_cpts = CPD.score_shape_type(
-            lib, s.shapes_type, s.ids
-        )
+        ll_cpts = ctd.score_shapes_type(s.ids, s.shapes_type)
         # log-prob of the scales for each sub-stroke in this stroke
-        ll_scales = CPD.score_invscale_type(
-            lib, s.invscales_type, s.ids
-        )
+        ll_scales = ctd.score_invscales_type(s.ids, s.invscales_type)
         # sum over sub-strokes and add to accumulator
         ll = ll + torch.sum(ll_cpts) + torch.sum(ll_scales)
 
@@ -82,7 +77,8 @@ def main():
     # load the library
     lib = Library(lib_dir='./lib_data')
     # generate a character type
-    S, R = generate_type(lib, ns=args.ns)
+    ctd = CharacterTypeDist(lib)
+    S, R = ctd.sample_type(k=args.ns)
     print('num strokes: %i' % len(S))
     # get optimizable variables & their bounds
     parameters, lbs, ubs = get_variables(S, R)
@@ -92,8 +88,7 @@ def main():
     for idx in range(1000):
         if idx % 100 == 0:
             print('iteration #%i' % idx)
-            #view_params(mp)
-        score = obj_fun(S, R, lib)
+        score = obj_fun(S, R, ctd)
         score.backward()
         score_list.append(score)
         with torch.no_grad():

@@ -178,6 +178,8 @@ class CharacterTypeDist(ConceptTypeDist):
         """
         if self.isunif:
             raise NotImplementedError
+        # record num control points
+        ncpt = self.ncpt
         # check that it is a vector
         assert len(subid.shape) == 1
         # record vector length
@@ -189,19 +191,45 @@ class CharacterTypeDist(ConceptTypeDist):
         # sample points from the multivariate normal distribution
         rows_bspline = mvn.sample()
         # convert (nsub, ncpt*2) tensor into (ncpt, 2, nsub) tensor
-        bspline_stack = torch.transpose(rows_bspline, 0, 1).view(self.ncpt, 2, nsub)
+        bspline_stack = torch.transpose(rows_bspline, 0, 1).view(ncpt, 2, nsub)
 
         return bspline_stack
 
     def score_shapes_type(self, subid, bspline_stack):
-        raise NotImplementedError
+        """
+        Score the log-likelihoods of the control points for each sub-stroke
+        :param lib: [Library] library class instance
+        :param bspline_stack: [(ncpt, 2, nsub) tensor] shapes of bsplines
+        :param subid: [(nsub,) tensor] vector of sub-stroke ids
+        :return:
+            ll: [(nsub,) tensor] vector of log-likelihood scores
+        """
+        if self.isunif:
+            raise NotImplementedError
+        # record num control points
+        ncpt = self.ncpt
+        # check that it is a vector
+        assert len(subid.shape) == 1
+        # record vector length
+        nsub = len(subid)
+        assert bspline_stack.shape[-1] == nsub
+        # convert (ncpt, 2, nsub) tensor into (nsub, ncpt*2) tensor
+        rows_bspline = torch.transpose(bspline_stack.view(ncpt*2, nsub), 0, 1)
+        # create multivariate normal distribution
+        mvn = dist.MultivariateNormal(
+            self.shapes_mu[subid], self.shapes_Cov[subid]
+        )
+        # score points using the multivariate normal distribution
+        ll = mvn.log_prob(rows_bspline)
+
+        return ll
 
 
     # ----
     # Invscales model methods
     # ----
 
-    def sample_invscale_type(self, subid):
+    def sample_invscales_type(self, subid):
         """
         Sample the scale parameters for each sub-stroke
         :param lib: [Library] library class instance
@@ -220,7 +248,7 @@ class CharacterTypeDist(ConceptTypeDist):
 
         return invscales
 
-    def score_invscale_type(self, subid, invscales):
+    def score_invscales_type(self, subid, invscales):
         """
         Score the log-likelihood of each sub-stroke's scale parameter
         :param lib:
@@ -256,7 +284,7 @@ class CharacterTypeDist(ConceptTypeDist):
         # sample control points for each sub-stroke in the sequence
         cpts = self.sample_shapes_type(subid)
         # sample scales for each sub-stroke in the sequence
-        scales = self.sample_invscale_type(subid)
+        scales = self.sample_invscales_type(subid)
         # initialize the stroke type
         stroke = Stroke(
             subid, cpts, scales,
