@@ -5,21 +5,19 @@ from __future__ import print_function, division
 import torch
 import torch.distributions as dist
 
-from ..concept.part import Part, PartToken, RenderedPart
-
-
-class RenderedStroke(RenderedPart):
-    def __init__(self, motor, motor_spline):
-        super(RenderedStroke, self).__init__()
-        self.motor = motor
-        self.motor_spline = motor_spline
+from ..concept.part import Part, PartToken
+from .. import rendering
 
 
 class StrokeToken(PartToken):
-    def __init__(self, shapes, invscales):
+    def __init__(self, shapes, invscales, position):
         super(StrokeToken, self).__init__()
         self.shapes = shapes
         self.invscales = invscales
+        self.position = position
+        self.motor, self.motor_spline = rendering.vanilla_to_motor(
+            self.shapes, self.invscales, self.position
+        )
 
 
 class Stroke(Part):
@@ -97,7 +95,7 @@ class Stroke(Part):
 
         return ll
 
-    def sample_token(self):
+    def sample_token(self, position_token):
         """
         TODO
 
@@ -105,6 +103,6 @@ class Stroke(Part):
         """
         shapes_token = self.sample_shapes_token()
         invscales_token = self.sample_invscales_token()
-        token = StrokeToken(shapes_token, invscales_token)
+        token = StrokeToken(shapes_token, invscales_token, position_token)
 
         return token

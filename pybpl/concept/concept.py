@@ -35,12 +35,11 @@ class Concept(object):
 
     @abstractmethod
     def sample_token(self):
-        rendered_parts = []
+        part_tokens = []
         for part, rel in zip(self.P, self.R):
-            part_token = part.sample_token()
-            part_location = rel.sample_position(rendered_parts)
-            rendered_part = self.render_part(part_token, part_location)
-            rendered_parts.append(rendered_part)
+            part_location = rel.sample_position(part_tokens)
+            part_token = part.sample_token(part_location)
+            part_tokens.append(part_token)
 
-        return rendered_parts
+        return part_tokens
 

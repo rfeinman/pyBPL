@@ -6,7 +6,7 @@ import warnings
 import torch
 import torch.distributions as dist
 
-from .stroke import Stroke, RenderedStroke
+from .stroke import Stroke, StrokeToken
 from .parameters import defaultps
 from ..library.library import Library
 from .. import rendering
@@ -14,9 +14,11 @@ from ..concept.concept import Concept, ConceptToken
 
 
 class CharacterToken(ConceptToken):
-    def __init__(self, rendered_parts, affine, epsilon, blur_sigma, image):
+    def __init__(self, stroke_tokens, affine, epsilon, blur_sigma, image):
         super(CharacterToken, self).__init__()
-        self.rendered_parts = rendered_parts
+        for token in stroke_tokens:
+            assert isinstance(token, StrokeToken)
+        self.stroke_tokens = stroke_tokens
         self.affine = affine
         self.epsilon = epsilon
         self.blur_sigma = blur_sigma
@@ -41,14 +43,6 @@ class Character(Concept):
         self.lib = lib
         self.parameters = defaultps()
 
-    def render_part(self, part_token, part_location):
-        motor, motor_spline = rendering.vanilla_to_motor(
-            part_token.shapes, part_token.invscales, part_location
-        )
-        rendered_stroke = RenderedStroke(motor, motor_spline)
-
-        return rendered_stroke
-
     def sample_token(self):
         """
         Sample a character token
@@ -56,7 +50,7 @@ class Character(Concept):
         :return:
             token: [CharacterToken] character token
         """
-        rendered_strokes = super(Character, self).sample_token()
+        stroke_tokens = super(Character, self).sample_token()
 
         # sample affine warp
         affine = self.sample_affine() # (4,) tensor
@@ -67,7 +61,7 @@ class Character(Concept):
 
         # get probability map of an image
         pimg, _ = rendering.apply_render(
-            rendered_strokes, affine, epsilon, blur_sigma, self.parameters
+            stroke_tokens, affine, epsilon, blur_sigma, self.parameters
         )
 
         # sample the image
@@ -75,7 +69,7 @@ class Character(Concept):
 
         # create the character token
         token = CharacterToken(
-            rendered_strokes, affine, epsilon, blur_sigma, image
+            stroke_tokens, affine, epsilon, blur_sigma, image
         )
 
         return token

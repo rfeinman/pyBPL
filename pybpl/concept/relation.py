@@ -6,7 +6,7 @@ from abc import ABCMeta, abstractmethod
 import torch
 import torch.distributions as dist
 
-from .part import RenderedPart
+from .part import PartToken
 from ..splines import bspline_eval, bspline_gen_s
 
 types_allowed = ['unihist', 'start', 'end', 'mid']
@@ -21,20 +21,20 @@ class Relation(object):
         self.type = rtype
         self.pos_dist = pos_dist
 
-    def sample_position(self, prev_rendered_parts):
-        for rp in prev_rendered_parts:
-            assert isinstance(rp, RenderedPart)
-        base = self.get_attach_point(prev_rendered_parts)
+    def sample_position(self, prev_parts):
+        for pt in prev_parts:
+            assert isinstance(pt, PartToken)
+        base = self.get_attach_point(prev_parts)
         assert base.shape == torch.Size([2])
         pos = base + self.pos_dist.sample()
 
         return pos
 
     @abstractmethod
-    def get_attach_point(self, prev_rendered_parts):
+    def get_attach_point(self, prev_parts):
         """
         Get the mean attachment point of where the start of the next part
-        should be, given the previous parts (rendered). This function
+        should be, given the previous part tokens. This function
         needs to be overridden in child classes.
 
         :param prev_parts: TODO
@@ -51,7 +51,7 @@ class RelationIndependent(Relation):
         super(RelationIndependent, self).__init__(rtype, pos_dist)
         self.gpos = gpos
 
-    def get_attach_point(self, prev_rendered_parts):
+    def get_attach_point(self, prev_parts):
         pos = self.gpos
 
         return pos
@@ -63,17 +63,17 @@ class RelationAttach(Relation):
         super(RelationAttach, self).__init__(rtype, pos_dist)
         self.attach_spot = attach_spot
 
-    def get_attach_point(self, prev_rendered_parts):
+    def get_attach_point(self, prev_parts):
         # TODO - This should be generalized so that it is applicable to all
         # TODO - types of relations. Right now motor/motor_spline is specific
         # TODO - to characters.
-        rendered_part = prev_rendered_parts[self.attach_spot]
+        part = prev_parts[self.attach_spot]
         if self.type == 'start':
-            subtraj = rendered_part.motor[0]
+            subtraj = part.motor[0]
             pos = subtraj[0]
         else:
             assert self.type == 'end'
-            subtraj = rendered_part.motor[-1]
+            subtraj = part.motor[-1]
             pos = subtraj[-1]
 
         return pos
@@ -90,10 +90,10 @@ class RelationAttachAlong(RelationAttach):
         self.ncpt = ncpt
         self.eval_spot_dist = dist.normal.Normal(eval_spot_type, sigma_attach)
 
-    def get_attach_point(self, prev_rendered_parts):
+    def get_attach_point(self, prev_parts):
         eval_spot_token = self.sample_eval_spot_token()
-        rendered_part = prev_rendered_parts[self.attach_spot]
-        bspline = rendered_part.motor_spline[:, :, self.subid_spot]
+        part = prev_parts[self.attach_spot]
+        bspline = part.motor_spline[:,:,self.subid_spot]
         pos, _ = bspline_eval(eval_spot_token, bspline)
         # convert (1,2) tensor -> (2,) tensor
         pos = torch.squeeze(pos, dim=0)

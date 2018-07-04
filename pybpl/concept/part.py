@@ -2,12 +2,6 @@ from __future__ import division, print_function
 from abc import ABCMeta, abstractmethod
 
 
-class RenderedPart(object):
-    __metaclass__ = ABCMeta
-
-    def __init__(self):
-        pass
-
 class PartToken(object):
     __metaclass__ = ABCMeta
 
@@ -21,5 +15,5 @@ class Part(object):
         pass
 
     @abstractmethod
-    def sample_token(self):
+    def sample_token(self, position_token):
         pass

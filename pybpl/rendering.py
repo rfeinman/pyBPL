@@ -7,7 +7,6 @@ import torch
 
 from .general_util import aeq, fspecial, imfilter
 from . import splines
-from .character.stroke import RenderedStroke
 from .character import util_character
 
 
@@ -280,20 +279,21 @@ def render_image(cell_traj, epsilon, blur_sigma, parameters):
 # apply render
 # ----
 
-def apply_render(rendered_strokes, affine, epsilon, blur_sigma, parameters):
+def apply_render(stroke_tokens, affine, epsilon, blur_sigma, parameters):
     """
 
-    :param rendered_strokes: [list of RenderedStroke]
+    :param stroke_tokens: [list of StrokeToken]
     :param affine: [(4,) tensor]
     :param epsilon: [float]
     :param blur_sigma: [float]
     :param parameters: []
     :return:
     """
-    for rs in rendered_strokes:
-        assert isinstance(rs, RenderedStroke)
+    from .character.stroke import StrokeToken
+    for rs in stroke_tokens:
+        assert isinstance(rs, StrokeToken)
     # get motor for each part
-    motor = [rs.motor for rs in rendered_strokes]
+    motor = [rs.motor for rs in stroke_tokens]
     # apply affine transformation if needed
     if affine is not None:
         motor = apply_warp(motor, affine)

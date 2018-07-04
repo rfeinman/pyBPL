@@ -2,6 +2,7 @@ from __future__ import division, print_function
 import torch
 import torch.distributions as dist
 
+from ..library.library import Library
 from ..concept.ctd import ConceptTypeDist
 from ..concept.relation import (RelationIndependent, RelationAttach,
                                 RelationAttachAlong)
@@ -23,6 +24,7 @@ class CharacterTypeDist(ConceptTypeDist):
         :param lib:
         """
         super(CharacterTypeDist, self).__init__()
+        assert isinstance(lib, Library)
         # is uniform?
         self.isunif = lib.isunif
         # number of control points
