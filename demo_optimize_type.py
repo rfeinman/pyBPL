@@ -9,6 +9,7 @@ import torch
 
 from pybpl.library.library import Library
 from pybpl.character.ctd import CharacterTypeDist
+from pybpl.character.character import Character
 
 dtype = torch.float
 
@@ -18,6 +19,7 @@ projected_grad_ascent = True
 lr = 1e-3
 # tol. for constrained optimization
 eps = 1e-4
+
 
 def get_variables(S, R):
     """
@@ -50,6 +52,7 @@ def get_variables(S, R):
 
     return parameters, lbs, ubs
 
+
 def obj_fun(S, R, ctd):
     """
     Evaluate the log-likelihood of a character type under the prior
@@ -73,12 +76,16 @@ def obj_fun(S, R, ctd):
 
     return ll
 
+
 def main():
     # load the library
     lib = Library(lib_dir='./lib_data')
     # generate a character type
     ctd = CharacterTypeDist(lib)
     S, R = ctd.sample_type(k=args.ns)
+    char = Character(S, R, lib)
+    ex1 = char.sample_token().image.numpy()
+    ex2 = char.sample_token().image.numpy()
     print('num strokes: %i' % len(S))
     # get optimizable variables & their bounds
     parameters, lbs, ubs = get_variables(S, R)
@@ -105,10 +112,27 @@ def main():
 
                 param.grad.zero_()
 
+    ex3 = char.sample_token().image.numpy()
+    ex4 = char.sample_token().image.numpy()
+
+    plt.figure()
     plt.plot(score_list)
     plt.ylabel('log-likelihood')
-    plt.xlabel('test')
+    plt.xlabel('iteration')
+
+    fig, axes = plt.subplots(2,2,figsize=(10,8))
+    axes[0,0].imshow(ex1, cmap='Greys', vmin=0, vmax=1)
+    axes[0,0].set_title('pre-train ex1')
+    axes[0,1].imshow(ex2, cmap='Greys', vmin=0, vmax=1)
+    axes[0,1].set_title('pre-train ex2')
+    axes[1,0].imshow(ex3, cmap='Greys', vmin=0, vmax=1)
+    axes[1,0].set_title('post-train ex1')
+    axes[1,1].imshow(ex4, cmap='Greys', vmin=0, vmax=1)
+    axes[1,1].set_title('post-train ex2')
+
     plt.show()
+
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
