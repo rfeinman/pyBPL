@@ -4,6 +4,7 @@ likelihood of the type under the prior
 """
 from __future__ import print_function, division
 import argparse
+import numpy as np
 import matplotlib.pyplot as plt
 import torch
 
@@ -19,6 +20,7 @@ projected_grad_ascent = True
 lr = 1e-3
 # tol. for constrained optimization
 eps = 1e-4
+nb_iter = 1000
 
 
 def get_variables(S, R):
@@ -84,17 +86,27 @@ def main():
     ctd = CharacterTypeDist(lib)
     S, R = ctd.sample_type(k=args.ns)
     char = Character(S, R, lib)
-    ex1 = char.sample_token().image.numpy()
-    ex2 = char.sample_token().image.numpy()
+    plt.figure(figsize=(4,15))
     print('num strokes: %i' % len(S))
     # get optimizable variables & their bounds
     parameters, lbs, ubs = get_variables(S, R)
-
     # optimize the character type
     score_list = []
-    for idx in range(1000):
+    i = 0
+    nb_i = int(np.floor(nb_iter / 100))
+    for idx in range(nb_iter):
         if idx % 100 == 0:
             print('iteration #%i' % idx)
+            ex1 = char.sample_token().image.numpy()
+            ex2 = char.sample_token().image.numpy()
+            plt.subplot(nb_i, 2, 2*i+1)
+            plt.imshow(ex1, cmap='Greys', vmin=0, vmax=1)
+            plt.title('ex1')
+            plt.ylabel('iter #%i' % idx)
+            plt.subplot(nb_i, 2, 2*i+2)
+            plt.imshow(ex2, cmap='Greys', vmin=0, vmax=1)
+            plt.title('ex2')
+            i += 1
         score = obj_fun(S, R, ctd)
         score.backward(retain_graph=True)
         score_list.append(score)
@@ -112,23 +124,10 @@ def main():
 
                 param.grad.zero_()
 
-    ex3 = char.sample_token().image.numpy()
-    ex4 = char.sample_token().image.numpy()
-
     plt.figure()
     plt.plot(score_list)
     plt.ylabel('log-likelihood')
     plt.xlabel('iteration')
-
-    fig, axes = plt.subplots(2,2,figsize=(10,8))
-    axes[0,0].imshow(ex1, cmap='Greys', vmin=0, vmax=1)
-    axes[0,0].set_title('pre-train ex1')
-    axes[0,1].imshow(ex2, cmap='Greys', vmin=0, vmax=1)
-    axes[0,1].set_title('pre-train ex2')
-    axes[1,0].imshow(ex3, cmap='Greys', vmin=0, vmax=1)
-    axes[1,0].set_title('post-train ex1')
-    axes[1,1].imshow(ex4, cmap='Greys', vmin=0, vmax=1)
-    axes[1,1].set_title('post-train ex2')
 
     plt.show()
 
