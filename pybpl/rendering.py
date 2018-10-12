@@ -292,8 +292,9 @@ def apply_render(stroke_tokens, affine, epsilon, blur_sigma, parameters):
     from .character.stroke import StrokeToken
     for rs in stroke_tokens:
         assert isinstance(rs, StrokeToken)
+
     # get motor for each part
-    motor = [rs.motor for rs in stroke_tokens]
+    motor = [st.motor for st in stroke_tokens]
     # apply affine transformation if needed
     if affine is not None:
         motor = apply_warp(motor, affine)
