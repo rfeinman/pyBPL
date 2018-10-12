@@ -7,7 +7,7 @@ import torch
 
 from .general_util import aeq, fspecial, imfilter
 from . import splines
-from .character import util_character
+from . import util_character
 
 
 # ----
@@ -289,7 +289,7 @@ def apply_render(stroke_tokens, affine, epsilon, blur_sigma, parameters):
     :param parameters: []
     :return:
     """
-    from .character.stroke import StrokeToken
+    from .part import StrokeToken
     for rs in stroke_tokens:
         assert isinstance(rs, StrokeToken)
 

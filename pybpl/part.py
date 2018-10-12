@@ -1,12 +1,25 @@
 """
-Stroke class definition.
+A module for parts.
+
+Classes:
+    ...
+Functions:
+    ...
 """
-from __future__ import print_function, division
+from __future__ import division, print_function
+from abc import ABCMeta, abstractmethod
 import torch
 import torch.distributions as dist
 
-from ..concept.part import Part, PartToken
-from .. import rendering
+from . import rendering
+
+
+class PartToken(object):
+    __metaclass__ = ABCMeta
+
+    def __init__(self):
+        pass
+
 
 
 class StrokeToken(PartToken):
@@ -18,6 +31,19 @@ class StrokeToken(PartToken):
         self.motor, self.motor_spline = rendering.vanilla_to_motor(
             self.shapes, self.invscales, self.position
         )
+
+
+
+class Part(object):
+    __metaclass__ = ABCMeta
+
+    def __init__(self):
+        pass
+
+    @abstractmethod
+    def sample_token(self, position_token):
+        pass
+
 
 
 class Stroke(Part):

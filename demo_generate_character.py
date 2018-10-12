@@ -2,8 +2,8 @@ from __future__ import division, print_function
 import warnings
 import matplotlib.pyplot as plt
 
-from pybpl.library.library import Library
-from pybpl.character.character import Character
+from pybpl.library import Library
+from pybpl.concept import Character
 from pybpl.generate_character import generate_type
 
 

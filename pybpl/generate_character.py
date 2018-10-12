@@ -1,15 +1,15 @@
 from __future__ import division, print_function
 import torch
-from .character.character import Character
-from .character.ctd import CharacterTypeDist
+from .concept import Character
+from .ctd import CharacterTypeDist
 
 
 # list of acceptable dtypes for 'ns' parameter
 int_types = [torch.uint8, torch.int8, torch.int16, torch.int32, torch.int64]
 
 def generate_type(lib, ns=None):
-    ctd = CharacterTypeDist(lib)
-    S, R = ctd.sample_type(k=ns)
+    type_dist = CharacterTypeDist(lib)
+    S, R = type_dist.sample_type(k=ns)
 
     return S, R
 

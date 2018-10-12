@@ -9,8 +9,8 @@ import matplotlib.pyplot as plt
 import torch
 
 from pybpl.library.library import Library
-from pybpl.character.ctd import CharacterTypeDist
-from pybpl.character.character import Character
+from pybpl.ctd import CharacterTypeDist
+from pybpl.concept import Character
 
 dtype = torch.float
 

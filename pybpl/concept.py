@@ -1,28 +1,68 @@
 """
-Character class definition
+Module for concepts.
+
+A concept is a meta-class. Concepts are probabilistic programs that
+sample concept tokens. A concept contains a sequence of parts and a sequence of
+relations to connect each part to previous parts.
+
+This class is inherited from by child classes for specific types of concepts.
+One example of such child class is Character.
+
+Classes:
+    Concept: ...
+    ConceptToken: ...
+    ConceptTypeDist: ...
+Functions:
+    ...
 """
-from __future__ import print_function, division
+from __future__ import division, print_function
+from abc import ABCMeta, abstractmethod
 import warnings
 import torch
 import torch.distributions as dist
 
-from .stroke import Stroke, StrokeToken
+from . import rendering
 from .parameters import defaultps
-from ..library.library import Library
-from .. import rendering
-from ..concept.concept import Concept, ConceptToken
+from .library import Library
+from .part import Part, Stroke
+from .relation import Relation
+from .token import CharacterToken
 
 
-class CharacterToken(ConceptToken):
-    def __init__(self, stroke_tokens, affine, epsilon, blur_sigma, image):
-        super(CharacterToken, self).__init__()
-        for token in stroke_tokens:
-            assert isinstance(token, StrokeToken)
-        self.stroke_tokens = stroke_tokens
-        self.affine = affine
-        self.epsilon = epsilon
-        self.blur_sigma = blur_sigma
-        self.image = image
+class Concept(object):
+    __metaclass__ = ABCMeta
+
+    def __init__(self, P, R):
+        assert isinstance(P, list)
+        assert isinstance(R, list)
+        assert len(P) == len(R)
+        assert len(P) > 0
+        for p, r in zip(P, R):
+            assert isinstance(p, Part)
+            assert isinstance(r, Relation)
+        self.P = P
+        self.R = R
+
+    @property
+    def k(self):
+        # the number of parts
+        return len(self.P)
+
+    @abstractmethod
+    def render_part(self, part_token, part_location):
+        pass
+
+    @abstractmethod
+    def sample_token(self):
+        part_tokens = []
+        for part, rel in zip(self.P, self.R):
+            part_location = rel.sample_position(part_tokens)
+            part_token = part.sample_token(part_location)
+            part_tokens.append(part_token)
+
+        return part_tokens
+
+
 
 class Character(Concept):
     """
