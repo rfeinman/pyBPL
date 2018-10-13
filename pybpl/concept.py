@@ -1,19 +1,11 @@
 """
-Module for concepts.
+Concepts are probabilistic programs that sample concept tokens. A concept
+contains a sequence of parts and a sequence of relations to connect each
+part to previous parts.
 
-A concept is a meta-class. Concepts are probabilistic programs that
-sample concept tokens. A concept contains a sequence of parts and a sequence of
-relations to connect each part to previous parts.
-
-This class is inherited from by child classes for specific types of concepts.
-One example of such child class is Character.
-
-Classes:
-    Concept: ...
-    ConceptToken: ...
-    ConceptTypeDist: ...
-Functions:
-    ...
+The Concept class is an abstract base class that is inherited from by child
+classes that represent specific types of concepts. One example of such child
+class is Character.
 """
 from __future__ import division, print_function
 from abc import ABCMeta, abstractmethod
@@ -30,9 +22,19 @@ from .token import CharacterToken
 
 
 class Concept(object):
+    """
+    An abstract base class for concepts. A concept is a probabilistic program
+    that samples Concept tokens. Concepts are made up of parts and relations.
+    """
     __metaclass__ = ABCMeta
 
     def __init__(self, P, R):
+        """
+        Concept constructor
+
+        :param P: [list of Part] TODO
+        :param R: [list of Relation] TODO
+        """
         assert isinstance(P, list)
         assert isinstance(R, list)
         assert len(P) == len(R)
@@ -45,15 +47,18 @@ class Concept(object):
 
     @property
     def k(self):
-        # the number of parts
+        """
+        The number of parts
+        """
         return len(self.P)
 
     @abstractmethod
-    def render_part(self, part_token, part_location):
-        pass
-
-    @abstractmethod
     def sample_token(self):
+        """
+        TODO
+
+        :return: [List of PartToken] part tokens
+        """
         part_tokens = []
         for part, rel in zip(self.P, self.R):
             part_location = rel.sample_position(part_tokens)
@@ -66,11 +71,13 @@ class Concept(object):
 
 class Character(Concept):
     """
-    TODO
+    A Character is a probabilistic program that samples Character tokens.
+    Parts are strokes, and relations are either [independent, attach,
+    attach-along].
     """
     def __init__(self, S, R, lib):
         """
-        Constructor
+        Character constructor
 
         :param S: [list of Stroke] TODO
         :param R: [list of Relation] TODO
@@ -87,8 +94,7 @@ class Character(Concept):
         """
         Sample a character token
 
-        :return:
-            token: [CharacterToken] character token
+        :return: [CharacterToken] character token
         """
         stroke_tokens = super(Character, self).sample_token()
 
@@ -115,12 +121,18 @@ class Character(Concept):
         return token
 
     def sample_affine(self):
+        """
+        :return: affine transformation
+        """
         warnings.warn('skipping affine warp for now.')
         affine = None
 
         return affine
 
     def sample_image_noise(self):
+        """
+        :return: scalar; image noise quantity
+        """
         #epsilon = CPD.sample_image_noise(self.parameters)
         warnings.warn('using fixed image noise for now.')
         # set rendering parameters to minimum noise
@@ -129,6 +141,9 @@ class Character(Concept):
         return epsilon
 
     def sample_image_blur(self):
+        """
+        :return: scalar; image blur quantity
+        """
         #blur_sigma = CPD.sample_image_blur(self.parameters)
         warnings.warn('using fixed image blur for now.')
         # set rendering parameters to minimum noise
@@ -137,12 +152,21 @@ class Character(Concept):
         return blur_sigma
 
 def sample_image(pimg):
+    """
+    :param pimg: [tensor] image probability map
+    :return: [tensor] binary image
+    """
     binom = dist.binomial.Binomial(1, pimg)
     image = binom.sample()
 
     return image
 
 def score_image(image, pimg):
+    """
+    :param image: [tensor] binary image
+    :param pimg: [tensor] image probability map
+    :return: [tensor] scalar; log-likelihood of the image
+    """
     binom = dist.binomial.Binomial(1, pimg)
     ll = binom.log_prob(image)
 

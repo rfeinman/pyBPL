@@ -1,10 +1,6 @@
 """
-A module for parts.
-
-Classes:
-    ...
-Functions:
-    ...
+Parts for sampling part tokens. Parts, together with relations between parts,
+make up concepts.
 """
 from __future__ import division, print_function
 from abc import ABCMeta, abstractmethod
@@ -15,15 +11,31 @@ from . import rendering
 
 
 class PartToken(object):
+    """
+    PartToken class TODO
+    """
     __metaclass__ = ABCMeta
 
     def __init__(self):
+        """
+        PartToken constructor
+        """
         pass
 
 
 
 class StrokeToken(PartToken):
+    """
+    StrokeToken class TODO
+    """
     def __init__(self, shapes, invscales, position):
+        """
+        StrokeToken constructor
+
+        :param shapes: TODO
+        :param invscales: TODO
+        :param position: TODO
+        """
         super(StrokeToken, self).__init__()
         self.shapes = shapes
         self.invscales = invscales
@@ -35,31 +47,43 @@ class StrokeToken(PartToken):
 
 
 class Part(object):
+    """
+    Part class TODO
+    """
     __metaclass__ = ABCMeta
 
     def __init__(self):
+        """
+        Part constructor
+        """
         pass
 
     @abstractmethod
     def sample_token(self, position_token):
+        """
+        TODO
+        :param position_token: TODO
+        :return: TODO
+        """
         pass
 
 
 
 class Stroke(Part):
     """
-    A Stroke is a program that can generate and score new stroke tokens
+    A Stroke is a probabilistic program that can generate and score
+    stroke tokens
     """
     def __init__(
             self, ids, shapes_type, invscales_type, sigma_shape, sigma_invscale
     ):
         """
-        Initialize the Stroke class instance.
+        Stroke constructor
 
-        :param ids:
-        :param shapes_type:
-        :param invscales_type:
-        :param lib:
+        :param ids: TODO
+        :param shapes_type: TODO
+        :param invscales_type: TODO
+        :param lib: [Library] TODO
         """
         # parent init
         super(Stroke, self).__init__()
@@ -76,16 +100,27 @@ class Stroke(Part):
     @property
     def nsub(self):
         """
-        Get the number of sub-strokes
+        The number of sub-strokes
         """
         return len(self.ids)
 
     def sample_shapes_token(self):
+        """
+        TODO
+
+        :return: TODO
+        """
         shapes_token = self.shapes_dist.sample()
 
         return shapes_token
 
     def score_shapes_token(self, shapes_token):
+        """
+        TODO
+
+        :param shapes_token: TODO
+        :return: TODO
+        """
         # compute scores for every element in shapes_token
         ll = self.shapes_dist.log_prob(shapes_token)
         # sum scores
@@ -94,6 +129,11 @@ class Stroke(Part):
         return ll
 
     def sample_invscales_token(self):
+        """
+        TODO
+
+        :return: TODO
+        """
         ll = torch.tensor(-float('inf'))
         while ll == -float('inf'):
             invscales_token = self.scales_dist.sample()
@@ -102,6 +142,12 @@ class Stroke(Part):
         return invscales_token
 
     def score_invscales_token(self, invscales_token):
+        """
+        TODO
+
+        :param invscales_token: TODO
+        :return: TODO
+        """
         # compute scores for every element in invscales_token
         ll = self.scales_dist.log_prob(invscales_token)
 
@@ -123,9 +169,7 @@ class Stroke(Part):
 
     def sample_token(self, position_token):
         """
-        TODO
-
-        :return:
+        See Part.sample_token
         """
         shapes_token = self.sample_shapes_token()
         invscales_token = self.sample_invscales_token()

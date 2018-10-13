@@ -1,10 +1,5 @@
 """
-A module for tokens.
-
-Classes:
-    ...
-Functions:
-    ...
+Token classes for representing & storing concept tokens.
 """
 from __future__ import division, print_function
 from abc import ABCMeta, abstractmethod
@@ -15,10 +10,22 @@ class ConceptToken(object):
     __metaclass__ = ABCMeta
 
     def __init__(self):
+        """
+        ConceptToken constructor
+        """
         pass
 
 class CharacterToken(ConceptToken):
     def __init__(self, stroke_tokens, affine, epsilon, blur_sigma, image):
+        """
+        CharacterToken constructor
+
+        :param stroke_tokens: TODO
+        :param affine: TODO
+        :param epsilon: TODO
+        :param blur_sigma: TODO
+        :param image: TODO
+        """
         super(CharacterToken, self).__init__()
         for token in stroke_tokens:
             assert isinstance(token, StrokeToken)

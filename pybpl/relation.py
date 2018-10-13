@@ -1,5 +1,6 @@
 """
-Relation class definitions
+Relations for sampling part positions. Relations, together with parts, make up
+concepts.
 """
 from __future__ import print_function, division
 from abc import ABCMeta, abstractmethod
@@ -13,15 +14,30 @@ types_allowed = ['unihist', 'start', 'end', 'mid']
 
 
 class Relation(object):
+    """
+    TODO
+    """
     __metaclass__ = ABCMeta
 
     def __init__(self, rtype, pos_dist):
+        """
+        Relation constructor
+
+        :param rtype: TODO
+        :param pos_dist: TODO
+        """
         # make sure type is valid
         assert rtype in types_allowed
         self.type = rtype
         self.pos_dist = pos_dist
 
     def sample_position(self, prev_parts):
+        """
+        TODO
+
+        :param prev_parts: TODO
+        :return: TODO
+        """
         for pt in prev_parts:
             assert isinstance(pt, PartToken)
         base = self.get_attach_point(prev_parts)
@@ -38,32 +54,56 @@ class Relation(object):
         needs to be overridden in child classes.
 
         :param prev_parts: TODO
-        :return:
-            pos: TODO
+        :return: TODO
         """
         pass
 
 
 class RelationIndependent(Relation):
+    """
+    TODO
+    """
     def __init__(self, rtype, pos_dist, gpos):
+        """
+        RelationIndependent constructor
+
+        :param rtype: TODO
+        :param pos_dist: TODO
+        :param gpos: TODO
+        """
         assert rtype == 'unihist'
         assert gpos.shape == torch.Size([2])
         super(RelationIndependent, self).__init__(rtype, pos_dist)
         self.gpos = gpos
 
     def get_attach_point(self, prev_parts):
+        """
+        See Relation.get_attach_point
+        """
         pos = self.gpos
 
         return pos
 
 
 class RelationAttach(Relation):
+    """
+    TODO
+    """
     def __init__(self, rtype, pos_dist, attach_spot):
+        """
+        RelationAttach constructor
+        :param rtype: TODO
+        :param pos_dist: TODO
+        :param attach_spot: TODO
+        """
         assert rtype in ['start', 'end', 'mid']
         super(RelationAttach, self).__init__(rtype, pos_dist)
         self.attach_spot = attach_spot
 
     def get_attach_point(self, prev_parts):
+        """
+        See Relation.get_attach_point
+        """
         # TODO - This should be generalized so that it is applicable to all
         # TODO - types of relations. Right now motor/motor_spline is specific
         # TODO - to characters.
@@ -80,10 +120,24 @@ class RelationAttach(Relation):
 
 
 class RelationAttachAlong(RelationAttach):
+    """
+    TODO
+    """
     def __init__(
             self, rtype, pos_dist, sigma_attach, attach_spot,
             subid_spot, ncpt, eval_spot_type
     ):
+        """
+        RelationAttachAlong constructor
+
+        :param rtype: TODO
+        :param pos_dist: TODO
+        :param sigma_attach: TODO
+        :param attach_spot: TODO
+        :param subid_spot: TODO
+        :param ncpt: TODO
+        :param eval_spot_type: TODO
+        """
         assert rtype == 'mid'
         super(RelationAttachAlong, self).__init__(rtype, pos_dist, attach_spot)
         self.subid_spot = subid_spot
@@ -91,6 +145,9 @@ class RelationAttachAlong(RelationAttach):
         self.eval_spot_dist = dist.normal.Normal(eval_spot_type, sigma_attach)
 
     def get_attach_point(self, prev_parts):
+        """
+        See Relation.get_attach_point
+        """
         eval_spot_token = self.sample_eval_spot_token()
         part = prev_parts[self.attach_spot]
         bspline = part.motor_spline[:,:,self.subid_spot]
@@ -101,6 +158,11 @@ class RelationAttachAlong(RelationAttach):
         return pos
 
     def sample_eval_spot_token(self):
+        """
+        TODO
+
+        :return: TODO
+        """
         ll = torch.tensor(-float('inf'))
         while ll == -float('inf'):
             eval_spot_token = self.eval_spot_dist.sample()
@@ -109,6 +171,12 @@ class RelationAttachAlong(RelationAttach):
         return eval_spot_token
 
     def score_eval_spot_token(self, eval_spot_token):
+        """
+        TODO
+
+        :param eval_spot_token: TODO
+        :return: TODO
+        """
         assert type(eval_spot_token) in [int, float] or \
                (type(eval_spot_token) == torch.Tensor and
                 eval_spot_token.shape == torch.Size([]))
