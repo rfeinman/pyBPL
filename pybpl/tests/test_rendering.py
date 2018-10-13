@@ -3,9 +3,8 @@ import unittest
 import os
 import torch
 
-from pybpl import CPD
-from pybpl.library.library import Library
-from pybpl import rendering
+from ..library import Library
+from .. import rendering
 
 class TestRendering(unittest.TestCase):
 
