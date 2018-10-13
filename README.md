@@ -1,11 +1,15 @@
-# pyBPL
-Python implementation of Bayesian Program Learning (BPL), using PyTorch.
-The BPL framework has been generalized to work with various types of concepts.
-Character learning with Omniglot is one manifestation of the BPL framework,
-and it is included here as the preliminary use case (see Lake et al. 2015
-"Human-level concept learning through probabilistic program induction").
+# pyBPL: Python-based Bayesian Program Learning
+
+pyBPL is a Python 3 package to implement Bayesian Program Learning (BPL)
+using PyTorch backend. The BPL framework has been generalized to work with
+various types of concepts. Character learning with Omniglot is one
+manifestation of the BPL framework, and it is included here as the preliminary
+use case (see Lake et al. 2015 "Human-level concept learning through
+probabilistic program induction").
 
 Not yet fully operational.
+
+
 
 ## Setup
 
@@ -27,6 +31,18 @@ be set:
 ```
 export PYBPL_DIR="/path/to/pyBPL"
 ```
+
+
+
+## Documentation
+In order to generate the documentation site for the pyBPL library, execute the
+following demands from the root folder:
+```
+cd docs/
+make html
+```
+
+
 
 ## Demo
 Currently there are 2 working demos.
@@ -50,28 +66,7 @@ python demo_optimize_type.py
 Optionally, you may add the integer parameter `--ns=<int>` to specify how many
 strokes you would like the generated character type to have.
 
-## Repository Structure
 
-The `pybpl` module has 3 key submodules:
-
-#### 1. concept
-
-The `concept` package contains the base classes for concepts, including their
-parts and relations. These are abstract classes and must be inherited from
-by derivative classes. The concept classes define the general overarching
-structure that child classes need to adhere to.
-
-#### 2. character
-
-The `character` package contains the implementation of the Omniglot BPL use
-case. Parts are Strokes and ... TODO
-
-#### 3. library
-
-The `library` package contains a Library class (and its dependencies) for
-loading the hyperparameters of a pre-fit BPL model. This is designed primarily
-for the Omniglot use case, enabling the transfer of parameters from the matlab
-BPL repo (see https://github.com/brendenlake/BPL).
 
 ## Status Notes
 
