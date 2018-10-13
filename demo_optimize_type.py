@@ -8,7 +8,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import torch
 
-from pybpl.library.library import Library
+from pybpl.library import Library
 from pybpl.ctd import CharacterTypeDist
 from pybpl.concept import Character
 
