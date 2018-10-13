@@ -5,7 +5,7 @@ from __future__ import print_function, division
 
 import torch
 
-from .general_util import aeq, fspecial, imfilter
+from .util_general import aeq, fspecial, imfilter
 from . import splines
 from . import util_character
 

@@ -10,7 +10,7 @@ import torch
 from torch.distributions.uniform import Uniform
 from torch.distributions.categorical import Categorical
 
-from ..general_util import aeq, ind2sub
+from ..util_general import aeq, ind2sub
 
 class SpatialHist(object):
     """

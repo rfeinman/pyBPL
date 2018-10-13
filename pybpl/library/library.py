@@ -6,7 +6,7 @@ import torch
 
 from .spatial_hist import SpatialHist
 from .spatial_model import SpatialModel
-from ..general_util import aeq
+from ..util_general import aeq
 
 
 class Library(object):
