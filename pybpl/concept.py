@@ -1,11 +1,12 @@
 """
 Concepts are probabilistic programs that sample concept tokens. A concept
 contains a sequence of parts and a sequence of relations to connect each
-part to previous parts.
+part to previous parts. The Concept class is an abstract class, and must be
+inherited from by derivative classes. It defines the general overarching
+structure that child classes need to adhere to.
 
-The Concept class is an abstract base class that is inherited from by child
-classes that represent specific types of concepts. One example of such child
-class is Character.
+One example of such child class is the Character class. This contains the
+implementation of the Omniglot BPL use case. Parts are Strokes and ... TODO
 """
 from __future__ import division, print_function
 from abc import ABCMeta, abstractmethod
