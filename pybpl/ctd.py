@@ -24,82 +24,47 @@ class ConceptTypeDist(object):
     __metaclass__ = ABCMeta
 
     def __init__(self):
-        """
-        ConceptTypeDist constructor
-        """
         pass
 
     @abstractmethod
     def sample_k(self):
-        """
-        Sample a number of parts from the prior
-
-        :return: [tensor] scalar; part count
-        """
         pass
 
     @abstractmethod
     def score_k(self, k):
-        """
-        Score the log-probability of the number of parts under the prior
-
-        :param k: [tensor] scalar; part count to score
-        :return: [tensor] scalar; log-probability of the part count
-        """
         pass
 
     @abstractmethod
     def sample_part_type(self, k):
-        """
-        Sample a part type from the prior, conditioned on a number of parts
-
-        :param k: [tensor]
-        :return: [Part]
-        """
         pass
 
     @abstractmethod
     def score_part_type(self, k, p):
-        """
-        Score the log-probability of the part type under the prior, conditioned
-        on a number of parts
-
-        :param k: [tensor] scalar; part count
-        :param p: [Part] part type to score
-        :return: [tensor] scalar; log-probability of the part type
-        """
         pass
 
     @abstractmethod
     def sample_relation_type(self, prev_parts):
-        """
-        Sample a relation type from the prior for the current part, conditioned
-        on the previous parts
-
-        :param prev_parts: [list of Parts] TODO
-        :return: [Relation] relation type
-        """
         pass
 
     @abstractmethod
     def score_relation_type(self, prev_parts, r):
-        """
-        Score the relation type of the current part under the prior
-
-        :param prev_parts: [list of Parts] TODO
-        :param r: [Relation] TODO
-        :return: [tensor] log-probability of the relation type
-        """
         pass
 
     def sample_type(self, k=None):
         """
         Sample a concept type from the prior
 
-        :param k: [int or tensor] scalar; the number of parts to use
-        :return: (P,R)
-            P: [list of Part] TODO
-            R: [list of Part] TODO
+        Parameters
+        ----------
+        k : int or tensor
+            scalar; the number of parts to use
+
+        Returns
+        -------
+        P : list of Part
+            TODO
+        R : list of Relation
+            TODO
         """
         if k is None:
             # sample the number of parts 'k'
@@ -132,9 +97,17 @@ class ConceptTypeDist(object):
         Score a concept type under the prior
         P(type) = P(k)*\prod_{i=1}^k [P(S_i)P(R_i|S_{0:i-1})]
 
-        :param P: [list of Part] TODO
-        :param R: [list of Relation] TODO
-        :return: [tensor] scalar; the log-probability of the concept type
+        Parameters
+        ----------
+        P : list of Part
+            TODO
+        R : list of Relation
+            TODO
+
+        Returns
+        -------
+        ll : tensor
+            scalar; the log-probability of the concept type
         """
         # score the number of parts
         k = len(P)
@@ -151,15 +124,15 @@ class CharacterTypeDist(ConceptTypeDist):
     """
     A CharacterTypeDist is a probabilistic program that samples Character types
     from the prior. It can also score the log-likelihood of Character types.
+
+    Parameters
+    ----------
+    lib : Library
+        TODO
     """
-    relation_types = ['unihist', 'start', 'end', 'mid']
+    __relation_types = ['unihist', 'start', 'end', 'mid']
 
     def __init__(self, lib):
-        """
-        CharacterTypeDist constructor
-
-        :param lib: [Library] TODO
-        """
         super(CharacterTypeDist, self).__init__()
         assert isinstance(lib, Library)
         # is uniform?
@@ -209,7 +182,12 @@ class CharacterTypeDist(ConceptTypeDist):
 
     def sample_k(self):
         """
-        See ConceptTypeDist.sample_k
+        Sample a number of strokes from the prior
+
+        Returns
+        -------
+        k : tensor
+            scalar; stroke count
         """
         # sample from kappa
         # NOTE: add 1 to 0-indexed samples
@@ -219,7 +197,17 @@ class CharacterTypeDist(ConceptTypeDist):
 
     def score_k(self, k):
         """
-        See ConceptTypeDist.score_k
+        Score the log-probability of the number of strokes under the prior
+
+        Parameters
+        ----------
+        k : tensor
+            scalar; stroke count to score
+
+        Returns
+        -------
+        ll : tensor
+            scalar; log-probability of the stroke count
         """
         # check if any values are out of bounds
         if k > len(self.kappa.probs):
@@ -240,10 +228,17 @@ class CharacterTypeDist(ConceptTypeDist):
         """
         Sample a sub-stroke count (or a vector of sub-stroke counts if nsamp>1)
 
-        :param pmat_nsub: TODO
-        :param k: [tensor] stroke count. scalar
-        :param nsamp: [int] number of samples to draw
-        :return: [(n,) tensor] vector of sub-stroke counts. scalar if nsamp=1
+        Parameters
+        ----------
+        k : tensor
+            scalar; stroke count
+        nsamp : int
+            number of samples to draw
+
+        Returns
+        -------
+        nsub : (n,) tensor
+            vector of sub-stroke counts. scalar if nsamp=1
         """
         # probability of each sub-stroke count, conditioned on the number of strokes
         # NOTE: subtract 1 from stroke counts to get Python index
@@ -261,9 +256,17 @@ class CharacterTypeDist(ConceptTypeDist):
         """
         TODO
 
-        :param k: TODO
-        :param nsub: TODO
-        :return: TODO
+        Parameters
+        ----------
+        k : TODO
+            TODO
+        nsub : TODO
+            TODO
+
+        Returns
+        -------
+        ll : TODO
+            TODO
         """
         raise NotImplementedError
 
@@ -271,12 +274,17 @@ class CharacterTypeDist(ConceptTypeDist):
         """
         Sample the sequence of sub-strokes for this stroke
 
-        :param logStart: TODO
-        :param pT_func: TODO
-        :param nsub: [tensor] scalar; sub-stroke count
-        :param nsamp: [int] number of samples to draw
-        :return: [(nsamp, nsub) tensor] matrix of sequence samples. vector if
-                    nsamp=1
+        Parameters
+        ----------
+        nsub : tensor
+            scalar; sub-stroke count
+        nsamp : int
+            number of samples to draw
+
+        Returns
+        -------
+        samps : (nsamp, nsub) tensor
+            matrix of sequence samples. vector if nsamp=1
         """
         # nsub should be a scalar
         assert nsub.shape == torch.Size([])
@@ -305,6 +313,21 @@ class CharacterTypeDist(ConceptTypeDist):
         return samps
 
     def score_subid(self, nsub, subid):
+        """
+        TODO
+
+        Parameters
+        ----------
+        nsub : TODO
+            TODO
+        subid : TODO
+            TODO
+
+        Returns
+        -------
+        ll : TODO
+            TODO
+        """
         raise NotImplementedError
 
 
@@ -316,8 +339,15 @@ class CharacterTypeDist(ConceptTypeDist):
         """
         Sample the control points for each sub-stroke
 
-        :param subid: [(nsub,) tensor] vector of sub-stroke ids
-        :return: [(ncpt, 2, nsub) tensor] sampled spline
+        Parameters
+        ----------
+        subid : (nsub,) tensor
+            vector of sub-stroke ids
+
+        Returns
+        -------
+        bspline_stack : (ncpt, 2, nsub) tensor
+            sampled spline
         """
         if self.isunif:
             raise NotImplementedError
@@ -342,10 +372,19 @@ class CharacterTypeDist(ConceptTypeDist):
         """
         Score the log-likelihoods of the control points for each sub-stroke
 
-        :param lib: [Library] library class instance
-        :param bspline_stack: [(ncpt, 2, nsub) tensor] shapes of bsplines
-        :param subid: [(nsub,) tensor] vector of sub-stroke ids
-        :return: [(nsub,) tensor] vector of log-likelihood scores
+        Parameters
+        ----------
+        lib : Library
+            library class instance
+        bspline_stack : (ncpt, 2, nsub) tensor
+            shapes of bsplines
+        subid : (nsub,) tensor
+            vector of sub-stroke ids
+
+        Returns
+        -------
+        ll : (nsub,) tensor
+            vector of log-likelihood scores
         """
         if self.isunif:
             raise NotImplementedError
@@ -376,9 +415,17 @@ class CharacterTypeDist(ConceptTypeDist):
         """
         Sample the scale parameters for each sub-stroke
 
-        :param lib: [Library] library class instance
-        :param subid: [(k,) tensor] vector of sub-stroke ids
-        :return: [(k,) tensor] vector of scale values
+        Parameters
+        ----------
+        lib : Library
+            library class instance
+        subid : (k,) tensor
+            vector of sub-stroke ids
+
+        Returns
+        -------
+        invscales : (k,) tensor
+            vector of scale values
         """
         if self.isunif:
             raise NotImplementedError
@@ -395,10 +442,19 @@ class CharacterTypeDist(ConceptTypeDist):
         """
         Score the log-likelihood of each sub-stroke's scale parameter
 
-        :param lib: TODO
-        :param invscales: TODO
-        :param subid: TODO
-        :return: TODO
+        Parameters
+        ----------
+        lib : TODO
+            TODO
+        invscales : TODO
+            TODO
+        subid : TODO
+            TODO
+
+        Returns
+        -------
+        ll : TODO
+            TODO
         """
         if self.isunif:
             raise NotImplementedError
@@ -419,7 +475,17 @@ class CharacterTypeDist(ConceptTypeDist):
 
     def sample_part_type(self, k):
         """
-        See ConceptTypeDist.sample_part_type
+        Sample a stroke type from the prior, conditioned on a number of strokes
+
+        Parameters
+        ----------
+        k : tensor
+            TODO
+
+        Returns
+        -------
+        stroke : Stroke
+            TODO
         """
         # sample the number of sub-strokes
         nsub = self.sample_nsub(k)
@@ -440,13 +506,37 @@ class CharacterTypeDist(ConceptTypeDist):
 
     def score_part_type(self, k, p):
         """
-        See ConceptTypeDist.score_part_type
+        Score the log-probability of the stroke type under the prior,
+        conditioned on a number of strokes
+
+        Parameters
+        ----------
+        k : tensor
+            scalar; stoke count
+        p: Stroke
+            stroke type to score
+
+        Returns
+        -------
+        ll : TODO
+            scalar; log-probability of the stroke type
         """
         raise NotImplementedError
 
     def sample_relation_type(self, prev_parts):
         """
-        See ConceptTypeDist.sample_relation_type
+        Sample a relation type from the prior for the current stroke,
+        conditioned on the previous strokes
+
+        Parameters
+        ----------
+        prev_parts : list of Stroke
+            previous stroke types
+
+        Returns
+        -------
+        r : Relation
+            relation type
         """
         nprev = len(prev_parts)
         stroke_num = nprev + 1
@@ -457,7 +547,7 @@ class CharacterTypeDist(ConceptTypeDist):
             rtype = 'unihist'
         else:
             indx = self.rel_mixdist.sample()
-            rtype = self.relation_types[indx]
+            rtype = self.__relation_types[indx]
 
         if rtype == 'unihist':
             data_id = torch.tensor([stroke_num])
@@ -495,6 +585,18 @@ class CharacterTypeDist(ConceptTypeDist):
 
     def score_relation_type(self, prev_parts, r):
         """
-        See ConceptTypeDist.score_relation_type
+        Score the relation type of the current stroke under the prior
+
+        Parameters
+        ----------
+        prev_parts : list of Stroke
+            previous stroke types
+        r : Relation
+            relation type
+
+        Returns
+        -------
+        ll : TODO
+            log-probability of the relation type
         """
         raise NotImplementedError

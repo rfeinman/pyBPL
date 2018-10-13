@@ -7,27 +7,38 @@ from abc import ABCMeta, abstractmethod
 from .part import StrokeToken
 
 class ConceptToken(object):
+    """
+    Abstract base class for concept tokens
+
+    Parameters
+    ----------
+    part_tokens : list of PartToken
+        TODO
+    """
     __metaclass__ = ABCMeta
 
     def __init__(self, part_tokens):
-        """
-        ConceptToken constructor
-
-        :param part_tokens: TODO
-        """
         self.part_tokens = part_tokens
 
 class CharacterToken(ConceptToken):
-    def __init__(self, stroke_tokens, affine, epsilon, blur_sigma, image):
-        """
-        CharacterToken constructor
+    """
+    Character token stores both the type- and token-level parameters of a
+    character sample
 
-        :param stroke_tokens: TODO
-        :param affine: TODO
-        :param epsilon: TODO
-        :param blur_sigma: TODO
-        :param image: TODO
-        """
+    Parameters
+    ----------
+    stroke_tokens : TODO
+        TODO
+    affine : TODO
+        TODO
+    epsilon : TODO
+        TODO
+    blur_sigma : TODO
+        TODO
+    image : TODO
+        TODO
+    """
+    def __init__(self, stroke_tokens, affine, epsilon, blur_sigma, image):
         super(CharacterToken, self).__init__()
         for token in stroke_tokens:
             assert isinstance(token, StrokeToken)

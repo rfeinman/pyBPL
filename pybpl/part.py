@@ -17,9 +17,6 @@ class PartToken(object):
     __metaclass__ = ABCMeta
 
     def __init__(self):
-        """
-        PartToken constructor
-        """
         pass
 
 
@@ -27,15 +24,17 @@ class PartToken(object):
 class StrokeToken(PartToken):
     """
     StrokeToken class TODO
+
+    Parameters
+    ----------
+    shapes : TODO
+        TODO
+    invscales : TODO
+        TODO
+    position : TODO
+        TODO
     """
     def __init__(self, shapes, invscales, position):
-        """
-        StrokeToken constructor
-
-        :param shapes: TODO
-        :param invscales: TODO
-        :param position: TODO
-        """
         super(StrokeToken, self).__init__()
         self.shapes = shapes
         self.invscales = invscales
@@ -53,18 +52,10 @@ class Part(object):
     __metaclass__ = ABCMeta
 
     def __init__(self):
-        """
-        Part constructor
-        """
         pass
 
     @abstractmethod
     def sample_token(self, position_token):
-        """
-        TODO
-        :param position_token: TODO
-        :return: TODO
-        """
         pass
 
 
@@ -73,18 +64,21 @@ class Stroke(Part):
     """
     A Stroke is a probabilistic program that can generate and score
     stroke tokens
+
+    Parameters
+    ----------
+    ids : TODO
+        TODO
+    shapes_type : TODO
+        TODO
+    invscales_type : TODO
+        TODO
+    lib : Library
+        TODO
     """
     def __init__(
             self, ids, shapes_type, invscales_type, sigma_shape, sigma_invscale
     ):
-        """
-        Stroke constructor
-
-        :param ids: TODO
-        :param shapes_type: TODO
-        :param invscales_type: TODO
-        :param lib: [Library] TODO
-        """
         # parent init
         super(Stroke, self).__init__()
 
@@ -108,7 +102,10 @@ class Stroke(Part):
         """
         TODO
 
-        :return: TODO
+        Returns
+        -------
+        shapes_token : TODO
+            TODO
         """
         shapes_token = self.shapes_dist.sample()
 
@@ -118,8 +115,15 @@ class Stroke(Part):
         """
         TODO
 
-        :param shapes_token: TODO
-        :return: TODO
+        Parameters
+        ----------
+        shapes_token : TODO
+            TODO
+
+        Returns
+        -------
+        ll : TODO
+            TODO
         """
         # compute scores for every element in shapes_token
         ll = self.shapes_dist.log_prob(shapes_token)
@@ -132,7 +136,10 @@ class Stroke(Part):
         """
         TODO
 
-        :return: TODO
+        Returns
+        -------
+        invscales_token : TODO
+            TODO
         """
         ll = torch.tensor(-float('inf'))
         while ll == -float('inf'):
@@ -145,8 +152,15 @@ class Stroke(Part):
         """
         TODO
 
-        :param invscales_token: TODO
-        :return: TODO
+        Parameters
+        ----------
+        invscales_token : TODO
+            TODO
+
+        Returns
+        -------
+        ll : TODO
+            TODO
         """
         # compute scores for every element in invscales_token
         ll = self.scales_dist.log_prob(invscales_token)
@@ -169,7 +183,17 @@ class Stroke(Part):
 
     def sample_token(self, position_token):
         """
-        See Part.sample_token
+        TODO
+
+        Parameters
+        ----------
+        position_token : TODO
+            TODO
+
+        Returns
+        -------
+        token : TODO
+            TODO
         """
         shapes_token = self.sample_shapes_token()
         invscales_token = self.sample_invscales_token()

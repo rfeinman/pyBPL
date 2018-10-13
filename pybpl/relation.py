@@ -16,16 +16,17 @@ types_allowed = ['unihist', 'start', 'end', 'mid']
 class Relation(object):
     """
     TODO
+
+    Parameters
+    ----------
+    rtype : TODO
+        TODO
+    pos_dist : TODO
+        TODO
     """
     __metaclass__ = ABCMeta
 
     def __init__(self, rtype, pos_dist):
-        """
-        Relation constructor
-
-        :param rtype: TODO
-        :param pos_dist: TODO
-        """
         # make sure type is valid
         assert rtype in types_allowed
         self.type = rtype
@@ -35,8 +36,15 @@ class Relation(object):
         """
         TODO
 
-        :param prev_parts: TODO
-        :return: TODO
+        Parameters
+        ----------
+        prev_parts : TODO
+            TODO
+
+        Returns
+        -------
+        pos : TODO
+            TODO
         """
         for pt in prev_parts:
             assert isinstance(pt, PartToken)
@@ -48,29 +56,23 @@ class Relation(object):
 
     @abstractmethod
     def get_attach_point(self, prev_parts):
-        """
-        Get the mean attachment point of where the start of the next part
-        should be, given the previous part tokens. This function
-        needs to be overridden in child classes.
-
-        :param prev_parts: TODO
-        :return: TODO
-        """
         pass
 
 
 class RelationIndependent(Relation):
     """
     TODO
+
+    Parameters
+    ----------
+    rtype : TODO
+        TODO
+    pos_dist : TODO
+        TODO
+    gpos : TODO
+        TODO
     """
     def __init__(self, rtype, pos_dist, gpos):
-        """
-        RelationIndependent constructor
-
-        :param rtype: TODO
-        :param pos_dist: TODO
-        :param gpos: TODO
-        """
         assert rtype == 'unihist'
         assert gpos.shape == torch.Size([2])
         super(RelationIndependent, self).__init__(rtype, pos_dist)
@@ -78,7 +80,18 @@ class RelationIndependent(Relation):
 
     def get_attach_point(self, prev_parts):
         """
-        See Relation.get_attach_point
+        Get the mean attachment point of where the start of the next part
+        should be, given the previous part tokens. TODO
+
+        Parameters
+        ----------
+        prev_parts : TODO
+            TODO
+
+        Returns
+        -------
+        pos: TODO
+            TODO
         """
         pos = self.gpos
 
@@ -88,21 +101,35 @@ class RelationIndependent(Relation):
 class RelationAttach(Relation):
     """
     TODO
+
+    Parameters
+    ----------
+    rtype : TODO
+        TODO
+    pos_dist : TODO
+        TODO
+    attach_spot : TODO
+        TODO
     """
     def __init__(self, rtype, pos_dist, attach_spot):
-        """
-        RelationAttach constructor
-        :param rtype: TODO
-        :param pos_dist: TODO
-        :param attach_spot: TODO
-        """
         assert rtype in ['start', 'end', 'mid']
         super(RelationAttach, self).__init__(rtype, pos_dist)
         self.attach_spot = attach_spot
 
     def get_attach_point(self, prev_parts):
         """
-        See Relation.get_attach_point
+        Get the mean attachment point of where the start of the next part
+        should be, given the previous part tokens. TODO
+
+        Parameters
+        ----------
+        prev_parts : TODO
+            TODO
+
+        Returns
+        -------
+        pos: TODO
+            TODO
         """
         # TODO - This should be generalized so that it is applicable to all
         # TODO - types of relations. Right now motor/motor_spline is specific
@@ -122,22 +149,28 @@ class RelationAttach(Relation):
 class RelationAttachAlong(RelationAttach):
     """
     TODO
+
+    Parameters
+    ----------
+    rtype : TODO
+        TODO
+    pos_dist : TODO
+        TODO
+    sigma_attach : TODO
+        TODO
+    attach_spot : TODO
+        TODO
+    subid_spot : TODO
+        TODO
+    ncpt : TODO
+        TODO
+    eval_spot_type : TODO
+        TODO
     """
     def __init__(
             self, rtype, pos_dist, sigma_attach, attach_spot,
             subid_spot, ncpt, eval_spot_type
     ):
-        """
-        RelationAttachAlong constructor
-
-        :param rtype: TODO
-        :param pos_dist: TODO
-        :param sigma_attach: TODO
-        :param attach_spot: TODO
-        :param subid_spot: TODO
-        :param ncpt: TODO
-        :param eval_spot_type: TODO
-        """
         assert rtype == 'mid'
         super(RelationAttachAlong, self).__init__(rtype, pos_dist, attach_spot)
         self.subid_spot = subid_spot
@@ -146,7 +179,18 @@ class RelationAttachAlong(RelationAttach):
 
     def get_attach_point(self, prev_parts):
         """
-        See Relation.get_attach_point
+        Get the mean attachment point of where the start of the next part
+        should be, given the previous part tokens. TODO
+
+        Parameters
+        ----------
+        prev_parts : TODO
+            TODO
+
+        Returns
+        -------
+        pos : TODO
+            TODO
         """
         eval_spot_token = self.sample_eval_spot_token()
         part = prev_parts[self.attach_spot]
@@ -161,7 +205,10 @@ class RelationAttachAlong(RelationAttach):
         """
         TODO
 
-        :return: TODO
+        Returns
+        -------
+        eval_spot_token : TODO
+            TODO
         """
         ll = torch.tensor(-float('inf'))
         while ll == -float('inf'):
@@ -174,8 +221,15 @@ class RelationAttachAlong(RelationAttach):
         """
         TODO
 
-        :param eval_spot_token: TODO
-        :return: TODO
+        Parameters
+        ----------
+        eval_spot_token : TODO
+            TODO
+
+        Returns
+        -------
+        ll : TODO
+            TODO
         """
         assert type(eval_spot_token) in [int, float] or \
                (type(eval_spot_token) == torch.Tensor and

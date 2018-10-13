@@ -1,9 +1,6 @@
 pybpl package
 =============
 
-Submodules
-----------
-
 pybpl.ctd module
 ----------------
 
@@ -40,14 +37,6 @@ pybpl.relation module
 ---------------------
 
 .. automodule:: pybpl.relation
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-Module contents
----------------
-
-.. automodule:: pybpl
     :members:
     :undoc-members:
     :show-inheritance:

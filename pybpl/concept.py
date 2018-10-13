@@ -25,16 +25,17 @@ class Concept(object):
     """
     An abstract base class for concepts. A concept is a probabilistic program
     that samples Concept tokens. Concepts are made up of parts and relations.
+
+    Parameters
+    ----------
+    P : list of Part
+        TODO
+    R : list of Relation
+        TODO
     """
     __metaclass__ = ABCMeta
 
     def __init__(self, P, R):
-        """
-        Concept constructor
-
-        :param P: [list of Part] TODO
-        :param R: [list of Relation] TODO
-        """
         assert isinstance(P, list)
         assert isinstance(R, list)
         assert len(P) == len(R)
@@ -54,11 +55,6 @@ class Concept(object):
 
     @abstractmethod
     def sample_token(self):
-        """
-        Sample a concept token
-
-        :return: [ConceptToken] concept token
-        """
         part_tokens = []
         for part, rel in zip(self.P, self.R):
             part_location = rel.sample_position(part_tokens)
@@ -75,15 +71,17 @@ class Character(Concept):
     A Character is a probabilistic program that samples Character tokens.
     Parts are strokes, and relations are either [independent, attach,
     attach-along].
+
+    Parameters
+    ----------
+    S : list of Stroke
+        TODO
+    R : list of Relation
+        TODO
+    lib : Library
+        TODO
     """
     def __init__(self, S, R, lib):
-        """
-        Character constructor
-
-        :param S: [list of Stroke] TODO
-        :param R: [list of Relation] TODO
-        :param lib: [Library] TODO
-        """
         for s in S:
             assert isinstance(s, Stroke)
         assert isinstance(lib, Library)
@@ -95,7 +93,10 @@ class Character(Concept):
         """
         Sample a character token
 
-        :return: [CharacterToken] character token
+        Returns
+        -------
+        token : CharacterToken
+            character token
         """
         concept_token = super(Character, self).sample_token()
         stroke_tokens = concept_token.part_tokens
@@ -124,7 +125,12 @@ class Character(Concept):
 
     def sample_affine(self):
         """
-        :return: affine transformation
+        TODO
+
+        Returns
+        -------
+        affine : TODO
+            affine transformation
         """
         warnings.warn('skipping affine warp for now.')
         affine = None
@@ -133,7 +139,12 @@ class Character(Concept):
 
     def sample_image_noise(self):
         """
-        :return: scalar; image noise quantity
+        TODO
+
+        Returns
+        -------
+        epsilon : float
+            scalar; image noise quantity
         """
         #epsilon = CPD.sample_image_noise(self.parameters)
         warnings.warn('using fixed image noise for now.')
@@ -144,7 +155,12 @@ class Character(Concept):
 
     def sample_image_blur(self):
         """
-        :return: scalar; image blur quantity
+        TODO
+
+        Returns
+        -------
+        blur_sigma: float
+            scalar; image blur quantity
         """
         #blur_sigma = CPD.sample_image_blur(self.parameters)
         warnings.warn('using fixed image blur for now.')
@@ -155,8 +171,17 @@ class Character(Concept):
 
 def sample_image(pimg):
     """
-    :param pimg: [tensor] image probability map
-    :return: [tensor] binary image
+    TODO
+
+    Parameters
+    ----------
+    pimg : tensor
+        image probability map
+
+    Returns
+    -------
+    image : tensor
+        binary image
     """
     binom = dist.binomial.Binomial(1, pimg)
     image = binom.sample()
@@ -165,9 +190,19 @@ def sample_image(pimg):
 
 def score_image(image, pimg):
     """
-    :param image: [tensor] binary image
-    :param pimg: [tensor] image probability map
-    :return: [tensor] scalar; log-likelihood of the image
+    TODO
+
+    Parameters
+    ----------
+    image : tensor
+        binary image
+    pimg : tensor
+        image probability map
+
+    Returns
+    -------
+    ll : tensor
+        scalar; log-likelihood of the image
     """
     binom = dist.binomial.Binomial(1, pimg)
     ll = binom.log_prob(image)
