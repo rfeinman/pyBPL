@@ -9,11 +9,13 @@ from .part import StrokeToken
 class ConceptToken(object):
     __metaclass__ = ABCMeta
 
-    def __init__(self):
+    def __init__(self, part_tokens):
         """
         ConceptToken constructor
+
+        :param part_tokens: TODO
         """
-        pass
+        self.part_tokens = part_tokens
 
 class CharacterToken(ConceptToken):
     def __init__(self, stroke_tokens, affine, epsilon, blur_sigma, image):

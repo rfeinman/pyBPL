@@ -18,7 +18,7 @@ from .parameters import defaultps
 from .library import Library
 from .part import Part, Stroke
 from .relation import Relation
-from .token import CharacterToken
+from .token import ConceptToken, CharacterToken
 
 
 class Concept(object):
@@ -55,17 +55,18 @@ class Concept(object):
     @abstractmethod
     def sample_token(self):
         """
-        TODO
+        Sample a concept token
 
-        :return: [List of PartToken] part tokens
+        :return: [ConceptToken] concept token
         """
         part_tokens = []
         for part, rel in zip(self.P, self.R):
             part_location = rel.sample_position(part_tokens)
             part_token = part.sample_token(part_location)
             part_tokens.append(part_token)
+        token = ConceptToken(part_tokens)
 
-        return part_tokens
+        return token
 
 
 
@@ -96,7 +97,8 @@ class Character(Concept):
 
         :return: [CharacterToken] character token
         """
-        stroke_tokens = super(Character, self).sample_token()
+        concept_token = super(Character, self).sample_token()
+        stroke_tokens = concept_token.part_tokens
 
         # sample affine warp
         affine = self.sample_affine() # (4,) tensor
