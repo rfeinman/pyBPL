@@ -4,7 +4,7 @@ Token classes for representing & storing concept tokens.
 from __future__ import division, print_function
 from abc import ABCMeta, abstractmethod
 
-from .part import StrokeToken
+from .part import PartToken, StrokeToken
 
 class ConceptToken(object):
     """
@@ -18,6 +18,8 @@ class ConceptToken(object):
     __metaclass__ = ABCMeta
 
     def __init__(self, part_tokens):
+        for pt in part_tokens:
+            assert isinstance(pt, PartToken)
         self.part_tokens = part_tokens
 
 class CharacterToken(ConceptToken):
@@ -39,7 +41,7 @@ class CharacterToken(ConceptToken):
         TODO
     """
     def __init__(self, stroke_tokens, affine, epsilon, blur_sigma, image):
-        super(CharacterToken, self).__init__()
+        super(CharacterToken, self).__init__(stroke_tokens)
         for token in stroke_tokens:
             assert isinstance(token, StrokeToken)
         self.stroke_tokens = stroke_tokens
