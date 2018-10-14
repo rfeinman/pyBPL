@@ -40,3 +40,11 @@ pybpl.relation module
     :members:
     :undoc-members:
     :show-inheritance:
+
+pybpl.inference module
+----------------------
+
+.. automodule:: pybpl.inference
+    :members:
+    :undoc-members:
+    :show-inheritance:

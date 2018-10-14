@@ -1,8 +1,6 @@
 """
 Module for inference algorithms.
-
-This module contains...
-
-Functions:
-    optimize_type: ...
 """
+from .optimize_type import optimize_type
+
+__all__ = ["optimize_type"]
