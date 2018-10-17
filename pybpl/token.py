@@ -73,10 +73,8 @@ class CharacterToken(ConceptToken):
         TODO
     blur_sigma : TODO
         TODO
-    image : TODO
-        TODO
     """
-    def __init__(self, stroke_tokens, affine, epsilon, blur_sigma, image):
+    def __init__(self, stroke_tokens, affine, epsilon, blur_sigma):
         super(CharacterToken, self).__init__(stroke_tokens)
         for token in stroke_tokens:
             assert isinstance(token, StrokeToken)
@@ -84,4 +82,3 @@ class CharacterToken(ConceptToken):
         self.affine = affine
         self.epsilon = epsilon
         self.blur_sigma = blur_sigma
-        self.image = image

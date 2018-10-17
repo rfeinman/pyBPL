@@ -25,9 +25,9 @@ def generate_token(lib, ns=None):
     """
     S, R = generate_type(lib, ns)
     char = Character(S, R, lib)
-    exemplar = char.sample_token()
+    token, image = char.sample_token()
 
-    return exemplar
+    return image
 
 def generate_program(lib, ns=None):
     """

@@ -279,28 +279,36 @@ def render_image(cell_traj, epsilon, blur_sigma, parameters):
 # apply render
 # ----
 
-def apply_render(stroke_tokens, affine, epsilon, blur_sigma, parameters):
+def apply_render(token, parameters):
     """
+    TODO
 
-    :param stroke_tokens: [list of StrokeToken]
-    :param affine: [(4,) tensor]
-    :param epsilon: [float]
-    :param blur_sigma: [float]
-    :param parameters: []
-    :return:
+    Parameters
+    ----------
+    token : CharacterToken
+        TODO
+    parameters : defaultps
+        TODO
+
+    Returns
+    -------
+    pimg : TODO
+        TODO
+    ink_off_page : TODO
+        TODO
     """
     from .token import StrokeToken
-    for rs in stroke_tokens:
+    for rs in token.stroke_tokens:
         assert isinstance(rs, StrokeToken)
 
     # get motor for each part
-    motor = [st.motor for st in stroke_tokens]
+    motor = [st.motor for st in token.stroke_tokens]
     # apply affine transformation if needed
-    if affine is not None:
-        motor = apply_warp(motor, affine)
+    if token.affine is not None:
+        motor = apply_warp(motor, token.affine)
     motor_flat = util_character.flatten_substrokes(motor)
     pimg, ink_off_page = render_image(
-        motor_flat, epsilon, blur_sigma, parameters
+        motor_flat, token.epsilon, token.blur_sigma, parameters
     )
 
     return pimg, ink_off_page

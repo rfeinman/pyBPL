@@ -109,20 +109,18 @@ class Character(Concept):
         epsilon = self.sample_image_noise()
         blur_sigma = self.sample_image_blur()
 
+        # create the character token
+        token = CharacterToken(stroke_tokens, affine, epsilon, blur_sigma)
+
         # get probability map of an image
         pimg, _ = rendering.apply_render(
-            stroke_tokens, affine, epsilon, blur_sigma, self.parameters
+            token, self.parameters
         )
 
         # sample the image
         image = sample_image(pimg)
 
-        # create the character token
-        token = CharacterToken(
-            stroke_tokens, affine, epsilon, blur_sigma, image
-        )
-
-        return token
+        return token, image
 
     def sample_affine(self):
         """

@@ -31,8 +31,8 @@ def main():
     # sample a few character tokens and visualize them
     plt.figure()
     for i in range(4):
-        exemplar = char.sample_token()
-        im = exemplar.image.numpy()
+        _, exemplar = char.sample_token()
+        im = exemplar.numpy()
         plt.subplot(2,2,i+1)
         plt.imshow(im, cmap='Greys', vmin=0, vmax=1)
         plt.title('Token #%i' % (i+1))

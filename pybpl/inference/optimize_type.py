@@ -119,8 +119,8 @@ def optimize_type(
     for idx in range(nb_iter):
         if idx % 100 == 0 and show_examples:
             print('iteration #%i' % idx)
-            ex1 = char.sample_token().image.numpy()
-            ex2 = char.sample_token().image.numpy()
+            _, ex1 = char.sample_token().numpy()
+            _, ex2 = char.sample_token().numpy()
             plt.subplot(nb_i, 2, 2 * i + 1)
             plt.imshow(ex1, cmap='Greys', vmin=0, vmax=1)
             plt.title('ex1')
