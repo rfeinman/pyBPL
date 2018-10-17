@@ -4,7 +4,42 @@ Token classes for representing & storing concept tokens.
 from __future__ import division, print_function
 from abc import ABCMeta, abstractmethod
 
-from .part import PartToken, StrokeToken
+from . import rendering
+
+
+
+class PartToken(object):
+    """
+    PartToken class TODO
+    """
+    __metaclass__ = ABCMeta
+
+    def __init__(self):
+        pass
+
+
+class StrokeToken(PartToken):
+    """
+    StrokeToken class TODO
+
+    Parameters
+    ----------
+    shapes : TODO
+        TODO
+    invscales : TODO
+        TODO
+    position : TODO
+        TODO
+    """
+    def __init__(self, shapes, invscales, position):
+        super(StrokeToken, self).__init__()
+        self.shapes = shapes
+        self.invscales = invscales
+        self.position = position
+        self.motor, self.motor_spline = rendering.vanilla_to_motor(
+            self.shapes, self.invscales, self.position
+        )
+
 
 class ConceptToken(object):
     """
@@ -21,6 +56,7 @@ class ConceptToken(object):
         for pt in part_tokens:
             assert isinstance(pt, PartToken)
         self.part_tokens = part_tokens
+
 
 class CharacterToken(ConceptToken):
     """

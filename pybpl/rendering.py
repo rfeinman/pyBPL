@@ -289,7 +289,7 @@ def apply_render(stroke_tokens, affine, epsilon, blur_sigma, parameters):
     :param parameters: []
     :return:
     """
-    from .part import StrokeToken
+    from .token import StrokeToken
     for rs in stroke_tokens:
         assert isinstance(rs, StrokeToken)
 
