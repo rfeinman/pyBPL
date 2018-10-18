@@ -62,7 +62,7 @@ class Stroke(Part):
         """
         The number of sub-strokes
         """
-        return len(self.ids)
+        return torch.tensor(len(self.ids))
 
     def sample_shapes_token(self):
         """

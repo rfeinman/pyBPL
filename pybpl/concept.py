@@ -52,7 +52,7 @@ class Concept(object):
         """
         The number of parts
         """
-        return len(self.P)
+        return torch.tensor(len(self.P))
 
     @abstractmethod
     def sample_token(self):
