@@ -4,18 +4,16 @@ import matplotlib.pyplot as plt
 import torch
 
 
-def get_variables(S, R, eps):
+def get_variables(ctype, eps):
     """
     Indicate variables for optimization (requires_grad_)
 
     Parameters
     ----------
-    S : list of Stroke
-        TODO
-    R : list of Relation
-        TODO
+    ctype : ConceptType
+        concept type
     eps : float
-        TODO
+        tol. for constrained optimization
 
     Returns
     -------
@@ -31,32 +29,30 @@ def get_variables(S, R, eps):
     parameters = []
     lbs = []
     ubs = []
-    for s, r in zip(S, R):
+    for p, r in zip(ctype.P, ctype.R):
         # shape
-        s.shapes_type.requires_grad_()
-        parameters.append(s.shapes_type)
+        p.shapes_type.requires_grad_()
+        parameters.append(p.shapes_type)
         lbs.append([])
         ubs.append([])
 
         # scale
-        s.invscales_type.requires_grad_()
-        parameters.append(s.invscales_type)
-        lbs.append(torch.full(s.invscales_type.shape, eps))
+        p.invscales_type.requires_grad_()
+        parameters.append(p.invscales_type)
+        lbs.append(torch.full(p.invscales_type.shape, eps))
         ubs.append([])
 
     return parameters, lbs, ubs
 
 
-def obj_fun(S, R, ctd):
+def obj_fun(ctype, ctd):
     """
     Evaluate the log-likelihood of a character type under the prior
 
     Parameters
     ----------
-    S : list of Stroke
-        TODO
-    R : list of Relation
-        TODO
+    ctype : ConceptType
+        concept type
 
     Returns
     -------
@@ -67,11 +63,11 @@ def obj_fun(S, R, ctd):
     ll = 0.
 
     # loop through the strokes
-    for s, r in zip(S, R):
+    for p, r in zip(ctype.P, ctype.R):
         # log-prob of the control points for each sub-stroke in this stroke
-        ll_cpts = ctd.score_shapes_type(s.ids, s.shapes_type)
+        ll_cpts = ctd.score_shapes_type(p.ids, p.shapes_type)
         # log-prob of the scales for each sub-stroke in this stroke
-        ll_scales = ctd.score_invscales_type(s.ids, s.invscales_type)
+        ll_scales = ctd.score_invscales_type(p.ids, p.invscales_type)
         # sum over sub-strokes and add to accumulator
         ll = ll + torch.sum(ll_cpts) + torch.sum(ll_scales)
 
@@ -111,7 +107,7 @@ def optimize_type(
     if show_examples:
         plt.figure(figsize=(4, 15))
     # get optimizable variables & their bounds
-    parameters, lbs, ubs = get_variables(char.P, char.R, eps)
+    parameters, lbs, ubs = get_variables(char.ctype, eps)
     # optimize the character type
     score_list = []
     i = 0
@@ -119,17 +115,17 @@ def optimize_type(
     for idx in range(nb_iter):
         if idx % 100 == 0 and show_examples:
             print('iteration #%i' % idx)
-            _, ex1 = char.sample_token().numpy()
-            _, ex2 = char.sample_token().numpy()
+            _, ex1 = char.sample_token()
+            _, ex2 = char.sample_token()
             plt.subplot(nb_i, 2, 2 * i + 1)
-            plt.imshow(ex1, cmap='Greys', vmin=0, vmax=1)
+            plt.imshow(ex1.numpy(), cmap='Greys', vmin=0, vmax=1)
             plt.title('ex1')
             plt.ylabel('iter #%i' % idx)
             plt.subplot(nb_i, 2, 2 * i + 2)
-            plt.imshow(ex2, cmap='Greys', vmin=0, vmax=1)
+            plt.imshow(ex2.numpy(), cmap='Greys', vmin=0, vmax=1)
             plt.title('ex2')
             i += 1
-        score = obj_fun(char.P, char.R, ctd)
+        score = obj_fun(char.ctype, ctd)
         score.backward(retain_graph=True)
         score_list.append(score)
         with torch.no_grad():

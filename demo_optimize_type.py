@@ -43,9 +43,9 @@ def main():
     lib = Library(lib_dir='./lib_data')
     # generate a character type
     ctd = CharacterTypeDist(lib)
-    S, R = ctd.sample_type(k=args.ns)
-    char = Character(S, R, lib)
-    print('num strokes: %i' % len(S))
+    ctype = ctd.sample_type(k=args.ns)
+    char = Character(ctype, lib)
+    print('num strokes: %i' % ctype.k)
     score_list = optimize_type(
         char, ctd, args.lr, args.nb_iter, args.eps, args.proj_grad_ascent
     )
