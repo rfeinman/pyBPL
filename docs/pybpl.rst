@@ -17,14 +17,6 @@ pybpl.concept module
     :undoc-members:
     :show-inheritance:
 
-pybpl.token module
-------------------
-
-.. automodule:: pybpl.token
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 pybpl.part module
 -----------------
 

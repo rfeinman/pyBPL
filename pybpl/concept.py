@@ -17,9 +17,26 @@ import torch.distributions as dist
 from . import rendering
 from .parameters import defaultps
 from .library import Library
-from .part import Stroke
+from .part import PartToken, StrokeToken, Stroke
 from .ctd import ConceptType
-from .token import ConceptToken, CharacterToken
+
+
+
+class ConceptToken(object):
+    """
+    Abstract base class for concept tokens
+
+    Parameters
+    ----------
+    part_tokens : list of PartToken
+        TODO
+    """
+    __metaclass__ = ABCMeta
+
+    def __init__(self, part_tokens):
+        for pt in part_tokens:
+            assert isinstance(pt, PartToken)
+        self.part_tokens = part_tokens
 
 
 class Concept(object):
@@ -56,6 +73,31 @@ class Concept(object):
 
         return token
 
+
+class CharacterToken(ConceptToken):
+    """
+    Character token stores both the type- and token-level parameters of a
+    character sample
+
+    Parameters
+    ----------
+    stroke_tokens : TODO
+        TODO
+    affine : TODO
+        TODO
+    epsilon : TODO
+        TODO
+    blur_sigma : TODO
+        TODO
+    """
+    def __init__(self, stroke_tokens, affine, epsilon, blur_sigma):
+        super(CharacterToken, self).__init__(stroke_tokens)
+        for token in stroke_tokens:
+            assert isinstance(token, StrokeToken)
+        self.stroke_tokens = stroke_tokens
+        self.affine = affine
+        self.epsilon = epsilon
+        self.blur_sigma = blur_sigma
 
 
 class Character(Concept):

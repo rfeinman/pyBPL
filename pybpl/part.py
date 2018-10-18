@@ -7,8 +7,18 @@ from abc import ABCMeta, abstractmethod
 import torch
 import torch.distributions as dist
 
-from .token import StrokeToken
+from . import rendering
 
+
+
+class PartToken(object):
+    """
+    PartToken class TODO
+    """
+    __metaclass__ = ABCMeta
+
+    def __init__(self):
+        pass
 
 
 class Part(object):
@@ -24,6 +34,28 @@ class Part(object):
     def sample_token(self, position_token):
         pass
 
+
+class StrokeToken(PartToken):
+    """
+    StrokeToken class TODO
+
+    Parameters
+    ----------
+    shapes : TODO
+        TODO
+    invscales : TODO
+        TODO
+    position : TODO
+        TODO
+    """
+    def __init__(self, shapes, invscales, position):
+        super(StrokeToken, self).__init__()
+        self.shapes = shapes
+        self.invscales = invscales
+        self.position = position
+        self.motor, self.motor_spline = rendering.vanilla_to_motor(
+            self.shapes, self.invscales, self.position
+        )
 
 
 class Stroke(Part):

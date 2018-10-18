@@ -7,10 +7,11 @@ from abc import ABCMeta, abstractmethod
 import torch
 import torch.distributions as dist
 
-from .token import PartToken
+from .part import PartToken
 from .splines import bspline_eval, bspline_gen_s
 
 types_allowed = ['unihist', 'start', 'end', 'mid']
+
 
 
 class Relation(object):

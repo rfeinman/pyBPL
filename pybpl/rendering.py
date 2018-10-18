@@ -297,7 +297,7 @@ def apply_render(token, parameters):
     ink_off_page : TODO
         TODO
     """
-    from .token import StrokeToken
+    from .part import StrokeToken
     for rs in token.stroke_tokens:
         assert isinstance(rs, StrokeToken)
 
