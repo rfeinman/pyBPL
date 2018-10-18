@@ -9,12 +9,42 @@ import torch
 import torch.distributions as dist
 
 from .library import Library
-from .relation import RelationIndependent, RelationAttach, RelationAttachAlong
-from .part import Stroke
+from .relation import (Relation, RelationIndependent, RelationAttach,
+                       RelationAttachAlong)
+from .part import Part, Stroke
 from .splines import bspline_gen_s
 
 # list of acceptable dtypes for 'k' parameter
 int_types = [torch.uint8, torch.int8, torch.int16, torch.int32, torch.int64]
+
+
+
+class ConceptType(object):
+    """
+    TODO
+
+    Parameters
+    ----------
+    k : tensor
+        scalar; part count
+    P : list of Part
+        part list
+    R : list of Relation
+        relation list
+    """
+    __metaclass__ = ABCMeta
+
+    def __init__(self, k, P, R):
+        assert isinstance(P, list)
+        assert isinstance(R, list)
+        assert len(P) == len(R) == k
+        assert k > 0
+        for p, r in zip(P, R):
+            assert isinstance(p, Part)
+            assert isinstance(r, Relation)
+        self.k = k
+        self.P = P
+        self.R = R
 
 
 class ConceptTypeDist(object):
@@ -88,21 +118,20 @@ class ConceptTypeDist(object):
             # append part and relation types to their respective lists
             P.append(part)
             R.append(relation)
+        # create the concept type (a stencil for a concept)
+        ctype = ConceptType(k, P, R)
 
-        # return the concept type (a stencil for a concept)
-        return P, R
+        return ctype
 
-    def score_type(self, P, R):
+    def score_type(self, ctype):
         """
         Compute the log-probability of a concept type under the prior
         P(type) = P(k)*\prod_{i=1}^k [P(S_i)P(R_i|S_{0:i-1})]
 
         Parameters
         ----------
-        P : list of Part
-            TODO
-        R : list of Relation
-            TODO
+        P : ConceptType
+            concept type to score
 
         Returns
         -------
@@ -112,15 +141,13 @@ class ConceptTypeDist(object):
         # score the number of parts
         warnings.warn('relation scoring not yet implemented... scoring only '
                       'k and parts for now.')
-        k = torch.tensor(len(P))
         ll = 0.
-        ll = ll + self.score_k(k)
-        for i in range(k):
-            ll = ll + self.score_part_type(k, P[i])
-            # ll = ll + self.score_relation_type(P[:i], R[i])
+        ll = ll + self.score_k(ctype.k)
+        for i in range(ctype.k):
+            ll = ll + self.score_part_type(ctype.k, ctype.P[i])
+            # ll = ll + self.score_relation_type(ctype.P[:i], ctype.R[i])
 
         return ll
-
 
 
 class CharacterTypeDist(ConceptTypeDist):

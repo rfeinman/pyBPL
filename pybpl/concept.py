@@ -17,8 +17,8 @@ import torch.distributions as dist
 from . import rendering
 from .parameters import defaultps
 from .library import Library
-from .part import Part, Stroke
-from .relation import Relation
+from .part import Stroke
+from .ctd import ConceptType
 from .token import ConceptToken, CharacterToken
 
 
@@ -29,35 +29,26 @@ class Concept(object):
 
     Parameters
     ----------
-    P : list of Part
-        TODO
-    R : list of Relation
-        TODO
+    ctype : ConceptType
+        concept type
     """
     __metaclass__ = ABCMeta
 
-    def __init__(self, P, R):
-        assert isinstance(P, list)
-        assert isinstance(R, list)
-        assert len(P) == len(R)
-        assert len(P) > 0
-        for p, r in zip(P, R):
-            assert isinstance(p, Part)
-            assert isinstance(r, Relation)
-        self.P = P
-        self.R = R
+    def __init__(self, ctype):
+        assert isinstance(ctype, ConceptType)
+        self.ctype = ctype
 
     @property
     def k(self):
         """
         The number of parts
         """
-        return torch.tensor(len(self.P))
+        return self.ctype.k
 
     @abstractmethod
     def sample_token(self):
         part_tokens = []
-        for part, rel in zip(self.P, self.R):
+        for part, rel in zip(self.ctype.P, self.ctype.R):
             part_location = rel.sample_position(part_tokens)
             part_token = part.sample_token(part_location)
             part_tokens.append(part_token)
@@ -75,18 +66,16 @@ class Character(Concept):
 
     Parameters
     ----------
-    S : list of Stroke
-        TODO
-    R : list of Relation
-        TODO
+    ctype : ConceptType
+        concept type
     lib : Library
-        TODO
+        library instance
     """
-    def __init__(self, S, R, lib):
-        for s in S:
-            assert isinstance(s, Stroke)
+    def __init__(self, ctype, lib):
+        super(Character, self).__init__(ctype)
+        for p in ctype.P:
+            assert isinstance(p, Stroke)
         assert isinstance(lib, Library)
-        super(Character, self).__init__(P=S, R=R)
         self.lib = lib
         self.parameters = defaultps()
 
