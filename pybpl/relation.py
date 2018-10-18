@@ -20,17 +20,17 @@ class Relation(object):
 
     Parameters
     ----------
-    rtype : TODO
+    category : TODO
         TODO
     pos_dist : TODO
         TODO
     """
     __metaclass__ = ABCMeta
 
-    def __init__(self, rtype, pos_dist):
+    def __init__(self, category, pos_dist):
         # make sure type is valid
-        assert rtype in types_allowed
-        self.type = rtype
+        assert category in types_allowed
+        self.category = category
         self.pos_dist = pos_dist
 
     def sample_position(self, prev_parts):
@@ -66,17 +66,17 @@ class RelationIndependent(Relation):
 
     Parameters
     ----------
-    rtype : TODO
+    category : TODO
         TODO
     pos_dist : TODO
         TODO
     gpos : TODO
         TODO
     """
-    def __init__(self, rtype, pos_dist, gpos):
-        assert rtype == 'unihist'
+    def __init__(self, category, pos_dist, gpos):
+        assert category == 'unihist'
         assert gpos.shape == torch.Size([2])
-        super(RelationIndependent, self).__init__(rtype, pos_dist)
+        super(RelationIndependent, self).__init__(category, pos_dist)
         self.gpos = gpos
 
     def get_attach_point(self, prev_parts):
@@ -105,16 +105,16 @@ class RelationAttach(Relation):
 
     Parameters
     ----------
-    rtype : TODO
+    category : TODO
         TODO
     pos_dist : TODO
         TODO
     attach_spot : TODO
         TODO
     """
-    def __init__(self, rtype, pos_dist, attach_spot):
-        assert rtype in ['start', 'end', 'mid']
-        super(RelationAttach, self).__init__(rtype, pos_dist)
+    def __init__(self, category, pos_dist, attach_spot):
+        assert category in ['start', 'end', 'mid']
+        super(RelationAttach, self).__init__(category, pos_dist)
         self.attach_spot = attach_spot
 
     def get_attach_point(self, prev_parts):
@@ -136,11 +136,11 @@ class RelationAttach(Relation):
         # TODO - types of relations. Right now motor/motor_spline is specific
         # TODO - to characters.
         part = prev_parts[self.attach_spot]
-        if self.type == 'start':
+        if self.category == 'start':
             subtraj = part.motor[0]
             pos = subtraj[0]
         else:
-            assert self.type == 'end'
+            assert self.category == 'end'
             subtraj = part.motor[-1]
             pos = subtraj[-1]
 
@@ -153,7 +153,7 @@ class RelationAttachAlong(RelationAttach):
 
     Parameters
     ----------
-    rtype : TODO
+    category : TODO
         TODO
     pos_dist : TODO
         TODO
@@ -169,11 +169,11 @@ class RelationAttachAlong(RelationAttach):
         TODO
     """
     def __init__(
-            self, rtype, pos_dist, sigma_attach, attach_spot,
+            self, category, pos_dist, sigma_attach, attach_spot,
             subid_spot, ncpt, eval_spot_type
     ):
-        assert rtype == 'mid'
-        super(RelationAttachAlong, self).__init__(rtype, pos_dist, attach_spot)
+        assert category == 'mid'
+        super(RelationAttachAlong, self).__init__(category, pos_dist, attach_spot)
         self.subid_spot = subid_spot
         self.ncpt = ncpt
         self.eval_spot_dist = dist.normal.Normal(eval_spot_type, sigma_attach)

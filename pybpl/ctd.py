@@ -585,25 +585,25 @@ class CharacterTypeDist(ConceptTypeDist):
         pos_dist = self.rel_pos_dist
         sigma_attach = self.rel_sigma_attach
         if nprev == 0:
-            rtype = 'unihist'
+            category = 'unihist'
         else:
             indx = self.rel_mixdist.sample()
-            rtype = self.__relation_types[indx]
+            category = self.__relation_types[indx]
 
-        if rtype == 'unihist':
+        if category == 'unihist':
             data_id = torch.tensor([stroke_num])
             gpos = self.Spatial.sample(data_id)
             # convert (1,2) tensor to (2,) tensor
             gpos = torch.squeeze(gpos)
             # create relation
-            r = RelationIndependent(rtype, pos_dist, gpos)
-        elif rtype in ['start', 'end']:
+            r = RelationIndependent(category, pos_dist, gpos)
+        elif category in ['start', 'end']:
             # sample random attach spot uniformly
             probs = torch.ones(nprev, requires_grad=True)
             attach_spot = dist.Categorical(probs=probs).sample()
             # create relation
-            r = RelationAttach(rtype, pos_dist, attach_spot)
-        elif rtype == 'mid':
+            r = RelationAttach(category, pos_dist, attach_spot)
+        elif category == 'mid':
             # sample random attach spot uniformly
             probs = torch.ones(nprev, requires_grad=True)
             attach_spot = dist.Categorical(probs=probs).sample()
@@ -616,7 +616,7 @@ class CharacterTypeDist(ConceptTypeDist):
             eval_spot_type = dist.Uniform(lb, ub).sample()
             # create relation
             r = RelationAttachAlong(
-                rtype, pos_dist, sigma_attach, attach_spot,
+                category, pos_dist, sigma_attach, attach_spot,
                 subid_spot, ncpt, eval_spot_type
             )
         else:
@@ -649,7 +649,7 @@ class CharacterTypeDist(ConceptTypeDist):
         if nprev == 0:
             ll = 0.
         else:
-            ix = self.__relation_types.index(r.type)
+            ix = self.__relation_types.index(r.category)
             ll = self.rel_mixdist.log_prob(ix)
         # TODO: finish
         raise NotImplementedError
