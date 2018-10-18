@@ -7,7 +7,7 @@ manifestation of the BPL framework, and it is included here as the preliminary
 use case (see Lake et al. 2015 "Human-level concept learning through
 probabilistic program induction").
 
-Not yet fully operational.
+*NOTE:* This is a work in progress. Not yet fully operational.
 
 
 
@@ -70,6 +70,14 @@ strokes you would like the generated character type to have.
 
 ## Status Notes
 
+#### General
+
+All functions required to sample character types, tokens and images are now
+complete. The `inference` package is incomplete - this is where all functions
+for infering motor programs will be contained. At the moment, I only have a
+simple function for optimizing the continuous parameters of a character type
+in order to maximize the log-likelihood under the prior.
+
 #### Library
 
 The library data is stored as a series of `.mat` files in the subfolder
@@ -78,8 +86,4 @@ run inside the original BPL repository to obtain this folder of files.
 Library loading is fully functional... see loadlib.py for an example of how to
 load the library.
 
-#### General
 
-Most things required to sample character types and tokens (images) are now
-complete. I have not tested backprop through the level of character tokens,
-although it works well through types for now.
