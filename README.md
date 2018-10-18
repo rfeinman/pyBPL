@@ -5,7 +5,7 @@ using PyTorch backend. The BPL framework has been generalized to work with
 various types of concepts. Character learning with Omniglot is one
 manifestation of the BPL framework, and it is included here as the preliminary
 use case (see Lake et al. 2015 "Human-level concept learning through
-probabilistic program induction").
+probabilistic program induction" and the [original BPL repository](https://github.com/brendenlake/BPL)).
 
 *NOTE:* This is a work in progress. Not yet fully operational.
 
