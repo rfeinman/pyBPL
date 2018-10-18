@@ -124,7 +124,6 @@ class Library(object):
         assert prev_state.shape == torch.Size([])
         logR = self.logT[prev_state]
         R = torch.exp(logR)
-        R = R.view(-1)
         p = R / torch.sum(R)
 
         return p
