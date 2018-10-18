@@ -169,15 +169,15 @@ class CharacterTypeDist(ConceptTypeDist):
         # distribution of 'k' (number of strokes)
         assert len(lib.pkappa.shape) == 1
         self.kappa = dist.Categorical(probs=lib.pkappa)
-        # distribution of unihist relation positions
+        # distribution of RelationIndependent positions
         self.Spatial = lib.Spatial
-        # distribution of relation types
+        # distribution of relation categories
         self.rel_mixdist = dist.Categorical(probs=lib.rel['mixprob'])
         # token-level variance relations parameters
         pos_mu = torch.zeros(2)
         pos_Cov = torch.tensor(
-            [[lib.rel['sigma_x'], 0.],
-             [0., lib.rel['sigma_y']]]
+            [[lib.rel['sigma_y'], 0.],
+             [0., lib.rel['sigma_x']]]
         )
         self.rel_pos_dist = dist.MultivariateNormal(pos_mu, pos_Cov)
         self.rel_sigma_attach = lib.tokenvar['sigma_attach']
@@ -403,8 +403,10 @@ class CharacterTypeDist(ConceptTypeDist):
         rows_bspline = mvn.sample()
         # transpose axes (nsub, ncpt*2) -> (ncpt*2, nsub)
         bspline_stack = torch.transpose(rows_bspline, 0, 1)
-        # reshape (ncpt*2, nsub) -> (ncpt, 2, nsub)
-        bspline_stack = bspline_stack.view(ncpt, 2, nsub)
+        # reshape (ncpt*2, nsub) -> (2, ncpt, nsub)
+        bspline_stack = bspline_stack.view(2, ncpt, nsub)
+        # transpose axes (2, ncpt, nsub) -> (ncpt, 2, nsub)
+        bspline_stack = torch.transpose(bspline_stack, 0, 1)
 
         return bspline_stack
 
@@ -434,8 +436,12 @@ class CharacterTypeDist(ConceptTypeDist):
         # record vector length
         nsub = len(subid)
         assert bspline_stack.shape[-1] == nsub
-        # convert (ncpt, 2, nsub) tensor into (nsub, ncpt*2) tensor
-        rows_bspline = torch.transpose(bspline_stack.view(ncpt*2, nsub), 0, 1)
+        # transpose axes (ncpt, 2, nsub) -> (2, ncpt, nsub)
+        rows_bspline = torch.transpose(bspline_stack, 0, 1)
+        # reshape (2, ncpt, nsub) = (ncpt*2, nsub)
+        rows_bspline = rows_bspline.view(2*ncpt, nsub)
+        # transpose axes (ncpt*2, nsub) -> (nsub, ncpt*2)
+        rows_bspline = torch.transpose(rows_bspline, 0, 1)
         # create multivariate normal distribution
         mvn = dist.MultivariateNormal(
             self.shapes_mu[subid], self.shapes_Cov[subid]
