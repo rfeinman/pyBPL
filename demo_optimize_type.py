@@ -46,6 +46,7 @@ def main():
     ctype = ctd.sample_type(k=args.ns)
     char = Character(ctype, lib)
     print('num strokes: %i' % ctype.k)
+    print('num sub-strokes: ', [p.nsub.item() for p in ctype.P])
     score_list = optimize_type(
         char, ctd, args.lr, args.nb_iter, args.eps, args.proj_grad_ascent
     )

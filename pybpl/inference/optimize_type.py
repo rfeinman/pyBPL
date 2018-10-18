@@ -4,7 +4,8 @@ import matplotlib.pyplot as plt
 import torch
 
 
-def get_variables(ctype, eps):
+
+def get_optimizable_variables(ctype, eps):
     """
     Indicate variables for optimization (requires_grad_)
 
@@ -45,35 +46,6 @@ def get_variables(ctype, eps):
     return parameters, lbs, ubs
 
 
-def obj_fun(ctype, ctd):
-    """
-    Evaluate the log-likelihood of a character type under the prior
-
-    Parameters
-    ----------
-    ctype : ConceptType
-        concept type
-
-    Returns
-    -------
-    ll : tensor
-        Scalar; log-likelihood under the prior.
-    """
-    # start the accumulator
-    ll = 0.
-
-    # loop through the strokes
-    for p, r in zip(ctype.P, ctype.R):
-        # log-prob of the control points for each sub-stroke in this stroke
-        ll_cpts = ctd.score_shapes_type(p.ids, p.shapes_type)
-        # log-prob of the scales for each sub-stroke in this stroke
-        ll_scales = ctd.score_invscales_type(p.ids, p.invscales_type)
-        # sum over sub-strokes and add to accumulator
-        ll = ll + torch.sum(ll_cpts) + torch.sum(ll_scales)
-
-    return ll
-
-
 def optimize_type(
         char, ctd, lr, nb_iter, eps, projected_grad_ascent, show_examples=True
 ):
@@ -105,16 +77,16 @@ def optimize_type(
 
     """
     # get optimizable variables & their bounds
-    parameters, lbs, ubs = get_variables(char.ctype, eps)
+    parameters, lbs, ubs = get_optimizable_variables(char.ctype, eps)
     # optimize the character type
     score_list = []
     if show_examples:
         n_plots = nb_iter//100
-        fig, axes = plt.subplots(nrows=n_plots, ncols=2, figsize=(1,n_plots/2))
+        fig, axes = plt.subplots(nrows=n_plots, ncols=4, figsize=(4, n_plots))
     for idx in range(nb_iter):
         if idx % 100 == 0 and show_examples:
             print('iteration #%i' % idx)
-            for i in range(2):
+            for i in range(4):
                 _, ex = char.sample_token()
                 axes[idx//100, i].imshow(ex.numpy(), cmap='Greys', vmin=0, vmax=1)
                 axes[idx//100, i].tick_params(
@@ -125,7 +97,7 @@ def optimize_type(
                     labelleft=False
                 )
             axes[idx//100, 0].set_ylabel('%i' % idx)
-        score = obj_fun(char.ctype, ctd)
+        score = ctd.score_type(char.ctype)
         score.backward(retain_graph=True)
         score_list.append(score)
         with torch.no_grad():
