@@ -401,8 +401,10 @@ class CharacterTypeDist(ConceptTypeDist):
         )
         # sample points from the multivariate normal distribution
         rows_bspline = mvn.sample()
-        # convert (nsub, ncpt*2) tensor into (ncpt, 2, nsub) tensor
-        bspline_stack = torch.transpose(rows_bspline, 0, 1).view(ncpt, 2, nsub)
+        # transpose axes (nsub, ncpt*2) -> (ncpt*2, nsub)
+        bspline_stack = torch.transpose(rows_bspline, 0, 1)
+        # reshape (ncpt*2, nsub) -> (ncpt, 2, nsub)
+        bspline_stack = bspline_stack.view(ncpt, 2, nsub)
 
         return bspline_stack
 
