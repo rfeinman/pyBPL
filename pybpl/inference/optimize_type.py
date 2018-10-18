@@ -104,27 +104,27 @@ def optimize_type(
         TODO
 
     """
-    if show_examples:
-        plt.figure(figsize=(4, 15))
     # get optimizable variables & their bounds
     parameters, lbs, ubs = get_variables(char.ctype, eps)
     # optimize the character type
     score_list = []
-    i = 0
-    nb_i = int(np.floor(nb_iter / 100))
+    if show_examples:
+        n_plots = nb_iter//100
+        fig, axes = plt.subplots(nrows=n_plots, ncols=2, figsize=(1,n_plots/2))
     for idx in range(nb_iter):
         if idx % 100 == 0 and show_examples:
             print('iteration #%i' % idx)
-            _, ex1 = char.sample_token()
-            _, ex2 = char.sample_token()
-            plt.subplot(nb_i, 2, 2 * i + 1)
-            plt.imshow(ex1.numpy(), cmap='Greys', vmin=0, vmax=1)
-            plt.title('ex1')
-            plt.ylabel('iter #%i' % idx)
-            plt.subplot(nb_i, 2, 2 * i + 2)
-            plt.imshow(ex2.numpy(), cmap='Greys', vmin=0, vmax=1)
-            plt.title('ex2')
-            i += 1
+            for i in range(2):
+                _, ex = char.sample_token()
+                axes[idx//100, i].imshow(ex.numpy(), cmap='Greys', vmin=0, vmax=1)
+                axes[idx//100, i].tick_params(
+                    which='both',
+                    bottom=False,
+                    left=False,
+                    labelbottom=False,
+                    labelleft=False
+                )
+            axes[idx//100, 0].set_ylabel('%i' % idx)
         score = obj_fun(char.ctype, ctd)
         score.backward(retain_graph=True)
         score_list.append(score)
