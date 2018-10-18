@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 from pybpl.library import Library
 from pybpl.concept import Character
-from pybpl.generate_character import generate_type
+from pybpl.ctd import CharacterTypeDist
 
 
 def display_type(S, R):
@@ -18,13 +18,10 @@ def display_type(S, R):
 
 def main():
     print('generating character...')
-    warnings.warn(
-        "'generate_character' not yet fully implemented. Generating character "
-        "type (template) for now."
-    )
     lib = Library(lib_dir='./lib_data')
     # generate the character type
-    S, R = generate_type(lib)
+    type_dist = CharacterTypeDist(lib)
+    S, R = type_dist.sample_type()
     display_type(S, R)
     # initialize the motor program
     char = Character(S, R, lib)
