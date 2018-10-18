@@ -2,9 +2,9 @@
 Concept type distributions for sampling concept types from pre-specified
 type distributions.
 """
-
 from __future__ import division, print_function
 from abc import ABCMeta, abstractmethod
+import warnings
 import torch
 import torch.distributions as dist
 
@@ -94,7 +94,7 @@ class ConceptTypeDist(object):
 
     def score_type(self, P, R):
         """
-        Score a concept type under the prior
+        Compute the log-probability of a concept type under the prior
         P(type) = P(k)*\prod_{i=1}^k [P(S_i)P(R_i|S_{0:i-1})]
 
         Parameters
@@ -107,14 +107,17 @@ class ConceptTypeDist(object):
         Returns
         -------
         ll : tensor
-            scalar; the log-probability of the concept type
+            scalar; log-probability of the concept type
         """
         # score the number of parts
-        k = len(P)
-        ll = self.score_k(k)
+        warnings.warn('relation scoring not yet implemented... scoring only '
+                      'k and parts for now.')
+        k = torch.tensor(len(P))
+        ll = 0.
+        ll = ll + self.score_k(k)
         for i in range(k):
             ll = ll + self.score_part_type(k, P[i])
-            ll = ll + self.score_relation_type(P[:i], R[i])
+            # ll = ll + self.score_relation_type(P[:i], R[i])
 
         return ll
 
@@ -123,12 +126,12 @@ class ConceptTypeDist(object):
 class CharacterTypeDist(ConceptTypeDist):
     """
     A CharacterTypeDist is a probabilistic program that samples Character types
-    from the prior. It can also score the log-likelihood of Character types.
+    from the prior. It can also compute the log-likelihood of Character types.
 
     Parameters
     ----------
     lib : Library
-        TODO
+        library instance
     """
     __relation_types = ['unihist', 'start', 'end', 'mid']
 
@@ -148,7 +151,10 @@ class CharacterTypeDist(ConceptTypeDist):
         self.rel_mixdist = dist.Categorical(probs=lib.rel['mixprob'])
         # token-level variance relations parameters
         pos_mu = torch.zeros(2)
-        pos_Cov = torch.tensor([[lib.rel['sigma_x'],0.], [0.,lib.rel['sigma_y']]])
+        pos_Cov = torch.tensor(
+            [[lib.rel['sigma_x'], 0.],
+             [0., lib.rel['sigma_y']]]
+        )
         self.rel_pos_dist = dist.MultivariateNormal(pos_mu, pos_Cov)
         self.rel_sigma_attach = lib.tokenvar['sigma_attach']
         # substroke distributions
@@ -177,12 +183,12 @@ class CharacterTypeDist(ConceptTypeDist):
 
 
     # ----
-    # Num strokes model methods
+    # Stroke count model methods
     # ----
 
     def sample_k(self):
         """
-        Sample a number of strokes from the prior
+        Sample a stroke count from the prior
 
         Returns
         -------
@@ -197,7 +203,7 @@ class CharacterTypeDist(ConceptTypeDist):
 
     def score_k(self, k):
         """
-        Score the log-probability of the number of strokes under the prior
+        Compute the log-probability of the stroke count under the prior
 
         Parameters
         ----------
@@ -254,81 +260,89 @@ class CharacterTypeDist(ConceptTypeDist):
 
     def score_nsub(self, k, nsub):
         """
-        TODO
+        Compute the log-probability of a sub-stroke count under the prior
 
         Parameters
         ----------
-        k : TODO
-            TODO
-        nsub : TODO
-            TODO
+        k : tensor
+            scalar; stroke count
+        nsub : tensor
+            scalar; sub-stroke count
 
         Returns
         -------
-        ll : TODO
-            TODO
+        ll : tensor
+            scalar; log-probability of the sub-stroke count
         """
-        raise NotImplementedError
+        # nsub should be a scalar
+        assert nsub.shape == torch.Size([])
+        # collect pvec for this k
+        pvec = self.pmat_nsub[k-1]
+        # make sure pvec is a vector
+        assert len(pvec.shape) == 1
+        # score using the categorical distribution
+        ll = dist.Categorical(probs=pvec).log_prob(nsub-1)
 
-    def sample_subid(self, nsub, nsamp=1):
+        return ll
+
+    def sample_subIDs(self, nsub):
         """
-        Sample the sequence of sub-strokes for this stroke
+        Sample a sequence of sub-stroke IDs from the prior
 
         Parameters
         ----------
         nsub : tensor
             scalar; sub-stroke count
-        nsamp : int
-            number of samples to draw
 
         Returns
         -------
-        samps : (nsamp, nsub) tensor
-            matrix of sequence samples. vector if nsamp=1
+        subid : (nsub,) tensor
+            sub-stroke ID sequence
         """
         # nsub should be a scalar
         assert nsub.shape == torch.Size([])
+        # set initial transition probabilities
+        pT = torch.exp(self.logStart)
+        # sub-stroke sequence is a list
+        subid = []
+        # step through and sample 'nsub' sub-strokes
+        for _ in range(nsub):
+            # sample the sub-stroke
+            ss = dist.Categorical(probs=pT).sample()
+            subid.append(ss)
+            # update transition probabilities; condition on previous sub-stroke
+            pT = self.pT(ss)
+        # convert list into tensor
+        subid = torch.tensor(subid)
 
-        samps = []
-        for _ in range(nsamp):
-            # set initial transition probabilities
-            pT = torch.exp(self.logStart)
-            # sub-stroke sequence is a list
-            seq = []
-            # step through and sample 'nsub' sub-strokes
-            for _ in range(nsub):
-                # sample the sub-stroke
-                ss = dist.Categorical(probs=pT).sample()
-                seq.append(ss)
-                # update transition probabilities; condition on previous sub-stroke
-                pT = self.pT(ss)
-            # convert list into tensor
-            seq = torch.tensor(seq)
-            samps.append(seq.view(1, -1))
-        # concatenate list of samples into tensor (matrix)
-        samps = torch.cat(samps)
-        # if nsamp=1 this should be a vector
-        samps = torch.squeeze(samps, dim=0)
+        return subid
 
-        return samps
-
-    def score_subid(self, nsub, subid):
+    def score_subIDs(self, subid):
         """
-        TODO
+        Compute the log-probability of a sub-stroke ID sequence under the prior
 
         Parameters
         ----------
-        nsub : TODO
-            TODO
-        subid : TODO
-            TODO
+        subid : (nsub,) tensor
+            sub-stroke ID sequence
 
         Returns
         -------
-        ll : TODO
-            TODO
+        ll : tensor
+            scalar; log-probability of the sub-stroke ID sequence
         """
-        raise NotImplementedError
+        # set initial transition probabilities
+        pT = torch.exp(self.logStart)
+        # log-prob accumulator
+        ll = 0.
+        # step through sub-stroke IDs and add to accumulator
+        for ss in subid:
+            # add to log-prob accumulator
+            ll = ll + dist.Categorical(probs=pT).log_prob(ss)
+            # update transition probabilities; condition on previous sub-stroke
+            pT = self.pT(ss)
+
+        return ll
 
 
     # ----
@@ -337,12 +351,12 @@ class CharacterTypeDist(ConceptTypeDist):
 
     def sample_shapes_type(self, subid):
         """
-        Sample the control points for each sub-stroke
+        Sample the control points for each sub-stroke ID in a given sequence
 
         Parameters
         ----------
         subid : (nsub,) tensor
-            vector of sub-stroke ids
+            sub-stroke ID sequence
 
         Returns
         -------
@@ -370,16 +384,15 @@ class CharacterTypeDist(ConceptTypeDist):
 
     def score_shapes_type(self, subid, bspline_stack):
         """
-        Score the log-likelihoods of the control points for each sub-stroke
+        Compute the log-probability of the control points for each sub-stroke
+        under the prior
 
         Parameters
         ----------
-        lib : Library
-            library class instance
+        subid : (nsub,) tensor
+            sub-stroke ID sequence
         bspline_stack : (ncpt, 2, nsub) tensor
             shapes of bsplines
-        subid : (nsub,) tensor
-            vector of sub-stroke ids
 
         Returns
         -------
@@ -402,7 +415,8 @@ class CharacterTypeDist(ConceptTypeDist):
             self.shapes_mu[subid], self.shapes_Cov[subid]
         )
         # score points using the multivariate normal distribution
-        ll = mvn.log_prob(rows_bspline)
+        ll_vec = mvn.log_prob(rows_bspline)
+        ll = torch.sum(ll_vec)
 
         return ll
 
@@ -417,15 +431,13 @@ class CharacterTypeDist(ConceptTypeDist):
 
         Parameters
         ----------
-        lib : Library
-            library class instance
         subid : (k,) tensor
-            vector of sub-stroke ids
+            sub-stroke ID sequence
 
         Returns
         -------
         invscales : (k,) tensor
-            vector of scale values
+            scale values for each sub-stroke
         """
         if self.isunif:
             raise NotImplementedError
@@ -440,16 +452,15 @@ class CharacterTypeDist(ConceptTypeDist):
 
     def score_invscales_type(self, subid, invscales):
         """
-        Score the log-likelihood of each sub-stroke's scale parameter
+        Compute the log-probability of each sub-stroke's scale parameter
+        under the prior
 
         Parameters
         ----------
-        lib : TODO
-            TODO
-        invscales : TODO
-            TODO
-        subid : TODO
-            TODO
+        subid : (k,) tensor
+            sub-stroke ID sequence
+        invscales : (k,) tensor
+            scale values for each sub-stroke
 
         Returns
         -------
@@ -465,7 +476,8 @@ class CharacterTypeDist(ConceptTypeDist):
         # create gamma distribution
         gamma = dist.Gamma(self.scales_con[subid], self.scales_rate[subid])
         # score points using the gamma distribution
-        ll = gamma.log_prob(invscales)
+        ll_vec = gamma.log_prob(invscales)
+        ll = torch.sum(ll_vec)
 
         return ll
 
@@ -480,24 +492,24 @@ class CharacterTypeDist(ConceptTypeDist):
         Parameters
         ----------
         k : tensor
-            TODO
+            scalar; stroke count
 
         Returns
         -------
         stroke : Stroke
-            TODO
+            stroke type
         """
         # sample the number of sub-strokes
         nsub = self.sample_nsub(k)
         # sample the sequence of sub-stroke IDs
-        subid = self.sample_subid(nsub)
+        subid = self.sample_subIDs(nsub)
         # sample control points for each sub-stroke in the sequence
-        cpts = self.sample_shapes_type(subid)
+        shapes_type = self.sample_shapes_type(subid)
         # sample scales for each sub-stroke in the sequence
-        scales = self.sample_invscales_type(subid)
+        scales_type = self.sample_invscales_type(subid)
         # initialize the stroke type
         stroke = Stroke(
-            subid, cpts, scales,
+            subid, shapes_type, scales_type,
             sigma_shape=self.sigma_shape,
             sigma_invscale=self.sigma_invscale
         )
@@ -506,22 +518,27 @@ class CharacterTypeDist(ConceptTypeDist):
 
     def score_part_type(self, k, p):
         """
-        Score the log-probability of the stroke type under the prior,
-        conditioned on a number of strokes
+        Compute the log-probability of the stroke type, conditioned on a
+        number of strokes, under the prior
 
         Parameters
         ----------
         k : tensor
-            scalar; stoke count
+            scalar; stroke count
         p: Stroke
             stroke type to score
 
         Returns
         -------
-        ll : TODO
+        ll : tensor
             scalar; log-probability of the stroke type
         """
-        raise NotImplementedError
+        ll = self.score_nsub(k, p.nsub)
+        ll = ll + self.score_subIDs(p.ids)
+        ll = ll + self.score_shapes_type(p.ids, p.shapes_type)
+        ll = ll + self.score_invscales_type(p.ids, p.invscales_type)
+
+        return ll
 
     def sample_relation_type(self, prev_parts):
         """
@@ -585,7 +602,8 @@ class CharacterTypeDist(ConceptTypeDist):
 
     def score_relation_type(self, prev_parts, r):
         """
-        Score the relation type of the current stroke under the prior
+        Compute the log-probability of the relation type of the current stroke
+        under the prior
 
         Parameters
         ----------
@@ -596,7 +614,18 @@ class CharacterTypeDist(ConceptTypeDist):
 
         Returns
         -------
-        ll : TODO
-            log-probability of the relation type
+        ll : tensor
+            scalar; log-probability of the relation type
         """
+        nprev = len(prev_parts)
+        stroke_num = nprev + 1
+        ncpt = self.ncpt
+        pos_dist = self.rel_pos_dist
+        sigma_attach = self.rel_sigma_attach
+        if nprev == 0:
+            ll = 0.
+        else:
+            ix = self.__relation_types.index(r.type)
+            ll = self.rel_mixdist.log_prob(ix)
+        # TODO: finish
         raise NotImplementedError
