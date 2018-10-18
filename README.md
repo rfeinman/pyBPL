@@ -80,10 +80,13 @@ in order to maximize the log-likelihood under the prior.
 
 #### Library
 
-The library data is stored as a series of `.mat` files in the subfolder
-`lib_data/`. I've included a Matlab script, `process_library.m`, which can be
-run inside the original BPL repository to obtain this folder of files.
-Library loading is fully functional... see loadlib.py for an example of how to
-load the library.
+The library contains all of the parameters of the character learning BPL
+model. These parameters have been learned from the Omniglot dataset. 
+The library data is stored as a 
+series of `.mat` files in the subfolder `lib_data/`. 
+I've included a Matlab script, `process_library.m`, which can be
+run inside the [original BPL repository](https://github.com/brendenlake/BPL) to 
+obtain this folder of files. For an example of how to load the library, see
+`demo_generate_character.py`.
 
 
