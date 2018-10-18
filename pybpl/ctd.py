@@ -21,7 +21,7 @@ int_types = [torch.uint8, torch.int8, torch.int16, torch.int32, torch.int64]
 
 class ConceptType(object):
     """
-    TODO
+    A basic class to hold the type-level parameters of a concept
 
     Parameters
     ----------
@@ -32,7 +32,6 @@ class ConceptType(object):
     R : list of Relation
         relation list
     """
-    __metaclass__ = ABCMeta
 
     def __init__(self, k, P, R):
         assert isinstance(P, list)
@@ -91,10 +90,8 @@ class ConceptTypeDist(object):
 
         Returns
         -------
-        P : list of Part
-            TODO
-        R : list of Relation
-            TODO
+        ctype : ConceptType
+            concept type sample
         """
         if k is None:
             # sample the number of parts 'k'
@@ -126,11 +123,11 @@ class ConceptTypeDist(object):
     def score_type(self, ctype):
         """
         Compute the log-probability of a concept type under the prior
-        P(type) = P(k)*\prod_{i=1}^k [P(S_i)P(R_i|S_{0:i-1})]
+        $P(type) = P(k)*\prod_{i=1}^k [P(S_i)P(R_i|S_{0:i-1})]$
 
         Parameters
         ----------
-        P : ConceptType
+        ctype : ConceptType
             concept type to score
 
         Returns
@@ -270,7 +267,7 @@ class CharacterTypeDist(ConceptTypeDist):
 
         Returns
         -------
-        nsub : (n,) tensor
+        nsub : (nsamp,) tensor
             vector of sub-stroke counts. scalar if nsamp=1
         """
         # probability of each sub-stroke count, conditioned on the number of strokes
