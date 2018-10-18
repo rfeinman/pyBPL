@@ -4,9 +4,6 @@ contains a sequence of parts and a sequence of relations to connect each
 part to previous parts. The Concept class is an abstract class, and must be
 inherited from by derivative classes. It defines the general overarching
 structure that child classes need to adhere to.
-
-One example of such child class is the Character class. This contains the
-implementation of the Omniglot BPL use case. Parts are Strokes and ... TODO
 """
 from __future__ import division, print_function
 from abc import ABCMeta, abstractmethod
