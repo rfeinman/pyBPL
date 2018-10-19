@@ -66,7 +66,7 @@ def affine_warp(stk, affine):
 
 def apply_warp(motor_unwarped, affine):
     raise NotImplementedError('affine warping not yet implemented.')
-    cell_traj = util_character.flatten_substrokes(motor_unwarped)
+    cell_traj = torch.cat(motor_unwarped) # flatten substrokes
     com = com_char(cell_traj)
     b = torch.zeros(4, dtype=torch.float)
     b[:2] = affine[:2]
@@ -306,7 +306,7 @@ def apply_render(token, parameters):
     # apply affine transformation if needed
     if token.affine is not None:
         motor = apply_warp(motor, token.affine)
-    motor_flat = util_character.flatten_substrokes(motor)
+    motor_flat = torch.cat(motor) # flatten substrokes
     pimg, ink_off_page = render_image(
         motor_flat, token.epsilon, token.blur_sigma, parameters
     )
