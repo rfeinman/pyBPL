@@ -9,7 +9,10 @@ from .. import rendering
 class TestRendering(unittest.TestCase):
 
     def setUp(self):
-        lib_dir = os.path.join(os.environ['PYBPL_DIR'], 'lib_data')
+        dir_path = os.path.dirname(os.path.abspath(__file__)) # tests subfolder
+        dir_path = os.path.dirname(dir_path) # pybpl subfolder
+        dir_path = os.path.dirname(dir_path) # main repository folder
+        lib_dir = os.path.join(dir_path, 'lib_data')
         self.lib = Library(lib_dir)
 
     def testVanillaToMotor(self):

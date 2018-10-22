@@ -7,6 +7,7 @@ import torch
 
 from ..util_general import ind2sub, fspecial, imfilter
 
+
 class TestGeneralUtil(unittest.TestCase):
 
     def testFspecial(self):
@@ -40,7 +41,8 @@ class TestGeneralUtil(unittest.TestCase):
         with self.assertRaises(AssertionError):
             imfilter(torch.tensor(im), kernel)
         # load the test image
-        im_path = os.path.join(os.environ['PYBPL_DIR'], 'tests/Curtis.jpg')
+        dir_path = os.path.dirname(os.path.abspath(__file__))
+        im_path = os.path.join(dir_path, 'Curtis.jpg')
         im = plt.imread(im_path)
         # convert to black-and-white, range 0-1
         im = im[:,:,0]

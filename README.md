@@ -26,12 +26,6 @@ enable imports from any folder:
 export PYTHONPATH="/path/to/pyPBL:$PYTHONPATH"
 ```
 
-NOTE: unit tests require an additional environment variable, `PYBPL_DIR` to
-be set:
-```
-export PYBPL_DIR="/path/to/pyBPL"
-```
-
 
 
 ## Documentation
@@ -90,3 +84,10 @@ obtain this folder of files. For an example of how to load the library, see
 `demo_generate_character.py`.
 
 
+## Unit Tests
+Unit tests are found in the `pybpl.tests` module. They can be run using
+`python -m`. For example, to run the test `test_general_util.py`, use the
+following command:
+```
+python -m pybpl.tests.test_general_util
+```
