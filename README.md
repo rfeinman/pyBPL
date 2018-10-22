@@ -20,7 +20,7 @@ the repository into a folder of your choice:
 git clone https://github.com/mtensor/pyBPL.git
 ```
 On UNIX machines, after cloning this repository, it is recommended that you
-add the path to the repository to your `PYTHONPATH` environment variable to
+add the repository path to your `PYTHONPATH` environment variable to
 enable imports from any folder:
 ```
 export PYTHONPATH="/path/to/pyPBL:$PYTHONPATH"
