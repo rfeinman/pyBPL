@@ -67,7 +67,7 @@ strokes you would like the generated character type to have.
 #### General
 
 All functions required to sample character types, tokens and images are now
-complete. The `inference` package is incomplete - this is where all functions
+complete. The `inference` package is incomplete; this is where all functions
 for infering motor programs will be contained. At the moment, I only have a
 simple function for optimizing the continuous parameters of a character type
 in order to maximize the log-likelihood under the prior.
