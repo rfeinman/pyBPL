@@ -20,7 +20,7 @@ class TestSpatialHist(unittest.TestCase):
 
         # Shape of distribution
         mu1 = torch.tensor([-22., 0.])
-        mu2 = torch.tensor([-0, 8.])
+        mu2 = torch.tensor([0., 8.])
         Sigma = torch.eye(2)
 
         # Sample the data
