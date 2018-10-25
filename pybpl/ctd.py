@@ -169,8 +169,8 @@ class CharacterTypeDist(ConceptTypeDist):
         # token-level variance relations parameters
         pos_mu = torch.zeros(2)
         pos_Cov = torch.tensor(
-            [[lib.rel['sigma_y'], 0.],
-             [0., lib.rel['sigma_x']]]
+            [[lib.rel['sigma_x'], 0.],
+             [0., lib.rel['sigma_y']]]
         )
         self.rel_pos_dist = dist.MultivariateNormal(pos_mu, pos_Cov)
         self.rel_sigma_attach = lib.tokenvar['sigma_attach']
