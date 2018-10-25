@@ -281,7 +281,7 @@ def render_image(cell_traj, epsilon, blur_sigma, parameters):
     pimg[pimg<0] = 0
 
     # probability of each pixel being on
-    pimg = (1-epsilon)*pimg + epsilon*(1-pimg)
+    pimg = (1-epsilon)*pimg + epsilon*pimg
 
     return pimg, ink_off_page
 
