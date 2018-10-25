@@ -81,8 +81,12 @@ def imfilter(A, h, mode='conv'):
     assert len(h.shape) == 2
     m, n = A.shape
     k, l = h.shape
+    pad_x = k // 2
+    pad_y = l // 2
 
-    A_filt = torch.nn.functional.conv2d(A.view(1,1,m,n), h.view(1,1,k,l))
+    A_filt = torch.nn.functional.conv2d(
+        A.view(1,1,m,n), h.view(1,1,k,l), padding=(pad_x, pad_y)
+    )
     A_filt = A_filt[0,0]
 
     return A_filt
