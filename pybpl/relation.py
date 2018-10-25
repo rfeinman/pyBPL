@@ -39,13 +39,13 @@ class Relation(object):
 
         Parameters
         ----------
-        prev_parts : TODO
-            TODO
+        prev_parts : list of PartToken
+            previous part tokens
 
         Returns
         -------
-        pos : TODO
-            TODO
+        pos : (2,) tensor
+            position; x-y coordinates
         """
         for pt in prev_parts:
             assert isinstance(pt, PartToken)
@@ -70,8 +70,8 @@ class RelationIndependent(Relation):
         TODO
     pos_dist : TODO
         TODO
-    gpos : TODO
-        TODO
+    gpos : (2,) tensor
+        position; x-y coordinates
     """
     def __init__(self, category, pos_dist, gpos):
         assert category == 'unihist'
@@ -91,8 +91,8 @@ class RelationIndependent(Relation):
 
         Returns
         -------
-        pos: TODO
-            TODO
+        pos: (2,) tensor
+            position; x-y coordinates
         """
         pos = self.gpos
 
@@ -109,13 +109,13 @@ class RelationAttach(Relation):
         TODO
     pos_dist : TODO
         TODO
-    attach_spot : TODO
+    attach_part : TODO
         TODO
     """
-    def __init__(self, category, pos_dist, attach_spot):
+    def __init__(self, category, pos_dist, attach_part):
         assert category in ['start', 'end', 'mid']
         super(RelationAttach, self).__init__(category, pos_dist)
-        self.attach_spot = attach_spot
+        self.attach_part = attach_part
 
     def get_attach_point(self, prev_parts):
         """
@@ -135,7 +135,7 @@ class RelationAttach(Relation):
         # TODO - This should be generalized so that it is applicable to all
         # TODO - types of relations. Right now motor/motor_spline is specific
         # TODO - to characters.
-        part = prev_parts[self.attach_spot]
+        part = prev_parts[self.attach_part]
         if self.category == 'start':
             subtraj = part.motor[0]
             pos = subtraj[0]
@@ -159,9 +159,9 @@ class RelationAttachAlong(RelationAttach):
         TODO
     sigma_attach : TODO
         TODO
-    attach_spot : TODO
+    attach_part : TODO
         TODO
-    subid_spot : TODO
+    attach_subid : TODO
         TODO
     ncpt : TODO
         TODO
@@ -169,12 +169,12 @@ class RelationAttachAlong(RelationAttach):
         TODO
     """
     def __init__(
-            self, category, pos_dist, sigma_attach, attach_spot,
-            subid_spot, ncpt, eval_spot_type
+            self, category, pos_dist, sigma_attach, attach_part,
+            attach_subid, ncpt, eval_spot_type
     ):
         assert category == 'mid'
-        super(RelationAttachAlong, self).__init__(category, pos_dist, attach_spot)
-        self.subid_spot = subid_spot
+        super(RelationAttachAlong, self).__init__(category, pos_dist, attach_part)
+        self.attach_subid = attach_subid
         self.ncpt = ncpt
         self.eval_spot_dist = dist.normal.Normal(eval_spot_type, sigma_attach)
 
@@ -194,8 +194,8 @@ class RelationAttachAlong(RelationAttach):
             TODO
         """
         eval_spot_token = self.sample_eval_spot_token()
-        part = prev_parts[self.attach_spot]
-        bspline = part.motor_spline[:,:,self.subid_spot]
+        part = prev_parts[self.attach_part]
+        bspline = part.motor_spline[:,:,self.attach_subid]
         pos, _ = bspline_eval(eval_spot_token, bspline)
         # convert (1,2) tensor -> (2,) tensor
         pos = torch.squeeze(pos, dim=0)
