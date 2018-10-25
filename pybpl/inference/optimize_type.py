@@ -30,7 +30,7 @@ def get_optimizable_variables(ctype, eps):
     parameters = []
     lbs = []
     ubs = []
-    for p, r in zip(ctype.P, ctype.R):
+    for p in ctype.P:
         # shape
         p.shapes_type.requires_grad_()
         parameters.append(p.shapes_type)

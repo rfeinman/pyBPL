@@ -29,21 +29,16 @@ class ConceptType(object):
         scalar; part count
     P : list of Part
         part list
-    R : list of Relation
-        relation list
     """
 
-    def __init__(self, k, P, R):
+    def __init__(self, k, P):
         assert isinstance(P, list)
-        assert isinstance(R, list)
-        assert len(P) == len(R) == k
         assert k > 0
-        for p, r in zip(P, R):
+        for p in P:
             assert isinstance(p, Part)
-            assert isinstance(r, Relation)
+            assert isinstance(p.relation_type, Relation)
         self.k = k
         self.P = P
-        self.R = R
 
 
 class ConceptTypeDist(object):
@@ -103,20 +98,18 @@ class ConceptTypeDist(object):
             assert k.shape == torch.Size([])
             assert k.dtype in int_types
 
-        # initialize part and relation lists
+        # initialize part list
         P = []
-        R = []
         # for each part, sample part parameters
         for _ in range(k):
             # sample the part type
             part = self.sample_part_type(k)
             # sample the relation type
-            relation = self.sample_relation_type(P)
-            # append part and relation types to their respective lists
+            part.relation_type = self.sample_relation_type(P)
+            # append part to the list
             P.append(part)
-            R.append(relation)
         # create the concept type (a stencil for a concept)
-        ctype = ConceptType(k, P, R)
+        ctype = ConceptType(k, P)
 
         return ctype
 
@@ -157,7 +150,7 @@ class CharacterTypeDist(ConceptTypeDist):
     lib : Library
         library instance
     """
-    __relation_types = ['unihist', 'start', 'end', 'mid']
+    __relation_categories = ['unihist', 'start', 'end', 'mid']
 
     def __init__(self, lib):
         super(CharacterTypeDist, self).__init__()
@@ -596,7 +589,7 @@ class CharacterTypeDist(ConceptTypeDist):
             category = 'unihist'
         else:
             indx = self.rel_mixdist.sample()
-            category = self.__relation_types[indx]
+            category = self.__relation_categories[indx]
 
         if category == 'unihist':
             data_id = torch.tensor([stroke_num])
@@ -606,26 +599,26 @@ class CharacterTypeDist(ConceptTypeDist):
             # create relation
             r = RelationIndependent(category, pos_dist, gpos)
         elif category in ['start', 'end']:
-            # sample random attach spot uniformly
+            # sample random stroke uniformly from previous strokes
             probs = torch.ones(nprev, requires_grad=True)
-            attach_spot = dist.Categorical(probs=probs).sample()
+            attach_stroke = dist.Categorical(probs=probs).sample()
             # create relation
-            r = RelationAttach(category, pos_dist, attach_spot)
+            r = RelationAttach(category, pos_dist, attach_stroke)
         elif category == 'mid':
-            # sample random attach spot uniformly
+            # sample random stroke uniformly from previous strokes
             probs = torch.ones(nprev, requires_grad=True)
-            attach_spot = dist.Categorical(probs=probs).sample()
-            # sample random subid spot uniformly
-            nsub = prev_parts[attach_spot].nsub
+            attach_stroke = dist.Categorical(probs=probs).sample()
+            # sample random sub-stroke uniformly from the selected stroke
+            nsub = prev_parts[attach_stroke].nsub
             probs = torch.ones(nsub, requires_grad=True)
-            subid_spot = dist.Categorical(probs=probs).sample()
-            # sample eval_spot_type
+            attach_subid = dist.Categorical(probs=probs).sample()
+            # sample type-level spline coordinate
             _, lb, ub = bspline_gen_s(ncpt, 1)
             eval_spot_type = dist.Uniform(lb, ub).sample()
             # create relation
             r = RelationAttachAlong(
-                category, pos_dist, sigma_attach, attach_spot,
-                subid_spot, ncpt, eval_spot_type
+                category, pos_dist, sigma_attach, attach_stroke,
+                attach_subid, ncpt, eval_spot_type
             )
         else:
             raise TypeError('invalid relation')
@@ -657,7 +650,7 @@ class CharacterTypeDist(ConceptTypeDist):
         if nprev == 0:
             ll = 0.
         else:
-            ix = self.__relation_types.index(r.category)
+            ix = self.__relation_categories.index(r.category)
             ll = self.rel_mixdist.log_prob(ix)
         # TODO: finish
         raise NotImplementedError

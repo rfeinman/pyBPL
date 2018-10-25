@@ -297,12 +297,8 @@ def apply_render(token, parameters):
     ink_off_page : TODO
         TODO
     """
-    from .part import StrokeToken
-    for rs in token.stroke_tokens:
-        assert isinstance(rs, StrokeToken)
-
     # get motor for each part
-    motor = [st.motor for st in token.stroke_tokens]
+    motor = [pt.motor for pt in token.part_tokens]
     # apply affine transformation if needed
     if token.affine is not None:
         motor = apply_warp(motor, token.affine)

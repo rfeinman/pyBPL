@@ -12,7 +12,7 @@ def display_type(ctype):
     for i in range(ctype.k):
         print('Stroke #%i:' % i)
         print('\tsub-stroke ids: ', list(ctype.P[i].ids.numpy()))
-        print('\trelation category: %s' % ctype.R[i].category)
+        print('\trelation category: %s' % ctype.P[i].relation_type.category)
     print('----END CHARACTER TYPE INFO----')
 
 def main():

@@ -62,9 +62,8 @@ class Concept(object):
     @abstractmethod
     def sample_token(self):
         part_tokens = []
-        for part, rel in zip(self.ctype.P, self.ctype.R):
-            part_location = rel.sample_position(part_tokens)
-            part_token = part.sample_token(part_location)
+        for part in self.ctype.P:
+            part_token = part.sample_token(part_tokens)
             part_tokens.append(part_token)
         token = ConceptToken(part_tokens)
 
@@ -78,7 +77,7 @@ class CharacterToken(ConceptToken):
 
     Parameters
     ----------
-    stroke_tokens : TODO
+    part_tokens : list of StrokeToken
         TODO
     affine : TODO
         TODO
@@ -87,11 +86,10 @@ class CharacterToken(ConceptToken):
     blur_sigma : TODO
         TODO
     """
-    def __init__(self, stroke_tokens, affine, epsilon, blur_sigma):
-        super(CharacterToken, self).__init__(stroke_tokens)
-        for token in stroke_tokens:
+    def __init__(self, part_tokens, affine, epsilon, blur_sigma):
+        super(CharacterToken, self).__init__(part_tokens)
+        for token in part_tokens:
             assert isinstance(token, StrokeToken)
-        self.stroke_tokens = stroke_tokens
         self.affine = affine
         self.epsilon = epsilon
         self.blur_sigma = blur_sigma
@@ -126,9 +124,11 @@ class Character(Concept):
         -------
         token : CharacterToken
             character token
+        image : (N,N) tensor
+            TODO
         """
+        # sample part and relation tokens
         concept_token = super(Character, self).sample_token()
-        stroke_tokens = concept_token.part_tokens
 
         # sample affine warp
         affine = self.sample_affine() # (4,) tensor
@@ -138,7 +138,9 @@ class Character(Concept):
         blur_sigma = self.sample_image_blur()
 
         # create the character token
-        token = CharacterToken(stroke_tokens, affine, epsilon, blur_sigma)
+        token = CharacterToken(
+            concept_token.part_tokens, affine, epsilon, blur_sigma
+        )
 
         # get probability map of an image
         pimg, _ = rendering.apply_render(

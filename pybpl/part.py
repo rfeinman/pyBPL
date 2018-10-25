@@ -13,7 +13,7 @@ from . import rendering
 
 class PartToken(object):
     """
-    PartToken class TODO
+    TODO
     """
     __metaclass__ = ABCMeta
 
@@ -23,21 +23,21 @@ class PartToken(object):
 
 class Part(object):
     """
-    Part class TODO
+    TODO
     """
     __metaclass__ = ABCMeta
 
-    def __init__(self):
-        pass
+    def __init__(self, relation_type=None):
+        self.relation_type = relation_type
 
     @abstractmethod
-    def sample_token(self, position_token):
+    def sample_token(self, prev_parts):
         pass
 
 
 class StrokeToken(PartToken):
     """
-    StrokeToken class TODO
+    TODO
 
     Parameters
     ----------
@@ -71,14 +71,16 @@ class Stroke(Part):
         TODO
     invscales_type : TODO
         TODO
-    lib : Library
-        TODO
+    sigma_shape : TODO
+    sigma_invscale : TODO
+    relation_type : TODO
     """
     def __init__(
-            self, ids, shapes_type, invscales_type, sigma_shape, sigma_invscale
+            self, ids, shapes_type, invscales_type, sigma_shape, sigma_invscale,
+            relation_type=None
     ):
         # parent init
-        super(Stroke, self).__init__()
+        super(Stroke, self).__init__(relation_type)
 
         # type-level parameters
         self.ids = ids
@@ -179,13 +181,13 @@ class Stroke(Part):
 
         return ll
 
-    def sample_token(self, position_token):
+    def sample_token(self, prev_parts):
         """
         TODO
 
         Parameters
         ----------
-        position_token : TODO
+        prev_parts : TODO
             TODO
 
         Returns
@@ -195,6 +197,7 @@ class Stroke(Part):
         """
         shapes_token = self.sample_shapes_token()
         invscales_token = self.sample_invscales_token()
+        position_token = self.relation_type.sample_position(prev_parts)
         token = StrokeToken(shapes_token, invscales_token, position_token)
 
         return token
