@@ -172,12 +172,25 @@ def add_header(dist):
 
 def render_image(cell_traj, epsilon, blur_sigma, parameters):
     """
+    TODO
 
-    :param cell_traj: [(nsub_total,neval,2) tensor]
-    :param epsilon: [float]
-    :param blur_sigma: [float]
-    :param parameters:
-    :return:
+    Parameters
+    ----------
+    cell_traj : (nsub_total,neval,2) tensor
+        TODO
+    epsilon : float
+        TODO
+    blur_sigma : float
+        TODO
+    parameters : defaultps
+        TODO
+
+    Returns
+    -------
+    pimg : (H, W) tensor
+        TODO
+    ink_off_page : bool
+        TODO
     """
     # convert to image space
     traj_img = space_motor_to_img(cell_traj) # same shape as cell_traj
@@ -188,7 +201,7 @@ def render_image(cell_traj, epsilon, blur_sigma, parameters):
     max_dist = parameters.ink_max_dist
 
     # draw the trajectories on the image
-    template = torch.zeros(imsize, dtype=torch.float)
+    pimg = torch.zeros(imsize, dtype=torch.float)
     nsub_total = traj_img.shape[0]
     ink_off_page = False
     for i in range(nsub_total):
@@ -237,10 +250,10 @@ def render_image(cell_traj, epsilon, blur_sigma, parameters):
         yceil[yceil == imsize[1]] = imsize[1] - 1
 
         # paint the image
-        template = seqadd(template, xfloor, yfloor, myink*x_f_ratio*y_f_ratio)
-        template = seqadd(template, xceil, yfloor, myink*x_c_ratio*y_f_ratio)
-        template = seqadd(template, xfloor, yceil, myink*x_f_ratio*y_c_ratio)
-        template = seqadd(template, xceil, yceil, myink*x_c_ratio*y_c_ratio)
+        pimg = seqadd(pimg, xfloor, yfloor, myink*x_f_ratio*y_f_ratio)
+        pimg = seqadd(pimg, xceil, yfloor, myink*x_c_ratio*y_f_ratio)
+        pimg = seqadd(pimg, xfloor, yceil, myink*x_f_ratio*y_c_ratio)
+        pimg = seqadd(pimg, xceil, yceil, myink*x_c_ratio*y_c_ratio)
 
     # filter the image to get the desired brush-stroke size
     a = parameters.ink_a
@@ -249,30 +262,28 @@ def render_image(cell_traj, epsilon, blur_sigma, parameters):
     H_broaden = b*torch.tensor(
         [[a/12, a/6, a/12],[a/6, 1-a, a/6],[a/12, a/6, a/12]]
     )
-    widen = template
     for i in range(ink_ncon):
-        widen = imfilter(widen, H_broaden, mode='conv')
+        pimg = imfilter(pimg, H_broaden, mode='conv')
 
     # threshold again
-    widen[widen>1] = 1
+    pimg[pimg>1] = 1
 
     # filter the image to get Gaussian
     # noise around the area with ink
-    pblur = widen
     if blur_sigma > 0:
         fsize = 11
         H_gaussian = fspecial(fsize, blur_sigma, ftype='gaussian')
-        pblur = imfilter(pblur, H_gaussian, mode='conv')
-        pblur = imfilter(pblur, H_gaussian, mode='conv')
+        pimg = imfilter(pimg, H_gaussian, mode='conv')
+        pimg = imfilter(pimg, H_gaussian, mode='conv')
 
     # final truncation
-    pblur[pblur>1] = 1
-    pblur[pblur<0] = 0
+    pimg[pimg>1] = 1
+    pimg[pimg<0] = 0
 
     # probability of each pixel being on
-    prob_on = (1-epsilon)*pblur + epsilon*(1-pblur)
+    pimg = (1-epsilon)*pimg + epsilon*(1-pimg)
 
-    return prob_on, ink_off_page
+    return pimg, ink_off_page
 
 
 # ----
