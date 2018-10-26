@@ -143,7 +143,7 @@ class ConceptTypeDist(object):
         return ll
 
 
-class CharacterType(object):
+class CharacterType(ConceptType):
     """
     A basic class to hold the type-level parameters of a character
 
