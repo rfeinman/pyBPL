@@ -15,7 +15,7 @@ from . import rendering
 from .parameters import defaultps
 from .library import Library
 from .part import PartToken, StrokeToken, Stroke
-from .ctd import ConceptType
+from .ctd import ConceptType, CharacterType
 
 
 
@@ -69,6 +69,10 @@ class Concept(object):
 
         return token
 
+    @abstractmethod
+    def score_token(self, token):
+        return
+
 
 class CharacterToken(ConceptToken):
     """
@@ -110,6 +114,7 @@ class Character(Concept):
     """
     def __init__(self, ctype, lib):
         super(Character, self).__init__(ctype)
+        assert isinstance(ctype, CharacterType)
         for p in ctype.P:
             assert isinstance(p, Stroke)
         assert isinstance(lib, Library)
@@ -151,6 +156,9 @@ class Character(Concept):
         image = sample_image(pimg)
 
         return token, image
+
+    def score_token(self, token):
+        return 0.
 
     def sample_affine(self):
         """

@@ -63,7 +63,7 @@ class ConceptTypeDist(object):
         pass
 
     @abstractmethod
-    def score_part_type(self, k, p):
+    def score_part_type(self, p, k):
         pass
 
     @abstractmethod
@@ -71,7 +71,7 @@ class ConceptTypeDist(object):
         pass
 
     @abstractmethod
-    def score_relation_type(self, prev_parts, r):
+    def score_relation_type(self, r, prev_parts):
         pass
 
     def sample_type(self, k=None):
@@ -128,16 +128,37 @@ class ConceptTypeDist(object):
         ll : tensor
             scalar; log-probability of the concept type
         """
+        assert isinstance(ctype, ConceptType)
         # score the number of parts
-        warnings.warn('relation scoring not yet implemented... scoring only '
-                      'k and parts for now.')
         ll = 0.
         ll = ll + self.score_k(ctype.k)
+        # step through and score each part
         for i in range(ctype.k):
-            ll = ll + self.score_part_type(ctype.k, ctype.P[i])
-            # ll = ll + self.score_relation_type(ctype.P[:i], ctype.R[i])
+            ll = ll + self.score_part_type(ctype.P[i], ctype.k)
+            # TODO: finish function to score relation type. Currently returns 0
+            ll = ll + self.score_relation_type(
+                ctype.P[i].relation_type, ctype.P[:i]
+            )
 
         return ll
+
+
+class CharacterType(object):
+    """
+    A basic class to hold the type-level parameters of a character
+
+    Parameters
+    ----------
+    k : tensor
+        scalar; part count
+    P : list of Stroke
+        part list
+    """
+
+    def __init__(self, k, P):
+        super(CharacterType, self).__init__(k, P)
+        for p in P:
+            assert isinstance(p, Stroke)
 
 
 class CharacterTypeDist(ConceptTypeDist):
@@ -541,17 +562,17 @@ class CharacterTypeDist(ConceptTypeDist):
 
         return stroke
 
-    def score_part_type(self, k, p):
+    def score_part_type(self, p, k):
         """
         Compute the log-probability of the stroke type, conditioned on a
         number of strokes, under the prior
 
         Parameters
         ----------
-        k : tensor
-            scalar; stroke count
         p: Stroke
             stroke type to score
+        k : tensor
+            scalar; stroke count
 
         Returns
         -------
@@ -625,23 +646,24 @@ class CharacterTypeDist(ConceptTypeDist):
 
         return r
 
-    def score_relation_type(self, prev_parts, r):
+    def score_relation_type(self, r, prev_parts):
         """
         Compute the log-probability of the relation type of the current stroke
         under the prior
 
         Parameters
         ----------
-        prev_parts : list of Stroke
-            previous stroke types
         r : Relation
             relation type
+        prev_parts : list of Stroke
+            previous stroke types
 
         Returns
         -------
         ll : tensor
             scalar; log-probability of the relation type
         """
+        return 0.  # TODO: finish
         nprev = len(prev_parts)
         stroke_num = nprev + 1
         ncpt = self.ncpt
@@ -652,5 +674,9 @@ class CharacterTypeDist(ConceptTypeDist):
         else:
             ix = self.__relation_categories.index(r.category)
             ll = self.rel_mixdist.log_prob(ix)
-        # TODO: finish
-        raise NotImplementedError
+
+    def sample_type(self, k=None):
+        concept_type = super(CharacterTypeDist, self).sample_type(k)
+        char_type = CharacterType(concept_type.k, concept_type.P)
+
+        return char_type
