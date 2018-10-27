@@ -98,7 +98,7 @@ class Concept(object):
         for i in range(self.k):
             ll = ll + self.P[i].score_token(token.P[i])
             ll = ll + self.R[i].score_token(token.R[i])
-            ll = ll + token.R[i].score_location(token.P[i].position)
+            ll = ll + token.R[i].score_location(token.P[i].position, token.P[:i])
 
         return ll
 
