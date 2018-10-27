@@ -235,10 +235,10 @@ class RelationAttachAlong(RelationAttach):
         super(RelationAttachAlong, self).__init__(category, attach_ix, lib)
         assert category == 'mid'
         self.attach_subix = attach_subix
-        self.ncpt = lib.ncpt
+        self.eval_spot = eval_spot
         # token-level eval_spot distribution parameters
-        sigma_attach = lib.tokenvar['sigma_attach']
-        self.eval_spot_dist = dist.normal.Normal(eval_spot, sigma_attach)
+        self.ncpt = lib.ncpt
+        self.sigma_attach = lib.tokenvar['sigma_attach']
 
     def sample_token(self):
         """
@@ -249,7 +249,8 @@ class RelationAttachAlong(RelationAttach):
         token : RelationToken
             TODO
         """
-        eval_spot_token = self.sample_eval_spot_token()
+        eval_spot_dist = dist.normal.Normal(self.eval_spot, self.sigma_attach)
+        eval_spot_token = sample_eval_spot_token(eval_spot_dist, self.ncpt)
         token = RelationToken(self, eval_spot_token=eval_spot_token)
 
         return token
@@ -269,51 +270,67 @@ class RelationAttachAlong(RelationAttach):
             TODO
         """
         assert hasattr(token, 'eval_spot_token')
-        ll = self.score_eval_spot_token(token.eval_spot_token)
+        eval_spot_dist = dist.normal.Normal(self.eval_spot, self.sigma_attach)
+        ll = score_eval_spot_token(
+            token.eval_spot_token, eval_spot_dist, self.ncpt
+        )
 
         return ll
 
-    def sample_eval_spot_token(self):
-        """
+
+def sample_eval_spot_token(eval_spot_dist, ncpt):
+    """
+    TODO
+
+    Parameters
+    ----------
+    eval_spot_dist : TODO
+        TODO
+    ncpt : TODO
         TODO
 
-        Returns
-        -------
-        eval_spot_token : tensor
-            token-level spline coordinate
-        """
+    Returns
+    -------
+    eval_spot_token : tensor
+        token-level spline coordinate
+    """
+    ll = torch.tensor(-float('inf'))
+    while ll == -float('inf'):
+        eval_spot_token = eval_spot_dist.sample()
+        ll = score_eval_spot_token(eval_spot_token, eval_spot_dist, ncpt)
+
+    return eval_spot_token
+
+
+def score_eval_spot_token(eval_spot_token, eval_spot_dist, ncpt):
+    """
+    TODO
+
+    Parameters
+    ----------
+    eval_spot_token : tensor
+        token-level spline coordinate
+    eval_spot_dist : TODO
+        TODO
+    ncpt : TODO
+        TODO
+
+    Returns
+    -------
+    ll : tensor
+        TODO
+    """
+    assert type(eval_spot_token) in [int, float] or \
+           (type(eval_spot_token) == torch.Tensor and
+            eval_spot_token.shape == torch.Size([]))
+    _, lb, ub = bspline_gen_s(ncpt, 1)
+    if eval_spot_token < lb or eval_spot_token > ub:
         ll = torch.tensor(-float('inf'))
-        while ll == -float('inf'):
-            eval_spot_token = self.eval_spot_dist.sample()
-            ll = self.score_eval_spot_token(eval_spot_token)
-
-        return eval_spot_token
-
-    def score_eval_spot_token(self, eval_spot_token):
-        """
-        TODO
-
-        Parameters
-        ----------
-        eval_spot_token : tensor
-            token-level spline coordinate
-
-        Returns
-        -------
-        ll : tensor
-            TODO
-        """
-        assert type(eval_spot_token) in [int, float] or \
-               (type(eval_spot_token) == torch.Tensor and
-                eval_spot_token.shape == torch.Size([]))
-        _, lb, ub = bspline_gen_s(self.ncpt, 1)
-        if eval_spot_token < lb or eval_spot_token > ub:
-            ll = torch.tensor(-float('inf'))
-            return ll
-        ll = self.eval_spot_dist.log_prob(eval_spot_token)
-
-        # correction for bounds
-        p_within = self.eval_spot_dist.cdf(ub) - self.eval_spot_dist.cdf(lb)
-        ll = ll - torch.log(p_within)
-
         return ll
+    ll = eval_spot_dist.log_prob(eval_spot_token)
+
+    # correction for bounds
+    p_within = eval_spot_dist.cdf(ub) - eval_spot_dist.cdf(lb)
+    ll = ll - torch.log(p_within)
+
+    return ll

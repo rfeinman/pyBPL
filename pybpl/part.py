@@ -99,10 +99,8 @@ class Stroke(Part):
         self.invscales = invscales
 
         # distributions
-        sigma_shape = lib.tokenvar['sigma_shape']
-        sigma_invscale = lib.tokenvar['sigma_invscale']
-        self.shapes_dist = dist.normal.Normal(shapes, sigma_shape)
-        self.scales_dist = dist.normal.Normal(invscales, sigma_invscale)
+        self.sigma_shape = lib.tokenvar['sigma_shape']
+        self.sigma_invscale = lib.tokenvar['sigma_invscale']
 
     def sample_shapes_token(self):
         """
@@ -110,10 +108,12 @@ class Stroke(Part):
 
         Returns
         -------
-        shapes_token : TODO
+        shapes_token : (ncpt, 2, nsub) tensor
             TODO
         """
-        shapes_token = self.shapes_dist.sample()
+        shapes_dist = dist.normal.Normal(self.shapes, self.sigma_shape)
+        # sample shapes token
+        shapes_token = shapes_dist.sample()
 
         return shapes_token
 
@@ -123,7 +123,7 @@ class Stroke(Part):
 
         Parameters
         ----------
-        shapes_token : TODO
+        shapes_token : (ncpt, 2, nsub) tensor
             TODO
 
         Returns
@@ -131,8 +131,9 @@ class Stroke(Part):
         ll : TODO
             TODO
         """
+        shapes_dist = dist.normal.Normal(self.shapes, self.sigma_shape)
         # compute scores for every element in shapes_token
-        ll = self.shapes_dist.log_prob(shapes_token)
+        ll = shapes_dist.log_prob(shapes_token)
         # sum scores
         ll = torch.sum(ll)
 
@@ -144,12 +145,13 @@ class Stroke(Part):
 
         Returns
         -------
-        invscales_token : TODO
+        invscales_token : (nsub,) tensor
             TODO
         """
+        scales_dist = dist.normal.Normal(self.invscales, self.sigma_invscale)
         ll = torch.tensor(-float('inf'))
         while ll == -float('inf'):
-            invscales_token = self.scales_dist.sample()
+            invscales_token = scales_dist.sample()
             ll = self.score_invscales_token(invscales_token)
 
         return invscales_token
@@ -160,16 +162,17 @@ class Stroke(Part):
 
         Parameters
         ----------
-        invscales_token : TODO
+        invscales_token : (nsub,) tensor
             TODO
 
         Returns
         -------
-        ll : TODO
+        ll : tensor
             TODO
         """
+        scales_dist = dist.normal.Normal(self.invscales, self.sigma_invscale)
         # compute scores for every element in invscales_token
-        ll = self.scales_dist.log_prob(invscales_token)
+        ll = scales_dist.log_prob(invscales_token)
 
         # don't allow invscales that are negative
         out_of_bounds = invscales_token <= 0
@@ -178,7 +181,7 @@ class Stroke(Part):
             return ll
 
         # correction for positive only invscales
-        p_below = self.scales_dist.cdf(0.)
+        p_below = scales_dist.cdf(0.)
         p_above = 1.- p_below
         ll = ll - torch.log(p_above)
 
@@ -191,14 +194,9 @@ class Stroke(Part):
         """
         TODO
 
-        Parameters
-        ----------
-        position : TODO
-            TODO
-
         Returns
         -------
-        token : TODO
+        token : StrokeToken
             TODO
         """
         shapes = self.sample_shapes_token()
@@ -213,11 +211,13 @@ class Stroke(Part):
 
         Parameters
         ----------
-        token
+        token : StrokeToken
+            TODO
 
         Returns
         -------
-
+        ll : tensor
+            TODO
         """
         ll = 0.
         ll = ll + self.score_shapes_token(token.shapes)
