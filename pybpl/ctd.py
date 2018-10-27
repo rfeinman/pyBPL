@@ -570,12 +570,12 @@ class CharacterTypeDist(ConceptTypeDist):
         elif category in ['start', 'end', 'mid']:
             # sample random stroke uniformly from previous strokes. this is the
             # stroke we will attach to
-            probs = torch.ones(nprev, requires_grad=True)
+            probs = torch.ones(nprev)
             attach_ix = dist.Categorical(probs=probs).sample()
             if category == 'mid':
                 # sample random sub-stroke uniformly from the selected stroke
                 nsub = prev_parts[attach_ix].nsub
-                probs = torch.ones(nsub, requires_grad=True)
+                probs = torch.ones(nsub)
                 attach_subix = dist.Categorical(probs=probs).sample()
                 # sample random type-level spline coordinate
                 _, lb, ub = bspline_gen_s(self.lib.ncpt, 1)
@@ -626,12 +626,12 @@ class CharacterTypeDist(ConceptTypeDist):
             ll = ll + self.Spatial.score(gpos, data_id)
         elif r.category in ['start', 'end', 'mid']:
             # score the stroke attachment index
-            probs = torch.ones(nprev, requires_grad=True)
+            probs = torch.ones(nprev)
             ll = ll + dist.Categorical(probs=probs).log_prob(r.attach_ix)
             if r.category == 'mid':
                 # score the sub-stroke attachment index
                 nsub = prev_parts[r.attach_ix].nsub
-                probs = torch.ones(nsub, requires_grad=True)
+                probs = torch.ones(nsub)
                 ll = ll + dist.Categorical(probs=probs).log_prob(r.attach_subix)
                 # score the type-level spline coordinate
                 _, lb, ub = bspline_gen_s(self.lib.ncpt, 1)

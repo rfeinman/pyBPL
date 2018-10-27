@@ -34,15 +34,15 @@ class TestRendering(unittest.TestCase):
 
              [[  7.58, -30.76, -34.80],
               [ 25.86, -61.31, -81.7337]]]
-        shapes_token = torch.tensor(shapes_token, requires_grad=True)
+        shapes_token = torch.tensor(shapes_token)
         assert shapes_token.shape == torch.Size([ncpt, 2, nsub])
         # invscales_token has shape (nsub,)
         invscales_token = [0.51,  0.18,  0.14]
-        invscales_token = torch.tensor(invscales_token, requires_grad=True)
+        invscales_token = torch.tensor(invscales_token)
         assert invscales_token.shape == torch.Size([nsub])
         # position has shape (2,)
         position = [ 74.25, -13.28]
-        position = torch.tensor(position, requires_grad=True)
+        position = torch.tensor(position)
         assert position.shape == torch.Size([2])
         # call vanilla_to_motor
         motor, motor_spline = rendering.vanilla_to_motor(
