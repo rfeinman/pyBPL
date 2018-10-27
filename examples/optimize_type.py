@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 
 from pybpl.library import Library
 from pybpl.ctd import CharacterTypeDist
-from pybpl.concept import Character
+from pybpl.concept import Character, Image
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -120,8 +120,9 @@ def optimize_type(
         if idx % 100 == 0 and show_examples:
             print('iteration #%i' % idx)
             for i in range(4):
-                _, ex = c.sample_token()
-                axes[idx//100, i].imshow(ex.numpy(), cmap='Greys')
+                token = c.sample_token()
+                img = Image(token).sample_image()
+                axes[idx//100, i].imshow(img, cmap='Greys')
                 axes[idx//100, i].tick_params(
                     which='both',
                     bottom=False,

@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 
 from pybpl.library import Library
 from pybpl.ctd import CharacterTypeDist
+from pybpl.concept import Image
 
 
 def display_type(c):
@@ -29,8 +30,9 @@ def main():
         print('log-likelihood: %0.2f \n' % ll.item())
         # sample a few character tokens and visualize them
         for j in range(3):
-            _, exemplar = c.sample_token()
-            axes[i,j].imshow(exemplar.numpy(), cmap='Greys')
+            token = c.sample_token()
+            img = Image(token).sample_image()
+            axes[i,j].imshow(img, cmap='Greys')
             axes[i,j].tick_params(
                 which='both',
                 bottom=False,

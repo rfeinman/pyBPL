@@ -162,8 +162,6 @@ class Character(Concept):
         -------
         token : CharacterToken
             character token
-        image : (N,N) tensor
-            TODO
         """
         # sample part and relation tokens
         concept_token = super(Character, self).sample_token()
@@ -180,15 +178,7 @@ class Character(Concept):
             concept_token.P, concept_token.R, affine, epsilon, blur_sigma
         )
 
-        # get probability map of an image
-        pimg, _ = rendering.apply_render(
-            token, self.parameters
-        )
-
-        # sample the image
-        image = sample_image(pimg)
-
-        return token, image
+        return token
 
     def sample_affine(self):
         """
@@ -236,42 +226,22 @@ class Character(Concept):
 
         return blur_sigma
 
-def sample_image(pimg):
-    """
-    TODO
 
-    Parameters
-    ----------
-    pimg : tensor
-        image probability map
+class Image(object):
+    def __init__(self, token):
+        parameters = defaultps()
+        self.pimg, self.ink_off_page = rendering.apply_render(
+            token, parameters
+        )
 
-    Returns
-    -------
-    image : tensor
-        binary image
-    """
-    binom = dist.binomial.Binomial(1, pimg)
-    image = binom.sample()
+    def sample_image(self):
+        binom = dist.binomial.Binomial(1, self.pimg)
+        image = binom.sample()
 
-    return image
+        return image
 
-def score_image(image, pimg):
-    """
-    TODO
+    def score_image(self, image):
+        binom = dist.binomial.Binomial(1, self.pimg)
+        ll = binom.log_prob(image)
 
-    Parameters
-    ----------
-    image : tensor
-        binary image
-    pimg : tensor
-        image probability map
-
-    Returns
-    -------
-    ll : tensor
-        scalar; log-likelihood of the image
-    """
-    binom = dist.binomial.Binomial(1, pimg)
-    ll = binom.log_prob(image)
-
-    return ll
+        return ll
