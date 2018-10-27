@@ -39,13 +39,13 @@ make html
 
 
 ## Demo
-Currently there are 2 working demos.
+Currently there are 2 working demos, both found in the `examples` subfolder.
 
 #### Generate character
 You can generate a character type and sample a few tokens of the type by
 running the following command from the root folder:
 ```
-python demo_generate_character.py
+python examples/demo_generate_character.py
 ```
 The script will sample a character type from the prior and then sample 4 tokens
 of the type, displaying the images.
@@ -55,7 +55,7 @@ You can generate a character type and then optimize its parameters to maximize
 the likelihood of the type under the prior by running the following
 command from the root folder:
 ```
-python demo_optimize_type.py
+python examples/demo_optimize_type.py
 ```
 Optionally, you may add the integer parameter `--ns=<int>` to specify how many
 strokes you would like the generated character type to have.
