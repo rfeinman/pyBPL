@@ -567,25 +567,24 @@ class CharacterTypeDist(ConceptTypeDist):
             # convert (1,2) tensor to (2,) tensor
             gpos = torch.squeeze(gpos)
             r = RelationIndependent(category, gpos, self.lib)
-        elif category in ['start', 'end']:
-            # sample random stroke uniformly from previous strokes
+        elif category in ['start', 'end', 'mid']:
+            # sample random stroke uniformly from previous strokes. this is the
+            # stroke we will attach to
             probs = torch.ones(nprev, requires_grad=True)
             attach_ix = dist.Categorical(probs=probs).sample()
-            r = RelationAttach(category, attach_ix, self.lib)
-        elif category == 'mid':
-            # sample random stroke uniformly from previous strokes
-            probs = torch.ones(nprev, requires_grad=True)
-            attach_ix = dist.Categorical(probs=probs).sample()
-            # sample random sub-stroke uniformly from the selected stroke
-            nsub = prev_parts[attach_ix].nsub
-            probs = torch.ones(nsub, requires_grad=True)
-            attach_subix = dist.Categorical(probs=probs).sample()
-            # sample type-level spline coordinate
-            _, lb, ub = bspline_gen_s(self.lib.ncpt, 1)
-            eval_spot = dist.Uniform(lb, ub).sample()
-            r = RelationAttachAlong(
-                category, attach_ix, attach_subix, eval_spot, self.lib
-            )
+            if category == 'mid':
+                # sample random sub-stroke uniformly from the selected stroke
+                nsub = prev_parts[attach_ix].nsub
+                probs = torch.ones(nsub, requires_grad=True)
+                attach_subix = dist.Categorical(probs=probs).sample()
+                # sample random type-level spline coordinate
+                _, lb, ub = bspline_gen_s(self.lib.ncpt, 1)
+                eval_spot = dist.Uniform(lb, ub).sample()
+                r = RelationAttachAlong(
+                    category, attach_ix, attach_subix, eval_spot, self.lib
+                )
+            else:
+                r = RelationAttach(category, attach_ix, self.lib)
         else:
             raise TypeError('invalid relation')
 
@@ -625,21 +624,18 @@ class CharacterTypeDist(ConceptTypeDist):
             gpos = r.gpos.view(1,2)
             # score the type-level location
             ll = ll + self.Spatial.score(gpos, data_id)
-        elif r.category in ['start', 'end']:
+        elif r.category in ['start', 'end', 'mid']:
             # score the stroke attachment index
             probs = torch.ones(nprev, requires_grad=True)
             ll = ll + dist.Categorical(probs=probs).log_prob(r.attach_ix)
-        elif r.category == 'mid':
-            # score the stroke attachment index
-            probs = torch.ones(nprev, requires_grad=True)
-            ll = ll + dist.Categorical(probs=probs).log_prob(r.attach_ix)
-            # sample random sub-stroke uniformly from the selected stroke
-            nsub = prev_parts[r.attach_ix].nsub
-            probs = torch.ones(nsub, requires_grad=True)
-            ll = ll + dist.Categorical(probs=probs).log_prob(r.attach_subix)
-            # sample type-level spline coordinate
-            _, lb, ub = bspline_gen_s(self.lib.ncpt, 1)
-            ll = ll + dist.Uniform(lb, ub).log_prob(r.eval_spot)
+            if r.category == 'mid':
+                # score the sub-stroke attachment index
+                nsub = prev_parts[r.attach_ix].nsub
+                probs = torch.ones(nsub, requires_grad=True)
+                ll = ll + dist.Categorical(probs=probs).log_prob(r.attach_subix)
+                # score the type-level spline coordinate
+                _, lb, ub = bspline_gen_s(self.lib.ncpt, 1)
+                ll = ll + dist.Uniform(lb, ub).log_prob(r.eval_spot)
         else:
             raise TypeError('invalid relation')
 
