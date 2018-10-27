@@ -95,14 +95,20 @@ class SpatialModel(object):
         """
         assert isinstance(data_start, torch.Tensor)
         assert isinstance(data_id, torch.Tensor)
+        assert len(data_start.shape) == 2
+        assert len(data_id.shape) == 1
         new_id = self.__map_indx(data_id)
         ndat = len(data_start)
 
         # for each stroke id
-        ll = 0
+        ll = 0.
         for sid in range(self.last_model_id):
-            data = data_start[new_id==sid]
-            ll += self.list_SH[sid].score(data)
+            sel = new_id == sid
+            nsel = torch.sum(sel)
+            # if nsel > 0 then score
+            if nsel.byte():
+                data = data_start[sel]
+                ll += self.list_SH[sid].score(data)
 
         return ll
 
@@ -117,12 +123,18 @@ class SpatialModel(object):
         """
         assert isinstance(data_start, torch.Tensor)
         assert isinstance(data_id, torch.Tensor)
+        assert len(data_start.shape) == 2
+        assert len(data_id.shape) == 1
         new_id = self.__map_indx(data_id)
         ndat = len(data_start)
         ll = torch.zeros(ndat)
         for sid in range(self.last_model_id):
-            data = data_start[new_id==sid]
-            _, ll[new_id==sid] = self.list_SH[sid].get_id(data)
+            sel = new_id == sid
+            nsel = torch.sum(sel)
+            # if nsel > 0 then score
+            if nsel.byte():
+                data = data_start[sel]
+                _, ll[sel] = self.list_SH[sid].get_id(data)
 
         return ll
 
