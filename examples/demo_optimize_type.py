@@ -121,7 +121,7 @@ def optimize_type(
             print('iteration #%i' % idx)
             for i in range(4):
                 _, ex = c.sample_token()
-                axes[idx//100, i].imshow(ex.numpy(), cmap='Greys', vmin=0, vmax=1)
+                axes[idx//100, i].imshow(ex.numpy(), cmap='Greys')
                 axes[idx//100, i].tick_params(
                     which='both',
                     bottom=False,

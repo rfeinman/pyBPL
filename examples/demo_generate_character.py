@@ -30,7 +30,7 @@ def main():
         # sample a few character tokens and visualize them
         for j in range(3):
             _, exemplar = c.sample_token()
-            axes[i,j].imshow(exemplar.numpy(), cmap='Greys', vmin=0, vmax=1)
+            axes[i,j].imshow(exemplar.numpy(), cmap='Greys')
             axes[i,j].tick_params(
                 which='both',
                 bottom=False,
