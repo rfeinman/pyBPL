@@ -118,7 +118,6 @@ class ConceptTypeDist(object):
         # step through and score each part
         for i in range(c.k):
             ll = ll + self.score_part_type(c.P[i], c.k)
-            # TODO: finish function to score relation type. Currently returns 0
             ll = ll + self.score_relation_type(c.R[i], c.P[:i])
 
         return ll
@@ -609,14 +608,42 @@ class CharacterTypeDist(ConceptTypeDist):
         ll : tensor
             scalar; log-probability of the relation type
         """
-        return torch.tensor(0.)  # TODO: finish this
+        return torch.tensor(0.) # TODO - finish this
         nprev = len(prev_parts)
         stroke_num = nprev + 1
+        # first score the relation category
         if nprev == 0:
             ll = 0.
         else:
             ix = self.__relation_categories.index(r.category)
             ll = self.rel_mixdist.log_prob(ix)
+
+        # now score the category-specific type-level parameters
+        if r.category == 'unihist':
+            data_id = torch.tensor([stroke_num])
+            # convert (2,) tensor to (1,2) tensor
+            gpos = r.gpos.view(1,2)
+            # score the type-level location
+            ll = ll + self.Spatial.score(gpos, data_id)
+        elif r.category in ['start', 'end']:
+            # score the stroke attachment index
+            probs = torch.ones(nprev, requires_grad=True)
+            ll = ll + dist.Categorical(probs=probs).log_prob(r.attach_ix)
+        elif r.category == 'mid':
+            # score the stroke attachment index
+            probs = torch.ones(nprev, requires_grad=True)
+            ll = ll + dist.Categorical(probs=probs).log_prob(r.attach_ix)
+            # sample random sub-stroke uniformly from the selected stroke
+            nsub = prev_parts[r.attach_ix].nsub
+            probs = torch.ones(nsub, requires_grad=True)
+            ll = ll + dist.Categorical(probs=probs).log_prob(r.attach_subix)
+            # sample type-level spline coordinate
+            _, lb, ub = bspline_gen_s(self.lib.ncpt, 1)
+            ll = ll + dist.Uniform(lb, ub).log_prob(r.eval_spot)
+        else:
+            raise TypeError('invalid relation')
+
+        return ll
 
     def sample_type(self, k=None):
         c = super(CharacterTypeDist, self).sample_type(k)
