@@ -10,30 +10,31 @@ import torch.distributions as dist
 from .part import PartToken
 from .splines import bspline_eval, bspline_gen_s
 
-types_allowed = ['unihist', 'start', 'end', 'mid']
+categories_allowed = ['unihist', 'start', 'end', 'mid']
 
 
 
-class Relation(object):
+
+class RelationToken(object):
     """
     TODO
 
     Parameters
     ----------
-    category : TODO
+    rel : TODO
         TODO
-    pos_dist : TODO
+    kwargs : TODO
         TODO
     """
-    __metaclass__ = ABCMeta
+    def __init__(self, rel, **kwargs):
+        self.rel = rel
+        if rel.category in ['unihist', 'start', 'end']:
+            assert kwargs == {}
+        else:
+            assert set(kwargs.keys()) == {'eval_spot_token'}
+            self.eval_spot_token = kwargs['eval_spot_token']
 
-    def __init__(self, category, pos_dist):
-        # make sure type is valid
-        assert category in types_allowed
-        self.category = category
-        self.pos_dist = pos_dist
-
-    def sample_position(self, prev_parts):
+    def sample_location(self, prev_parts):
         """
         TODO
 
@@ -44,20 +45,133 @@ class Relation(object):
 
         Returns
         -------
-        pos : (2,) tensor
-            position; x-y coordinates
+        loc : tensor
+            location; x-y coordinates
+
         """
         for pt in prev_parts:
             assert isinstance(pt, PartToken)
         base = self.get_attach_point(prev_parts)
         assert base.shape == torch.Size([2])
-        pos = base + self.pos_dist.sample()
+        loc = base + self.rel.loc_dist.sample()
 
-        return pos
+        return loc
 
-    @abstractmethod
+    def score_location(self, loc, prev_parts):
+        """
+        TODO
+
+        Parameters
+        ----------
+        loc : TODO
+            TODO
+        prev_parts : TODO
+            TODO
+
+        Returns
+        -------
+        ll : tensor
+            TODO
+
+        """
+        for pt in prev_parts:
+            assert isinstance(pt, PartToken)
+        base = self.get_attach_point(prev_parts)
+        assert base.shape == torch.Size([2])
+        ll = self.rel.loc_dist.log_prob(loc - base)
+
+        return ll
+
     def get_attach_point(self, prev_parts):
-        pass
+        """
+        Get the mean attachment point of where the start of the next part
+        should be, given the previous part tokens.
+
+        Parameters
+        ----------
+        prev_parts : TODO
+            TODO
+
+        Returns
+        -------
+        loc : TODO
+            TODO
+
+        """
+        if self.rel.category == 'unihist':
+            loc = self.rel.gpos
+        else:
+            prev = prev_parts[self.rel.attach_ix]
+            if self.rel.category == 'start':
+                subtraj = prev.motor[0]
+                loc = subtraj[0]
+            elif self.rel.category == 'end':
+                subtraj = prev.motor[-1]
+                loc = subtraj[-1]
+            else:
+                assert self.rel.category == 'mid'
+                bspline = prev.motor_spline[:, :, self.rel.attach_subix]
+                loc, _ = bspline_eval(self.eval_spot_token, bspline)
+                # convert (1,2) tensor -> (2,) tensor
+                loc = torch.squeeze(loc, dim=0)
+
+        return loc
+
+
+class Relation(object):
+    """
+    TODO
+
+    Parameters
+    ----------
+    category : string
+        relation category
+    lib : Library
+        library instance, which holds token-level distribution parameters
+    """
+    __metaclass__ = ABCMeta
+
+    def __init__(self, category, lib):
+        # make sure type is valid
+        assert category in categories_allowed
+        self.category = category
+        # token-level position distribution parameters
+        sigma_x = lib.rel['sigma_x']
+        sigma_y = lib.rel['sigma_y']
+        loc_Cov = torch.tensor([[sigma_x, 0.], [0., sigma_y]])
+        self.loc_dist = dist.MultivariateNormal(torch.zeros(2), loc_Cov)
+
+    def sample_token(self):
+        """
+        TODO
+
+        Returns
+        -------
+        rtoken : RelationToken
+            TODO
+        """
+        rtoken = RelationToken(self)
+
+        return rtoken
+
+    def score_token(self, token):
+        """
+        TODO
+
+        Parameters
+        ----------
+        token : RelationToken
+            TODO
+
+        Returns
+        -------
+        ll : tensor
+            TODO
+
+        """
+        ll = torch.tensor(0.)
+
+        return ll
 
 
 class RelationIndependent(Relation):
@@ -66,37 +180,18 @@ class RelationIndependent(Relation):
 
     Parameters
     ----------
-    category : TODO
-        TODO
-    pos_dist : TODO
-        TODO
+    category : string
+        relation category
     gpos : (2,) tensor
         position; x-y coordinates
+    lib : Library
+        library instance, which holds token-level distribution parameters
     """
-    def __init__(self, category, pos_dist, gpos):
+    def __init__(self, category, gpos, lib):
+        super(RelationIndependent, self).__init__(category, lib)
         assert category == 'unihist'
         assert gpos.shape == torch.Size([2])
-        super(RelationIndependent, self).__init__(category, pos_dist)
         self.gpos = gpos
-
-    def get_attach_point(self, prev_parts):
-        """
-        Get the mean attachment point of where the start of the next part
-        should be, given the previous part tokens. TODO
-
-        Parameters
-        ----------
-        prev_parts : TODO
-            TODO
-
-        Returns
-        -------
-        pos: (2,) tensor
-            position; x-y coordinates
-        """
-        pos = self.gpos
-
-        return pos
 
 
 class RelationAttach(Relation):
@@ -105,46 +200,17 @@ class RelationAttach(Relation):
 
     Parameters
     ----------
-    category : TODO
-        TODO
-    pos_dist : TODO
-        TODO
-    attach_part : TODO
-        TODO
+    category : string
+        relation category
+    attach_ix : int
+        index of previous part to which this part will attach
+    lib : Library
+        library instance, which holds token-level distribution parameters
     """
-    def __init__(self, category, pos_dist, attach_part):
+    def __init__(self, category, attach_ix, lib):
+        super(RelationAttach, self).__init__(category, lib)
         assert category in ['start', 'end', 'mid']
-        super(RelationAttach, self).__init__(category, pos_dist)
-        self.attach_part = attach_part
-
-    def get_attach_point(self, prev_parts):
-        """
-        Get the mean attachment point of where the start of the next part
-        should be, given the previous part tokens. TODO
-
-        Parameters
-        ----------
-        prev_parts : TODO
-            TODO
-
-        Returns
-        -------
-        pos: TODO
-            TODO
-        """
-        # TODO - This should be generalized so that it is applicable to all
-        # TODO - types of relations. Right now motor/motor_spline is specific
-        # TODO - to characters.
-        part = prev_parts[self.attach_part]
-        if self.category == 'start':
-            subtraj = part.motor[0]
-            pos = subtraj[0]
-        else:
-            assert self.category == 'end'
-            subtraj = part.motor[-1]
-            pos = subtraj[-1]
-
-        return pos
+        self.attach_ix = attach_ix
 
 
 class RelationAttachAlong(RelationAttach):
@@ -153,54 +219,59 @@ class RelationAttachAlong(RelationAttach):
 
     Parameters
     ----------
-    category : TODO
-        TODO
-    pos_dist : TODO
-        TODO
-    sigma_attach : TODO
-        TODO
-    attach_part : TODO
-        TODO
-    attach_subid : TODO
-        TODO
-    ncpt : TODO
-        TODO
-    eval_spot_type : TODO
-        TODO
+    category : string
+        relation category
+    attach_ix : int
+        index of previous part to which this part will attach
+    attach_subix : int
+        index of sub-stroke from the selected previous part to which
+        this part will attach
+    eval_spot : tensor
+        type-level spline coordinate
+    lib : Library
+        library instance, which holds token-level distribution parameters
     """
-    def __init__(
-            self, category, pos_dist, sigma_attach, attach_part,
-            attach_subid, ncpt, eval_spot_type
-    ):
+    def __init__(self, category, attach_ix, attach_subix, eval_spot, lib):
+        super(RelationAttachAlong, self).__init__(category, attach_ix, lib)
         assert category == 'mid'
-        super(RelationAttachAlong, self).__init__(category, pos_dist, attach_part)
-        self.attach_subid = attach_subid
-        self.ncpt = ncpt
-        self.eval_spot_dist = dist.normal.Normal(eval_spot_type, sigma_attach)
+        self.attach_subix = attach_subix
+        self.ncpt = lib.ncpt
+        # token-level eval_spot distribution parameters
+        sigma_attach = lib.tokenvar['sigma_attach']
+        self.eval_spot_dist = dist.normal.Normal(eval_spot, sigma_attach)
 
-    def get_attach_point(self, prev_parts):
+    def sample_token(self):
         """
-        Get the mean attachment point of where the start of the next part
-        should be, given the previous part tokens. TODO
+        TODO
+
+        Returns
+        -------
+        token : RelationToken
+            TODO
+        """
+        eval_spot_token = self.sample_eval_spot_token()
+        token = RelationToken(self, eval_spot_token=eval_spot_token)
+
+        return token
+
+    def score_token(self, token):
+        """
+        TODO
 
         Parameters
         ----------
-        prev_parts : TODO
+        token : RelationToken
             TODO
 
         Returns
         -------
-        pos : TODO
+        ll : tensor
             TODO
         """
-        eval_spot_token = self.sample_eval_spot_token()
-        part = prev_parts[self.attach_part]
-        bspline = part.motor_spline[:,:,self.attach_subid]
-        pos, _ = bspline_eval(eval_spot_token, bspline)
-        # convert (1,2) tensor -> (2,) tensor
-        pos = torch.squeeze(pos, dim=0)
+        assert hasattr(token, 'eval_spot_token')
+        ll = self.score_eval_spot_token(token.eval_spot_token)
 
-        return pos
+        return ll
 
     def sample_eval_spot_token(self):
         """
@@ -208,8 +279,8 @@ class RelationAttachAlong(RelationAttach):
 
         Returns
         -------
-        eval_spot_token : TODO
-            TODO
+        eval_spot_token : tensor
+            token-level spline coordinate
         """
         ll = torch.tensor(-float('inf'))
         while ll == -float('inf'):
@@ -224,12 +295,12 @@ class RelationAttachAlong(RelationAttach):
 
         Parameters
         ----------
-        eval_spot_token : TODO
-            TODO
+        eval_spot_token : tensor
+            token-level spline coordinate
 
         Returns
         -------
-        ll : TODO
+        ll : tensor
             TODO
         """
         assert type(eval_spot_token) in [int, float] or \

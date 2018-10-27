@@ -41,16 +41,17 @@ args = parser.parse_args()
 def main():
     # load the library
     lib = Library(lib_dir='./lib_data')
-    # generate a character type
-    ctd = CharacterTypeDist(lib)
-    ctype = ctd.sample_type(k=args.ns)
-    char = Character(ctype, lib)
-    print('num strokes: %i' % ctype.k)
-    print('num sub-strokes: ', [p.nsub.item() for p in ctype.P])
+    # initialize the character type distribution
+    type_dist = CharacterTypeDist(lib)
+    # sample a character type from the distribution
+    c = type_dist.sample_type(k=args.ns)
+    print('num strokes: %i' % c.k)
+    print('num sub-strokes: ', [p.nsub.item() for p in c.P])
+    # optimize the character type that we sampled
     score_list = optimize_type(
-        char, ctd, args.lr, args.nb_iter, args.eps, args.proj_grad_ascent
+        c, type_dist, args.lr, args.nb_iter, args.eps, args.proj_grad_ascent
     )
-    # plot likelihood vs. iteration
+    # plot log-likelihood vs. iteration
     plt.figure()
     plt.plot(score_list)
     plt.ylabel('log-likelihood')

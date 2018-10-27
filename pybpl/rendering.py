@@ -309,7 +309,7 @@ def apply_render(token, parameters):
         TODO
     """
     # get motor for each part
-    motor = [pt.motor for pt in token.part_tokens]
+    motor = [p.motor for p in token.P]
     # apply affine transformation if needed
     if token.affine is not None:
         motor = apply_warp(motor, token.affine)

@@ -5,14 +5,14 @@ import torch
 
 
 
-def get_optimizable_variables(ctype, eps):
+def get_optimizable_variables(c, eps):
     """
     Indicate variables for optimization (requires_grad_)
 
     Parameters
     ----------
-    ctype : ConceptType
-        concept type
+    c : Character
+        character type to optimize
     eps : float
         tol. for constrained optimization
 
@@ -30,24 +30,25 @@ def get_optimizable_variables(ctype, eps):
     parameters = []
     lbs = []
     ubs = []
-    for p in ctype.P:
+    for p in c.P:
         # shape
-        p.shapes_type.requires_grad_()
-        parameters.append(p.shapes_type)
+        p.shapes.requires_grad_()
+        parameters.append(p.shapes)
         lbs.append([])
         ubs.append([])
 
         # scale
-        p.invscales_type.requires_grad_()
-        parameters.append(p.invscales_type)
-        lbs.append(torch.full(p.invscales_type.shape, eps))
+        p.invscales.requires_grad_()
+        parameters.append(p.invscales)
+        lbs.append(torch.full(p.invscales.shape, eps))
         ubs.append([])
 
     return parameters, lbs, ubs
 
 
 def optimize_type(
-        char, ctd, lr, nb_iter, eps, projected_grad_ascent, show_examples=True
+        c, type_dist, lr, nb_iter, eps, projected_grad_ascent,
+        show_examples=True
 ):
     """
     Take a character type and optimize its parameters to maximize the
@@ -55,9 +56,9 @@ def optimize_type(
 
     Parameters
     ----------
-    char : Character
+    c : Character
         TODO
-    ctd : CharacterTypeDist
+    type_dist : CharacterTypeDist
         TODO
     lr : float
         TODO
@@ -77,7 +78,7 @@ def optimize_type(
 
     """
     # get optimizable variables & their bounds
-    parameters, lbs, ubs = get_optimizable_variables(char.ctype, eps)
+    parameters, lbs, ubs = get_optimizable_variables(c, eps)
     # optimize the character type
     score_list = []
     if show_examples:
@@ -87,7 +88,7 @@ def optimize_type(
         if idx % 100 == 0 and show_examples:
             print('iteration #%i' % idx)
             for i in range(4):
-                _, ex = char.sample_token()
+                _, ex = c.sample_token()
                 axes[idx//100, i].imshow(ex.numpy(), cmap='Greys', vmin=0, vmax=1)
                 axes[idx//100, i].tick_params(
                     which='both',
@@ -97,7 +98,7 @@ def optimize_type(
                     labelleft=False
                 )
             axes[idx//100, 0].set_ylabel('%i' % idx)
-        score = ctd.score_type(char.ctype)
+        score = type_dist.score_type(c)
         score.backward(retain_graph=True)
         score_list.append(score)
         with torch.no_grad():

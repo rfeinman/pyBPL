@@ -12,33 +12,13 @@ from .library import Library
 from .relation import (Relation, RelationIndependent, RelationAttach,
                        RelationAttachAlong)
 from .part import Part, Stroke
+from .concept import Concept, Character
 from .splines import bspline_gen_s
 
 # list of acceptable dtypes for 'k' parameter
 int_types = [torch.uint8, torch.int8, torch.int16, torch.int32, torch.int64]
 
 
-
-class ConceptType(object):
-    """
-    A basic class to hold the type-level parameters of a concept
-
-    Parameters
-    ----------
-    k : tensor
-        scalar; part count
-    P : list of Part
-        part list
-    """
-
-    def __init__(self, k, P):
-        assert isinstance(P, list)
-        assert k > 0
-        for p in P:
-            assert isinstance(p, Part)
-            assert isinstance(p.relation_type, Relation)
-        self.k = k
-        self.P = P
 
 
 class ConceptTypeDist(object):
@@ -85,7 +65,7 @@ class ConceptTypeDist(object):
 
         Returns
         -------
-        ctype : ConceptType
+        c : Concept
             concept type sample
         """
         if k is None:
@@ -98,29 +78,32 @@ class ConceptTypeDist(object):
             assert k.shape == torch.Size([])
             assert k.dtype in int_types
 
-        # initialize part list
+        # initialize part and relation type lists
         P = []
+        R = []
         # for each part, sample part parameters
         for _ in range(k):
             # sample the part type
-            part = self.sample_part_type(k)
+            p = self.sample_part_type(k)
             # sample the relation type
-            part.relation_type = self.sample_relation_type(P)
-            # append part to the list
-            P.append(part)
-        # create the concept type (a stencil for a concept)
-        ctype = ConceptType(k, P)
+            r = self.sample_relation_type(P)
+            # append to the lists
+            P.append(p)
+            R.append(r)
+        # create the concept type, i.e. a motor program for sampling
+        # concept tokens
+        c = Concept(k, P, R)
 
-        return ctype
+        return c
 
-    def score_type(self, ctype):
+    def score_type(self, c):
         """
         Compute the log-probability of a concept type under the prior
         $P(type) = P(k)*\prod_{i=1}^k [P(S_i)P(R_i|S_{0:i-1})]$
 
         Parameters
         ----------
-        ctype : ConceptType
+        c : Concept
             concept type to score
 
         Returns
@@ -128,37 +111,17 @@ class ConceptTypeDist(object):
         ll : tensor
             scalar; log-probability of the concept type
         """
-        assert isinstance(ctype, ConceptType)
+        assert isinstance(c, Concept)
         # score the number of parts
         ll = 0.
-        ll = ll + self.score_k(ctype.k)
+        ll = ll + self.score_k(c.k)
         # step through and score each part
-        for i in range(ctype.k):
-            ll = ll + self.score_part_type(ctype.P[i], ctype.k)
+        for i in range(c.k):
+            ll = ll + self.score_part_type(c.P[i], c.k)
             # TODO: finish function to score relation type. Currently returns 0
-            ll = ll + self.score_relation_type(
-                ctype.P[i].relation_type, ctype.P[:i]
-            )
+            ll = ll + self.score_relation_type(c.R[i], c.P[:i])
 
         return ll
-
-
-class CharacterType(ConceptType):
-    """
-    A basic class to hold the type-level parameters of a character
-
-    Parameters
-    ----------
-    k : tensor
-        scalar; part count
-    P : list of Stroke
-        part list
-    """
-
-    def __init__(self, k, P):
-        super(CharacterType, self).__init__(k, P)
-        for p in P:
-            assert isinstance(p, Stroke)
 
 
 class CharacterTypeDist(ConceptTypeDist):
@@ -176,6 +139,7 @@ class CharacterTypeDist(ConceptTypeDist):
     def __init__(self, lib):
         super(CharacterTypeDist, self).__init__()
         assert isinstance(lib, Library)
+        self.lib = lib
         # is uniform?
         self.isunif = lib.isunif
         # number of control points
@@ -187,14 +151,6 @@ class CharacterTypeDist(ConceptTypeDist):
         self.Spatial = lib.Spatial
         # distribution of relation categories
         self.rel_mixdist = dist.Categorical(probs=lib.rel['mixprob'])
-        # token-level variance relations parameters
-        pos_mu = torch.zeros(2)
-        pos_Cov = torch.tensor(
-            [[lib.rel['sigma_x'], 0.],
-             [0., lib.rel['sigma_y']]]
-        )
-        self.rel_pos_dist = dist.MultivariateNormal(pos_mu, pos_Cov)
-        self.rel_sigma_attach = lib.tokenvar['sigma_attach']
         # substroke distributions
         self.pmat_nsub = lib.pmat_nsub
         self.logStart = lib.logStart
@@ -209,9 +165,6 @@ class CharacterTypeDist(ConceptTypeDist):
         self.shapes_mu = shapes_mu
         self.shapes_Cov = shapes_Cov
         self.newscale = lib.newscale
-        # token-level shapes parameters
-        self.sigma_shape = lib.tokenvar['sigma_shape']
-        self.sigma_invscale = lib.tokenvar['sigma_invscale']
         # invscales distribution
         scales_theta = lib.scale['theta']
         assert len(scales_theta.shape) == 2
@@ -542,25 +495,21 @@ class CharacterTypeDist(ConceptTypeDist):
 
         Returns
         -------
-        stroke : Stroke
-            stroke type
+        p : Stroke
+            part type sample
         """
         # sample the number of sub-strokes
         nsub = self.sample_nsub(k)
         # sample the sequence of sub-stroke IDs
-        subid = self.sample_subIDs(nsub)
+        ids = self.sample_subIDs(nsub)
         # sample control points for each sub-stroke in the sequence
-        shapes_type = self.sample_shapes_type(subid)
+        shapes = self.sample_shapes_type(ids)
         # sample scales for each sub-stroke in the sequence
-        scales_type = self.sample_invscales_type(subid)
+        invscales = self.sample_invscales_type(ids)
         # initialize the stroke type
-        stroke = Stroke(
-            subid, shapes_type, scales_type,
-            sigma_shape=self.sigma_shape,
-            sigma_invscale=self.sigma_invscale
-        )
+        p = Stroke(nsub, ids, shapes, invscales, self.lib)
 
-        return stroke
+        return p
 
     def score_part_type(self, p, k):
         """
@@ -569,8 +518,8 @@ class CharacterTypeDist(ConceptTypeDist):
 
         Parameters
         ----------
-        p: Stroke
-            stroke type to score
+        p : Stroke
+            part type to score
         k : tensor
             scalar; stroke count
 
@@ -581,8 +530,8 @@ class CharacterTypeDist(ConceptTypeDist):
         """
         ll = self.score_nsub(k, p.nsub)
         ll = ll + self.score_subIDs(p.ids)
-        ll = ll + self.score_shapes_type(p.ids, p.shapes_type)
-        ll = ll + self.score_invscales_type(p.ids, p.invscales_type)
+        ll = ll + self.score_shapes_type(p.ids, p.shapes)
+        ll = ll + self.score_invscales_type(p.ids, p.invscales)
 
         return ll
 
@@ -594,52 +543,49 @@ class CharacterTypeDist(ConceptTypeDist):
         Parameters
         ----------
         prev_parts : list of Stroke
-            previous stroke types
+            previous part types
 
         Returns
         -------
         r : Relation
-            relation type
+            relation type sample
         """
+        for p in prev_parts:
+            assert isinstance(p, Stroke)
         nprev = len(prev_parts)
         stroke_num = nprev + 1
-        ncpt = self.ncpt
-        pos_dist = self.rel_pos_dist
-        sigma_attach = self.rel_sigma_attach
+        # first sample the relation category
         if nprev == 0:
             category = 'unihist'
         else:
             indx = self.rel_mixdist.sample()
             category = self.__relation_categories[indx]
 
+        # now sample the category-specific type-level parameters
         if category == 'unihist':
             data_id = torch.tensor([stroke_num])
             gpos = self.Spatial.sample(data_id)
             # convert (1,2) tensor to (2,) tensor
             gpos = torch.squeeze(gpos)
-            # create relation
-            r = RelationIndependent(category, pos_dist, gpos)
+            r = RelationIndependent(category, gpos, self.lib)
         elif category in ['start', 'end']:
             # sample random stroke uniformly from previous strokes
             probs = torch.ones(nprev, requires_grad=True)
-            attach_stroke = dist.Categorical(probs=probs).sample()
-            # create relation
-            r = RelationAttach(category, pos_dist, attach_stroke)
+            attach_ix = dist.Categorical(probs=probs).sample()
+            r = RelationAttach(category, attach_ix, self.lib)
         elif category == 'mid':
             # sample random stroke uniformly from previous strokes
             probs = torch.ones(nprev, requires_grad=True)
-            attach_stroke = dist.Categorical(probs=probs).sample()
+            attach_ix = dist.Categorical(probs=probs).sample()
             # sample random sub-stroke uniformly from the selected stroke
-            nsub = prev_parts[attach_stroke].nsub
+            nsub = prev_parts[attach_ix].nsub
             probs = torch.ones(nsub, requires_grad=True)
-            attach_subid = dist.Categorical(probs=probs).sample()
+            attach_subix = dist.Categorical(probs=probs).sample()
             # sample type-level spline coordinate
-            _, lb, ub = bspline_gen_s(ncpt, 1)
-            eval_spot_type = dist.Uniform(lb, ub).sample()
-            # create relation
+            _, lb, ub = bspline_gen_s(self.lib.ncpt, 1)
+            eval_spot = dist.Uniform(lb, ub).sample()
             r = RelationAttachAlong(
-                category, pos_dist, sigma_attach, attach_stroke,
-                attach_subid, ncpt, eval_spot_type
+                category, attach_ix, attach_subix, eval_spot, self.lib
             )
         else:
             raise TypeError('invalid relation')
@@ -654,7 +600,7 @@ class CharacterTypeDist(ConceptTypeDist):
         Parameters
         ----------
         r : Relation
-            relation type
+            relation type to score
         prev_parts : list of Stroke
             previous stroke types
 
@@ -663,12 +609,9 @@ class CharacterTypeDist(ConceptTypeDist):
         ll : tensor
             scalar; log-probability of the relation type
         """
-        return 0.  # TODO: finish
+        return torch.tensor(0.)  # TODO: finish this
         nprev = len(prev_parts)
         stroke_num = nprev + 1
-        ncpt = self.ncpt
-        pos_dist = self.rel_pos_dist
-        sigma_attach = self.rel_sigma_attach
         if nprev == 0:
             ll = 0.
         else:
@@ -676,7 +619,7 @@ class CharacterTypeDist(ConceptTypeDist):
             ll = self.rel_mixdist.log_prob(ix)
 
     def sample_type(self, k=None):
-        concept_type = super(CharacterTypeDist, self).sample_type(k)
-        char_type = CharacterType(concept_type.k, concept_type.P)
+        c = super(CharacterTypeDist, self).sample_type(k)
+        c = Character(c.k, c.P, c.R, self.lib)
 
-        return char_type
+        return c

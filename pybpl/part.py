@@ -10,6 +10,9 @@ import torch.distributions as dist
 from . import rendering
 
 
+# --------------------- #
+# parent 'Part' classes
+# --------------------- #
 
 class PartToken(object):
     """
@@ -27,12 +30,21 @@ class Part(object):
     """
     __metaclass__ = ABCMeta
 
-    def __init__(self, relation_type=None):
-        self.relation_type = relation_type
+    def __init__(self):
+        pass
 
     @abstractmethod
-    def sample_token(self, prev_parts):
+    def sample_token(self):
         pass
+
+    @abstractmethod
+    def score_token(self, token):
+        pass
+
+
+# ---------------------- #
+# child 'Stroke' classes
+# ---------------------- #
 
 
 class StrokeToken(PartToken):
@@ -45,17 +57,27 @@ class StrokeToken(PartToken):
         TODO
     invscales : TODO
         TODO
-    position : TODO
-        TODO
     """
-    def __init__(self, shapes, invscales, position):
+    def __init__(self, shapes, invscales):
         super(StrokeToken, self).__init__()
         self.shapes = shapes
         self.invscales = invscales
-        self.position = position
-        self.motor, self.motor_spline = rendering.vanilla_to_motor(
-            self.shapes, self.invscales, self.position
+        self._position = None
+        self.motor = None
+        self.motor_spline = None
+
+    @property
+    def position(self):
+        return self._position
+
+    @position.setter
+    def position(self, value):
+        motor, motor_spline = rendering.vanilla_to_motor(
+            self.shapes, self.invscales, value
         )
+        self.motor = motor
+        self.motor_spline = motor_spline
+        self._position = value
 
 
 class Stroke(Part):
@@ -65,38 +87,22 @@ class Stroke(Part):
 
     Parameters
     ----------
-    ids : TODO
-        TODO
-    shapes_type : TODO
-        TODO
-    invscales_type : TODO
-        TODO
-    sigma_shape : TODO
-    sigma_invscale : TODO
-    relation_type : TODO
+    TODO
     """
     def __init__(
-            self, ids, shapes_type, invscales_type, sigma_shape, sigma_invscale,
-            relation_type=None
+            self, nsub, ids, shapes, invscales, lib
     ):
-        # parent init
-        super(Stroke, self).__init__(relation_type)
-
-        # type-level parameters
+        super(Stroke, self).__init__()
+        self.nsub = nsub
         self.ids = ids
-        self.shapes_type = shapes_type
-        self.invscales_type = invscales_type
+        self.shapes = shapes
+        self.invscales = invscales
 
         # distributions
-        self.shapes_dist = dist.normal.Normal(shapes_type, sigma_shape)
-        self.scales_dist = dist.normal.Normal(invscales_type, sigma_invscale)
-
-    @property
-    def nsub(self):
-        """
-        The number of sub-strokes
-        """
-        return torch.tensor(len(self.ids))
+        sigma_shape = lib.tokenvar['sigma_shape']
+        sigma_invscale = lib.tokenvar['sigma_invscale']
+        self.shapes_dist = dist.normal.Normal(shapes, sigma_shape)
+        self.scales_dist = dist.normal.Normal(invscales, sigma_invscale)
 
     def sample_shapes_token(self):
         """
@@ -181,13 +187,13 @@ class Stroke(Part):
 
         return ll
 
-    def sample_token(self, prev_parts):
+    def sample_token(self):
         """
         TODO
 
         Parameters
         ----------
-        prev_parts : TODO
+        position : TODO
             TODO
 
         Returns
@@ -195,9 +201,26 @@ class Stroke(Part):
         token : TODO
             TODO
         """
-        shapes_token = self.sample_shapes_token()
-        invscales_token = self.sample_invscales_token()
-        position_token = self.relation_type.sample_position(prev_parts)
-        token = StrokeToken(shapes_token, invscales_token, position_token)
+        shapes = self.sample_shapes_token()
+        invscales = self.sample_invscales_token()
+        token = StrokeToken(shapes, invscales)
 
         return token
+
+    def score_token(self, token):
+        """
+        TODO
+
+        Parameters
+        ----------
+        token
+
+        Returns
+        -------
+
+        """
+        ll = 0.
+        ll = ll + self.score_shapes_token(token.shapes)
+        ll = ll + self.score_invscales_token(token.invscales)
+
+        return ll

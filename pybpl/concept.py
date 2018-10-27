@@ -14,10 +14,14 @@ import torch.distributions as dist
 from . import rendering
 from .parameters import defaultps
 from .library import Library
-from .part import PartToken, StrokeToken, Stroke
-from .ctd import ConceptType, CharacterType
+from .part import Part, Stroke, PartToken, StrokeToken
+from .relation import Relation, RelationToken
 
 
+
+# ------------------------ #
+# parent 'Concept' classes
+# ------------------------ #
 
 class ConceptToken(object):
     """
@@ -25,15 +29,22 @@ class ConceptToken(object):
 
     Parameters
     ----------
-    part_tokens : list of PartToken
+    P : list of PartToken
+        TODO
+    R : list of RelationToken
         TODO
     """
     __metaclass__ = ABCMeta
 
-    def __init__(self, part_tokens):
-        for pt in part_tokens:
-            assert isinstance(pt, PartToken)
-        self.part_tokens = part_tokens
+    def __init__(self, P, R):
+        assert isinstance(P, list)
+        assert isinstance(R, list)
+        assert len(P) == len(R)
+        for ptoken, rtoken in zip(P, R):
+            assert isinstance(ptoken, PartToken)
+            assert isinstance(rtoken, RelationToken)
+        self.P = P
+        self.R = R
 
 
 class Concept(object):
@@ -43,36 +54,58 @@ class Concept(object):
 
     Parameters
     ----------
-    ctype : ConceptType
-        concept type
+    k : tensor
+        scalar; part count
+    P : list of Part
+        part type list
+    R : list of Relation
+        relation type list
     """
     __metaclass__ = ABCMeta
 
-    def __init__(self, ctype):
-        assert isinstance(ctype, ConceptType)
-        self.ctype = ctype
-
-    @property
-    def k(self):
-        """
-        The number of parts
-        """
-        return self.ctype.k
+    def __init__(self, k, P, R):
+        assert isinstance(P, list)
+        assert isinstance(R, list)
+        assert len(P) == len(R)
+        assert k > 0
+        for ptype, rtype in zip(P, R):
+            assert isinstance(ptype, Part)
+            assert isinstance(rtype, Relation)
+        self.k = k
+        self.P = P
+        self.R = R
 
     @abstractmethod
     def sample_token(self):
-        part_tokens = []
-        for part in self.ctype.P:
-            part_token = part.sample_token(part_tokens)
-            part_tokens.append(part_token)
-        token = ConceptToken(part_tokens)
+        P = []
+        R = []
+        for p, r in zip(self.P, self.R):
+            # sample part token
+            ptoken = p.sample_token()
+            # sample relation token
+            rtoken = r.sample_token()
+            # sample part position from relation token
+            ptoken.position = rtoken.sample_location(P)
+            # append them to the list
+            P.append(ptoken)
+            R.append(rtoken)
+        token = ConceptToken(P, R)
 
         return token
 
-    @abstractmethod
     def score_token(self, token):
-        return
+        ll = 0.
+        for i in range(self.k):
+            ll = ll + self.P[i].score_token(token.P[i])
+            ll = ll + self.R[i].score_token(token.R[i])
+            ll = ll + token.R[i].score_location(token.P[i].position)
 
+        return ll
+
+
+# ------------------------- #
+# child 'Character' classes
+# ------------------------- #
 
 class CharacterToken(ConceptToken):
     """
@@ -81,7 +114,7 @@ class CharacterToken(ConceptToken):
 
     Parameters
     ----------
-    part_tokens : list of StrokeToken
+    P : list of StrokeToken
         TODO
     affine : TODO
         TODO
@@ -90,10 +123,10 @@ class CharacterToken(ConceptToken):
     blur_sigma : TODO
         TODO
     """
-    def __init__(self, part_tokens, affine, epsilon, blur_sigma):
-        super(CharacterToken, self).__init__(part_tokens)
-        for token in part_tokens:
-            assert isinstance(token, StrokeToken)
+    def __init__(self, P, R, affine, epsilon, blur_sigma):
+        super(CharacterToken, self).__init__(P, R)
+        for ptoken in P:
+            assert isinstance(ptoken, StrokeToken)
         self.affine = affine
         self.epsilon = epsilon
         self.blur_sigma = blur_sigma
@@ -112,10 +145,10 @@ class Character(Concept):
     lib : Library
         library instance
     """
-    def __init__(self, ctype, lib):
-        super(Character, self).__init__(ctype)
-        assert isinstance(ctype, CharacterType)
-        for p in ctype.P:
+
+    def __init__(self, k, P, R, lib):
+        super(Character, self).__init__(k, P, R)
+        for p in P:
             assert isinstance(p, Stroke)
         assert isinstance(lib, Library)
         self.lib = lib
@@ -144,7 +177,7 @@ class Character(Concept):
 
         # create the character token
         token = CharacterToken(
-            concept_token.part_tokens, affine, epsilon, blur_sigma
+            concept_token.P, concept_token.R, affine, epsilon, blur_sigma
         )
 
         # get probability map of an image
@@ -158,7 +191,7 @@ class Character(Concept):
         return token, image
 
     def score_token(self, token):
-        return 0.
+        return torch.tensor(0.) # TODO
 
     def sample_affine(self):
         """

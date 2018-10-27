@@ -2,36 +2,34 @@ from __future__ import division, print_function
 import matplotlib.pyplot as plt
 
 from pybpl.library import Library
-from pybpl.concept import Character
 from pybpl.ctd import CharacterTypeDist
 
 
-def display_type(ctype):
+def display_type(c):
     print('----BEGIN CHARACTER TYPE INFO----')
-    print('num strokes: %i' % ctype.k)
-    for i in range(ctype.k):
+    print('num strokes: %i' % c.k)
+    for i in range(c.k):
         print('Stroke #%i:' % i)
-        print('\tsub-stroke ids: ', list(ctype.P[i].ids.numpy()))
-        print('\trelation category: %s' % ctype.P[i].relation_type.category)
+        print('\tsub-stroke ids: ', list(c.P[i].ids.numpy()))
+        print('\trelation category: %s' % c.R[i].category)
     print('----END CHARACTER TYPE INFO----')
 
 def main():
     print('generating character...')
     lib = Library(lib_dir='./lib_data')
-    # generate the character type
+    # generate the character type. This is a motor program for generating
+    # character tokens
     type_dist = CharacterTypeDist(lib)
     fig, axes = plt.subplots(nrows=10, ncols=3, figsize=(1.5, 5))
     for i in range(10):
-        ctype = type_dist.sample_type()
-        ll = type_dist.score_type(ctype)
+        c = type_dist.sample_type()
+        ll = type_dist.score_type(c)
         print('type %i' % i)
-        display_type(ctype)
+        display_type(c)
         print('log-likelihood: %0.2f \n' % ll.item())
-        # initialize the motor program
-        char = Character(ctype, lib)
         # sample a few character tokens and visualize them
         for j in range(3):
-            _, exemplar = char.sample_token()
+            _, exemplar = c.sample_token()
             axes[i,j].imshow(exemplar.numpy(), cmap='Greys', vmin=0, vmax=1)
             axes[i,j].tick_params(
                 which='both',
