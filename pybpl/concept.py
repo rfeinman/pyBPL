@@ -190,9 +190,6 @@ class Character(Concept):
 
         return token, image
 
-    def score_token(self, token):
-        return torch.tensor(0.) # TODO
-
     def sample_affine(self):
         """
         TODO
