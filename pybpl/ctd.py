@@ -155,14 +155,8 @@ class CharacterTypeDist(ConceptTypeDist):
         self.logStart = lib.logStart
         self.pT = lib.pT
         # shapes distribution
-        shapes_mu = lib.shape['mu']
-        shapes_Cov = lib.shape['Sigma'].permute(2,0,1)
-        assert len(shapes_mu.shape) == 2
-        assert len(shapes_Cov.shape) == 3
-        assert shapes_mu.shape[0] == shapes_Cov.shape[0]
-        assert shapes_Cov.shape[1] == shapes_Cov.shape[2]
-        self.shapes_mu = shapes_mu
-        self.shapes_Cov = shapes_Cov
+        self.shapes_mu = lib.shape['mu']
+        self.shapes_Cov = lib.shape['Sigma']
         # invscales distribution
         scales_theta = lib.scale['theta']
         assert len(scales_theta.shape) == 2
@@ -349,8 +343,8 @@ class CharacterTypeDist(ConceptTypeDist):
 
         Returns
         -------
-        bspline_stack : (ncpt, 2, nsub) tensor
-            sampled spline
+        shapes : (ncpt, 2, nsub) tensor
+            sampled shapes of bsplines
         """
         if self.isunif:
             raise NotImplementedError
@@ -365,17 +359,15 @@ class CharacterTypeDist(ConceptTypeDist):
             self.shapes_mu[subid], self.shapes_Cov[subid]
         )
         # sample points from the multivariate normal distribution
-        rows_bspline = mvn.sample()
-        # transpose axes (nsub, 2*ncpt) -> (2*ncpt, nsub)
-        bspline_stack = torch.transpose(rows_bspline, 0, 1)
-        # reshape (2*ncpt, nsub) -> (2, ncpt, nsub)
-        bspline_stack = bspline_stack.view(2, ncpt, nsub)
-        # transpose axes (2, ncpt, nsub) -> (ncpt, 2, nsub)
-        bspline_stack = torch.transpose(bspline_stack, 0, 1)
+        shapes = mvn.sample()
+        # transpose axes (nsub, ncpt*2) -> (ncpt*2, nsub)
+        shapes = shapes.transpose(0,1)
+        # reshape tensor (ncpt*2, nsub) -> (ncpt, 2, nsub)
+        shapes = shapes.view(ncpt,2,nsub)
 
-        return bspline_stack
+        return shapes
 
-    def score_shapes_type(self, subid, bspline_stack):
+    def score_shapes_type(self, subid, shapes):
         """
         Compute the log-probability of the control points for each sub-stroke
         under the prior
@@ -384,7 +376,7 @@ class CharacterTypeDist(ConceptTypeDist):
         ----------
         subid : (nsub,) tensor
             sub-stroke ID sequence
-        bspline_stack : (ncpt, 2, nsub) tensor
+        shapes : (ncpt, 2, nsub) tensor
             shapes of bsplines
 
         Returns
@@ -400,19 +392,17 @@ class CharacterTypeDist(ConceptTypeDist):
         assert len(subid.shape) == 1
         # record vector length
         nsub = len(subid)
-        assert bspline_stack.shape[-1] == nsub
-        # transpose axes (ncpt, 2, nsub) -> (2, ncpt, nsub)
-        rows_bspline = torch.transpose(bspline_stack, 0, 1)
-        # reshape (2, ncpt, nsub) = (2*ncpt, nsub)
-        rows_bspline = rows_bspline.view(2*ncpt, nsub)
-        # transpose axes (2*ncpt, nsub) -> (nsub, 2*ncpt)
-        rows_bspline = torch.transpose(rows_bspline, 0, 1)
+        assert shapes.shape[-1] == nsub
+        # reshape tensor (ncpt, 2, nsub) -> (ncpt*2, nsub)
+        shapes = shapes.view(ncpt*2,nsub)
+        # transpose axes (ncpt*2, nsub) -> (nsub, ncpt*2)
+        shapes = shapes.transpose(0,1)
         # create multivariate normal distribution
         mvn = dist.MultivariateNormal(
             self.shapes_mu[subid], self.shapes_Cov[subid]
         )
         # score points using the multivariate normal distribution
-        ll_vec = mvn.log_prob(rows_bspline)
+        ll_vec = mvn.log_prob(shapes)
         ll = torch.sum(ll_vec)
 
         return ll
