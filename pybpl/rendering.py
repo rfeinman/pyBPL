@@ -290,13 +290,19 @@ def render_image(cell_traj, epsilon, blur_sigma, parameters):
 # apply render
 # ----
 
-def apply_render(token, parameters):
+def apply_render(P, affine, epsilon, blur_sigma, parameters):
     """
     TODO
 
     Parameters
     ----------
-    token : CharacterToken
+    P : list of StrokeToken
+        TODO
+    affine : TODO
+        TODO
+    epsilon : TODO
+        TODO
+    blur_sigma : TODO
         TODO
     parameters : defaultps
         TODO
@@ -309,13 +315,13 @@ def apply_render(token, parameters):
         TODO
     """
     # get motor for each part
-    motor = [p.motor for p in token.P]
+    motor = [p.motor for p in P]
     # apply affine transformation if needed
-    if token.affine is not None:
-        motor = apply_warp(motor, token.affine)
+    if affine is not None:
+        motor = apply_warp(motor, affine)
     motor_flat = torch.cat(motor) # flatten substrokes
     pimg, ink_off_page = render_image(
-        motor_flat, token.epsilon, token.blur_sigma, parameters
+        motor_flat, epsilon, blur_sigma, parameters
     )
 
     return pimg, ink_off_page

@@ -3,7 +3,6 @@ import matplotlib.pyplot as plt
 
 from pybpl.library import Library
 from pybpl.ctd import CharacterTypeDist
-from pybpl.concept import Image
 
 
 def display_type(c):
@@ -31,7 +30,7 @@ def main():
         # sample a few character tokens and visualize them
         for j in range(3):
             token = c.sample_token()
-            img = Image(token).sample_image()
+            img = token.sample_image()
             axes[i,j].imshow(img, cmap='Greys')
             axes[i,j].tick_params(
                 which='both',

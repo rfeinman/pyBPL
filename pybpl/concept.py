@@ -116,20 +116,44 @@ class CharacterToken(ConceptToken):
     ----------
     P : list of StrokeToken
         TODO
+    R : list of RelationToken
+        TODO
     affine : TODO
         TODO
     epsilon : TODO
         TODO
     blur_sigma : TODO
         TODO
+    parameters : TODO
+        TODO
     """
-    def __init__(self, P, R, affine, epsilon, blur_sigma):
+    def __init__(self, P, R, affine, epsilon, blur_sigma, parameters):
         super(CharacterToken, self).__init__(P, R)
         for ptoken in P:
             assert isinstance(ptoken, StrokeToken)
         self.affine = affine
         self.epsilon = epsilon
         self.blur_sigma = blur_sigma
+        self.parameters = parameters
+
+    def sample_image(self):
+        pimg, _ = rendering.apply_render(
+            self.P, self.affine, self.epsilon, self.blur_sigma, self.parameters
+        )
+        binom = dist.binomial.Binomial(1, pimg)
+        image = binom.sample()
+
+        return image
+
+    def score_image(self, image):
+        pimg, _ = rendering.apply_render(
+            self.P, self.affine, self.epsilon, self.blur_sigma, self.parameters
+        )
+        binom = dist.binomial.Binomial(1, pimg)
+        ll = binom.log_prob(image)
+        ll = torch.sum(ll)
+
+        return ll
 
 
 class Character(Concept):
@@ -140,8 +164,12 @@ class Character(Concept):
 
     Parameters
     ----------
-    ctype : ConceptType
-        concept type
+    k : tensor
+        scalar; part count
+    P : list of Stroke
+        part type list
+    R : list of Relation
+        relation type list
     lib : Library
         library instance
     """
@@ -175,7 +203,8 @@ class Character(Concept):
 
         # create the character token
         token = CharacterToken(
-            concept_token.P, concept_token.R, affine, epsilon, blur_sigma
+            concept_token.P, concept_token.R, affine, epsilon, blur_sigma,
+            self.parameters
         )
 
         return token
@@ -225,23 +254,3 @@ class Character(Concept):
         blur_sigma = self.parameters.min_blur_sigma
 
         return blur_sigma
-
-
-class Image(object):
-    def __init__(self, token):
-        parameters = defaultps()
-        self.pimg, self.ink_off_page = rendering.apply_render(
-            token, parameters
-        )
-
-    def sample_image(self):
-        binom = dist.binomial.Binomial(1, self.pimg)
-        image = binom.sample()
-
-        return image
-
-    def score_image(self, image):
-        binom = dist.binomial.Binomial(1, self.pimg)
-        ll = binom.log_prob(image)
-
-        return ll
