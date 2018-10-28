@@ -367,9 +367,9 @@ class CharacterTypeDist(ConceptTypeDist):
         )
         # sample points from the multivariate normal distribution
         rows_bspline = mvn.sample()
-        # transpose axes (nsub, ncpt*2) -> (ncpt*2, nsub)
+        # transpose axes (nsub, 2*ncpt) -> (2*ncpt, nsub)
         bspline_stack = torch.transpose(rows_bspline, 0, 1)
-        # reshape (ncpt*2, nsub) -> (2, ncpt, nsub)
+        # reshape (2*ncpt, nsub) -> (2, ncpt, nsub)
         bspline_stack = bspline_stack.view(2, ncpt, nsub)
         # transpose axes (2, ncpt, nsub) -> (ncpt, 2, nsub)
         bspline_stack = torch.transpose(bspline_stack, 0, 1)
@@ -404,9 +404,9 @@ class CharacterTypeDist(ConceptTypeDist):
         assert bspline_stack.shape[-1] == nsub
         # transpose axes (ncpt, 2, nsub) -> (2, ncpt, nsub)
         rows_bspline = torch.transpose(bspline_stack, 0, 1)
-        # reshape (2, ncpt, nsub) = (ncpt*2, nsub)
+        # reshape (2, ncpt, nsub) = (2*ncpt, nsub)
         rows_bspline = rows_bspline.view(2*ncpt, nsub)
-        # transpose axes (ncpt*2, nsub) -> (nsub, ncpt*2)
+        # transpose axes (2*ncpt, nsub) -> (nsub, 2*ncpt)
         rows_bspline = torch.transpose(rows_bspline, 0, 1)
         # create multivariate normal distribution
         mvn = dist.MultivariateNormal(
