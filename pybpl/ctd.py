@@ -156,14 +156,13 @@ class CharacterTypeDist(ConceptTypeDist):
         self.pT = lib.pT
         # shapes distribution
         shapes_mu = lib.shape['mu']
-        shapes_Cov = lib.shape['Sigma'].permute([2,0,1])
+        shapes_Cov = lib.shape['Sigma'].permute(2,0,1)
         assert len(shapes_mu.shape) == 2
         assert len(shapes_Cov.shape) == 3
         assert shapes_mu.shape[0] == shapes_Cov.shape[0]
         assert shapes_Cov.shape[1] == shapes_Cov.shape[2]
         self.shapes_mu = shapes_mu
         self.shapes_Cov = shapes_Cov
-        self.newscale = lib.newscale
         # invscales distribution
         scales_theta = lib.scale['theta']
         assert len(scales_theta.shape) == 2
