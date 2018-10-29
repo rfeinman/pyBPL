@@ -109,8 +109,7 @@ class Concept(object):
 
 class CharacterToken(ConceptToken):
     """
-    Character token stores both the type- and token-level parameters of a
-    character sample
+    Character token stores the token-level parameters of a character sample
 
     Parameters
     ----------
