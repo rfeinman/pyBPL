@@ -5,7 +5,7 @@ from __future__ import print_function, division
 
 import torch
 
-from .util_general import aeq, fspecial, imfilter
+from .util_general import aeq, fspecial, imfilter, sub2ind
 from . import splines
 from . import util_character
 
@@ -134,9 +134,15 @@ def seqadd(D, lind_x, lind_y, inkval):
     )
     lind_x = lind_x[~out].long()
     lind_y = lind_y[~out].long()
-    numel = len(lind_x)
-    for i in range(numel):
-        D[lind_x[i],lind_y[i]] = D[lind_x[i],lind_y[i]] + inkval[i]
+    # numel = len(lind_x)
+    # for i in range(numel):
+    #     D[lind_x[i], lind_y[i]] = D[lind_x[i], lind_y[i]] + inkval[i]
+    shape = D.shape
+    ix_sel = sub2ind(shape, lind_y, lind_x)
+    D = D.view(-1)
+    for ix, val in zip(ix_sel, inkval):
+        D = torch.where(torch.arange(D.shape[0]) == ix, D + val, D)
+    D = D.view(shape)
 
     return D
 
