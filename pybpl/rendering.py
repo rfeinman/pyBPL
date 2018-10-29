@@ -161,15 +161,6 @@ def space_motor_to_img(pt):
 
     return new_pt
 
-def add_header(dist):
-    assert isinstance(dist, torch.Tensor)
-    assert len(dist.shape) == 1
-    dist_p = torch.zeros(len(dist)+1)
-    dist_p[0] = dist[0]
-    dist_p[1:] = dist
-
-    return dist_p
-
 def render_image(cell_traj, epsilon, blur_sigma, parameters):
     """
     TODO
@@ -193,7 +184,8 @@ def render_image(cell_traj, epsilon, blur_sigma, parameters):
         TODO
     """
     # convert to image space
-    traj_img = space_motor_to_img(cell_traj) # same shape as cell_traj
+    # Note: traj_img is still shape (nsub_total,neval,2)
+    traj_img = space_motor_to_img(cell_traj) # TODO - no inplace operations
 
     # get relevant parameters
     imsize = parameters.imsize
@@ -219,8 +211,8 @@ def render_image(cell_traj, epsilon, blur_sigma, parameters):
             myink = torch.tensor(ink, dtype=torch.float32)
         else:
             dist = pair_dist(myt) # shape (k,)
-            dist[dist>max_dist] = max_dist
-            dist = add_header(dist)
+            dist = torch.min(dist, torch.tensor(max_dist, dtype=torch.float))
+            dist = torch.cat([dist[:1], dist])
             myink = (ink/max_dist)*dist # shape (k,)
 
         # make sure we have the minimum amount of ink, if a particular
@@ -266,7 +258,7 @@ def render_image(cell_traj, epsilon, blur_sigma, parameters):
         pimg = imfilter(pimg, H_broaden, mode='conv')
 
     # threshold again
-    pimg[pimg>1] = 1
+    pimg = torch.min(pimg, torch.tensor(1.))
 
     # filter the image to get Gaussian
     # noise around the area with ink
@@ -277,8 +269,8 @@ def render_image(cell_traj, epsilon, blur_sigma, parameters):
         pimg = imfilter(pimg, H_gaussian, mode='conv')
 
     # final truncation
-    pimg[pimg>1] = 1
-    pimg[pimg<0] = 0
+    pimg = torch.min(pimg, torch.tensor(1.))
+    pimg = torch.max(pimg, torch.tensor(0.))
 
     # probability of each pixel being on
     pimg = (1-epsilon)*pimg + epsilon*(1-pimg)
