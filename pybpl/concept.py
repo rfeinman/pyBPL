@@ -136,20 +136,30 @@ class CharacterToken(ConceptToken):
         self.blur_sigma = blur_sigma
         self.parameters = parameters
 
-    def sample_image(self):
+    @property
+    def pimg(self):
         pimg, _ = rendering.apply_render(
             self.P, self.affine, self.epsilon, self.blur_sigma, self.parameters
         )
-        binom = dist.binomial.Binomial(1, pimg)
+
+        return pimg
+
+    @property
+    def ink_off_page(self):
+        _, ink_off_page = rendering.apply_render(
+            self.P, self.affine, self.epsilon, self.blur_sigma, self.parameters
+        )
+
+        return ink_off_page
+
+    def sample_image(self):
+        binom = dist.binomial.Binomial(1, self.pimg)
         image = binom.sample()
 
         return image
 
     def score_image(self, image):
-        pimg, _ = rendering.apply_render(
-            self.P, self.affine, self.epsilon, self.blur_sigma, self.parameters
-        )
-        binom = dist.binomial.Binomial(1, pimg)
+        binom = dist.binomial.Binomial(1, self.pimg)
         ll = binom.log_prob(image)
         ll = torch.sum(ll)
 

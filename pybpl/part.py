@@ -62,22 +62,25 @@ class StrokeToken(PartToken):
         super(StrokeToken, self).__init__()
         self.shapes = shapes
         self.invscales = invscales
-        self._position = None
-        self.motor = None
-        self.motor_spline = None
+        self.position = None
 
     @property
-    def position(self):
-        return self._position
-
-    @position.setter
-    def position(self, value):
-        motor, motor_spline = rendering.vanilla_to_motor(
-            self.shapes, self.invscales, value
+    def motor(self):
+        assert self.position is not None
+        motor, _ = rendering.vanilla_to_motor(
+            self.shapes, self.invscales, self.position
         )
-        self.motor = motor
-        self.motor_spline = motor_spline
-        self._position = value
+
+        return motor
+
+    @property
+    def motor_spline(self):
+        assert self.position is not None
+        _, motor_spline = rendering.vanilla_to_motor(
+            self.shapes, self.invscales, self.position
+        )
+
+        return motor_spline
 
 
 class Stroke(Part):
