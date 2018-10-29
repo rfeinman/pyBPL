@@ -128,11 +128,12 @@ def seqadd(D, lind_x, lind_y, inkval):
     :return:
     """
     assert len(lind_x) == len(lind_y) == len(inkval)
-    valid_lind_x = lind_x < D.shape[0]
-    valid_lind_y = lind_y < D.shape[1]
-    assert valid_lind_x.all() and valid_lind_y.all()
-    lind_x = lind_x.long()
-    lind_y = lind_y.long()
+    out = check_bounds(
+        torch.cat([lind_x.view(-1,1), lind_y.view(-1,1)], dim=1),
+        (D.shape[0]-1, D.shape[1]-1)
+    )
+    lind_x = lind_x[~out].long()
+    lind_y = lind_y[~out].long()
     numel = len(lind_x)
     for i in range(numel):
         D[lind_x[i],lind_y[i]] = D[lind_x[i],lind_y[i]] + inkval[i]
@@ -141,23 +142,22 @@ def seqadd(D, lind_x, lind_y, inkval):
 
 def space_motor_to_img(pt):
     """
+    Translate all control points from spline space to image space.
+    Changes all points (x, -y) -> (y, x)
 
-    :param pt: [tensor] Fine motor sequence. This is either for an individual
-                sub-stroke, in which case it has shape (neval,2), or for a
-                sequence of sub-strokes, in which case it has shape (k,neval,2)
-    :return:
+    Parameters
+    ----------
+    pt : (nsub,neval,2) tensor
+        spline point sequence for each sub-stroke
+
+    Returns
+    -------
+    new_pt : (nsub,neval,2) tensor
+        image point sequence for each sub-stroke
     """
     assert isinstance(pt, torch.Tensor)
-    new_pt = torch.zeros_like(pt, dtype=torch.float)
-    if len(pt.shape) == 2:
-        new_pt[:,0] = -pt[:,1]
-        new_pt[:,1] = pt[:,0]
-    elif len(pt.shape) == 3:
-        new_pt[:,:,0] = -pt[:,:,1]
-        new_pt[:,:,1] = pt[:,:,0]
-    else:
-        raise Exception('pt must be 2- or 3-dim tensor')
-    new_pt = new_pt + 1
+    assert len(pt.shape) == 3
+    new_pt = torch.cat([-pt[:,:,1:], pt[:,:,:1]], dim=2)
 
     return new_pt
 
@@ -185,7 +185,7 @@ def render_image(cell_traj, epsilon, blur_sigma, parameters):
     """
     # convert to image space
     # Note: traj_img is still shape (nsub_total,neval,2)
-    traj_img = space_motor_to_img(cell_traj) # TODO - no inplace operations
+    traj_img = space_motor_to_img(cell_traj)
 
     # get relevant parameters
     imsize = parameters.imsize
@@ -197,9 +197,10 @@ def render_image(cell_traj, epsilon, blur_sigma, parameters):
     nsub_total = traj_img.shape[0]
     ink_off_page = False
     for i in range(nsub_total):
-        # check boundaries
+        # get trajectory for current sub-stroke
         myt = traj_img[i] # shape (neval,2)
-        out = check_bounds(myt, imsize)
+        # reduce trajectory to only those points that are in bounds
+        out = check_bounds(myt, imsize) # boolean; shape (neval,)
         if out.any():
             ink_off_page = True
         if out.all():
@@ -208,7 +209,7 @@ def render_image(cell_traj, epsilon, blur_sigma, parameters):
 
         # compute distance between each trajectory point and the next one
         if myt.shape[0] == 1:
-            myink = torch.tensor(ink, dtype=torch.float32)
+            myink = torch.tensor(ink, dtype=torch.float)
         else:
             dist = pair_dist(myt) # shape (k,)
             dist = torch.min(dist, torch.tensor(max_dist, dtype=torch.float))
@@ -218,7 +219,7 @@ def render_image(cell_traj, epsilon, blur_sigma, parameters):
         # make sure we have the minimum amount of ink, if a particular
         # trajectory is very small
         sumink = torch.sum(myink)
-        if aeq(sumink, torch.tensor(0.)):
+        if aeq(sumink, torch.tensor(0., dtype=torch.float)):
             nink = myink.shape[0]
             myink = (ink/nink)*torch.ones_like(myink)
         elif sumink < ink:
@@ -236,16 +237,14 @@ def render_image(cell_traj, epsilon, blur_sigma, parameters):
         y_c_ratio = y - yfloor
         x_f_ratio = 1 - x_c_ratio
         y_f_ratio = 1 - y_c_ratio
-        # Reuben's fix... don't want to access last array index
-        # TODO - update this?
-        xceil[xceil == imsize[0]] = imsize[0] - 1
-        yceil[yceil == imsize[1]] = imsize[1] - 1
 
         # paint the image
+        # TODO - update seqadd function to avoid in-place operations
         pimg = seqadd(pimg, xfloor, yfloor, myink*x_f_ratio*y_f_ratio)
         pimg = seqadd(pimg, xceil, yfloor, myink*x_c_ratio*y_f_ratio)
         pimg = seqadd(pimg, xfloor, yceil, myink*x_f_ratio*y_c_ratio)
         pimg = seqadd(pimg, xceil, yceil, myink*x_c_ratio*y_c_ratio)
+
 
     # filter the image to get the desired brush-stroke size
     a = parameters.ink_a
