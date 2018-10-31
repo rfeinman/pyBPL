@@ -68,9 +68,7 @@ strokes you would like the generated character type to have.
 
 All functions required to sample character types, tokens and images are now
 complete. The `inference` package is incomplete; this is where all functions
-for infering motor programs will be contained. At the moment, I only have a
-simple function for optimizing the continuous parameters of a character type
-in order to maximize the log-likelihood under the prior.
+for infering motor programs will be contained.
 
 #### Library
 
@@ -81,7 +79,7 @@ series of `.mat` files in the subfolder `lib_data/`.
 I've included a Matlab script, `process_library.m`, which can be
 run inside the [original BPL repository](https://github.com/brendenlake/BPL) to 
 obtain this folder of files. For an example of how to load the library, see
-`demo_generate_character.py`.
+`examples/generate_character.py`.
 
 
 ## Unit Tests
