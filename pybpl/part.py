@@ -23,6 +23,10 @@ class PartToken(object):
     def __init__(self):
         pass
 
+    @abstractmethod
+    def optimizable_parameters(self, eps=1e-4):
+        pass
+
 
 class Part(object):
     """
@@ -31,6 +35,10 @@ class Part(object):
     __metaclass__ = ABCMeta
 
     def __init__(self):
+        pass
+
+    @abstractmethod
+    def optimizable_parameters(self, eps=1e-4):
         pass
 
     @abstractmethod
@@ -63,6 +71,13 @@ class StrokeToken(PartToken):
         self.shapes = shapes
         self.invscales = invscales
         self.position = None
+
+    def optimizable_parameters(self, eps=1e-4):
+        params = [self.shapes, self.invscales]
+        lbs = [None, torch.full(self.invscales.shape, eps)]
+        ubs = [None, None]
+
+        return params, lbs, ubs
 
     @property
     def motor(self):
@@ -104,6 +119,13 @@ class Stroke(Part):
         # distributions
         self.sigma_shape = lib.tokenvar['sigma_shape']
         self.sigma_invscale = lib.tokenvar['sigma_invscale']
+
+    def optimizable_parameters(self, eps=1e-4):
+        params = [self.shapes, self.invscales]
+        lbs = [None, torch.full(self.invscales.shape, eps)]
+        ubs = [None, None]
+
+        return params, lbs, ubs
 
     def sample_shapes_token(self):
         """

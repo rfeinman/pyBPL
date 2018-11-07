@@ -46,6 +46,10 @@ class ConceptToken(object):
         self.P = P
         self.R = R
 
+    @abstractmethod
+    def optimizable_parameters(self, eps=1e-4):
+        pass
+
 
 class Concept(object):
     """
@@ -74,6 +78,10 @@ class Concept(object):
         self.k = k
         self.P = P
         self.R = R
+
+    @abstractmethod
+    def optimizable_parameters(self, eps=1e-4):
+        pass
 
     @abstractmethod
     def sample_token(self):
@@ -135,6 +143,22 @@ class CharacterToken(ConceptToken):
         self.blur_sigma = blur_sigma
         self.parameters = parameters
 
+    def optimizable_parameters(self, eps=1e-4):
+        params = []
+        lbs = []
+        ubs = []
+        for p, r in zip(self.P, self.R):
+            params_p, lbs_p, ubs_p = p.optimizable_parameters(eps=eps)
+            params.extend(params_p)
+            lbs.extend(lbs_p)
+            ubs.extend(ubs_p)
+            params_r, lbs_r, ubs_r = r.optimizable_parameters(eps=eps)
+            params.extend(params_r)
+            lbs.extend(lbs_r)
+            ubs.extend(ubs_r)
+
+        return params, lbs, ubs
+
     @property
     def pimg(self):
         pimg, _ = rendering.apply_render(
@@ -190,6 +214,22 @@ class Character(Concept):
         assert isinstance(lib, Library)
         self.lib = lib
         self.parameters = defaultps()
+
+    def optimizable_parameters(self, eps=1e-4):
+        params = []
+        lbs = []
+        ubs = []
+        for p, r in zip(self.P, self.R):
+            params_p, lbs_p, ubs_p = p.optimizable_parameters(eps=eps)
+            params.extend(params_p)
+            lbs.extend(lbs_p)
+            ubs.extend(ubs_p)
+            params_r, lbs_r, ubs_r = r.optimizable_parameters(eps=eps)
+            params.extend(params_r)
+            lbs.extend(lbs_r)
+            ubs.extend(ubs_r)
+
+        return params, lbs, ubs
 
     def sample_token(self):
         """

@@ -34,6 +34,19 @@ class RelationToken(object):
             assert set(kwargs.keys()) == {'eval_spot_token'}
             self.eval_spot_token = kwargs['eval_spot_token']
 
+    def optimizable_parameters(self, eps=1e-4):
+        if self.rel.category == 'mid':
+            _, lb, ub = bspline_gen_s(self.rel.ncpt, 1)
+            params = [self.eval_spot_token]
+            lbs = [lb]
+            ubs = [ub]
+        else:
+            params = []
+            lbs = []
+            ubs = []
+
+        return params, lbs, ubs
+
     def sample_location(self, prev_parts):
         """
         TODO
@@ -141,6 +154,10 @@ class Relation(object):
         loc_Cov = torch.tensor([[sigma_x, 0.], [0., sigma_y]])
         self.loc_dist = dist.MultivariateNormal(torch.zeros(2), loc_Cov)
 
+    @abstractmethod
+    def optimizable_parameters(self, eps=1e-4):
+        pass
+
     def sample_token(self):
         """
         TODO
@@ -184,14 +201,24 @@ class RelationIndependent(Relation):
         relation category
     gpos : (2,) tensor
         position; x-y coordinates
+    imsize : (2,) tensor or ndarray or list
+        the x and y dimensions of the image; this will set boundaries
     lib : Library
         library instance, which holds token-level distribution parameters
     """
-    def __init__(self, category, gpos, lib):
+    def __init__(self, category, gpos, imsize, lib):
         super(RelationIndependent, self).__init__(category, lib)
         assert category == 'unihist'
         assert gpos.shape == torch.Size([2])
         self.gpos = gpos
+        self.imsize = imsize
+
+    def optimizable_parameters(self, eps=1e-4):
+        params = [self.gpos]
+        lbs = [torch.tensor([0, -self.imsize[0]], dtype=torch.float)]
+        ubs =[torch.tensor([self.imsize[1], 0], dtype=torch.float)]
+
+        return params, lbs, ubs
 
 
 class RelationAttach(Relation):
@@ -211,6 +238,13 @@ class RelationAttach(Relation):
         super(RelationAttach, self).__init__(category, lib)
         assert category in ['start', 'end', 'mid']
         self.attach_ix = attach_ix
+
+    def optimizable_parameters(self, eps=1e-4):
+        params = []
+        lbs = []
+        ubs = []
+
+        return params, lbs, ubs
 
 
 class RelationAttachAlong(RelationAttach):
@@ -239,6 +273,14 @@ class RelationAttachAlong(RelationAttach):
         # token-level eval_spot distribution parameters
         self.ncpt = lib.ncpt
         self.sigma_attach = lib.tokenvar['sigma_attach']
+
+    def optimizable_parameters(self, eps=1e-4):
+        _, lb, ub = bspline_gen_s(self.ncpt, 1)
+        params = [self.eval_spot]
+        lbs = [lb]
+        ubs = [ub]
+
+        return params, lbs, ubs
 
     def sample_token(self):
         """
@@ -276,6 +318,7 @@ class RelationAttachAlong(RelationAttach):
         )
 
         return ll
+
 
 
 def sample_eval_spot_token(eval_spot_dist, ncpt):
