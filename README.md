@@ -36,12 +36,39 @@ cd docs/
 make html
 ```
 
+## Usage Example
 
+The following code loads the BPL model with and samples a token
+
+```python
+from pybpl.library import Library
+from pybpl.ctd import CharacterTypeDist
+
+# load the hyperparameters of the BPL graphical model (i.e. the "library")
+lib = Library(lib_dir='/path/to/lib_dir')
+
+# build the type distribution P(Type)
+type_dist = CharacterTypeDist(lib)
+
+# sample a character type from the prior P(Type) and score its log-likelihood
+char_type = type_dist.sample_type()
+ll_type = type_dist.score_type(char_type)
+
+# sample a character token from P(Token | Type=type) and score its log-likelihood
+char_token = char_type.sample_token()
+ll_token_given_type = char_type.score_token(char_token)
+
+# sample an image from P(Image | Token=token)
+image = char_token.sample_image()
+ll_image_given_token = char_token.score_image(image)
+
+```
 
 ## Demo
 Currently there are 2 working demos, both found in the `examples` subfolder.
 
-#### Generate character
+#####1. generate character
+
 You can generate a character type and sample a few tokens of the type by
 running the following command from the root folder:
 ```
@@ -50,7 +77,7 @@ python examples/generate_character.py
 The script will sample a character type from the prior and then sample 4 tokens
 of the type, displaying the images.
 
-#### Optimize character type
+#####2. optimize character type
 You can generate a character type and then optimize its parameters to maximize
 the likelihood of the type under the prior by running the following
 command from the root folder:
