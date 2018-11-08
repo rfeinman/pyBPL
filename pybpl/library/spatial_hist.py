@@ -77,7 +77,9 @@ class SpatialHist(object):
 
         self.logpYX = logpN
         self.xlab = xtick
+        self.xlim = xtick[[0,-1]]
         self.ylab = ytick
+        self.ylim = ytick[[0,-1]]
         self.rg_bin = rg_bin
         self.prior_count = prior_count
 
@@ -97,7 +99,9 @@ class SpatialHist(object):
         assert type(prior_count) is float
         self.logpYX = logpYX
         self.xlab = xlab
+        self.xlim = xlab[[0,-1]]
         self.ylab = ylab
+        self.ylim = ylab[[0,-1]]
         self.rg_bin = rg_bin
         self.prior_count = prior_count
 

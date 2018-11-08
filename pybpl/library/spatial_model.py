@@ -59,6 +59,8 @@ class SpatialModel(object):
             prior_count
         )
         self.list_SH.append(sh)
+        self.xlim = xlim
+        self.ylim = ylim
 
     def set_properties(self, list_SH):
         """
@@ -71,6 +73,14 @@ class SpatialModel(object):
         for elt in list_SH:
             assert isinstance(elt, SpatialHist)
         self.list_SH = list_SH
+        # make sure all spatial hists have same bounds
+        xlim = list_SH[0].xlim
+        ylim = list_SH[0].ylim
+        for elt in list_SH[1:]:
+            assert torch.all(elt.xlim == xlim)
+            assert torch.all(elt.ylim == ylim)
+        self.xlim = xlim
+        self.ylim = ylim
 
     @property
     def last_model_id(self):

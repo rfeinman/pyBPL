@@ -14,7 +14,6 @@ from .relation import (Relation, RelationIndependent, RelationAttach,
 from .part import Stroke
 from .concept import Concept, Character
 from .splines import bspline_gen_s
-from .parameters import defaultps
 
 # list of acceptable dtypes for 'k' parameter
 int_types = [torch.uint8, torch.int8, torch.int16, torch.int32, torch.int64]
@@ -543,7 +542,8 @@ class CharacterTypeDist(ConceptTypeDist):
             assert isinstance(p, Stroke)
         nprev = len(prev_parts)
         stroke_num = nprev + 1
-        imsize = defaultps().imsize
+        xlim = self.Spatial.xlim
+        ylim = self.Spatial.ylim
         # first sample the relation category
         if nprev == 0:
             category = 'unihist'
@@ -557,7 +557,7 @@ class CharacterTypeDist(ConceptTypeDist):
             gpos = self.Spatial.sample(data_id)
             # convert (1,2) tensor to (2,) tensor
             gpos = torch.squeeze(gpos)
-            r = RelationIndependent(category, gpos, imsize, self.lib)
+            r = RelationIndependent(category, gpos, xlim, ylim, self.lib)
         elif category in ['start', 'end', 'mid']:
             # sample random stroke uniformly from previous strokes. this is the
             # stroke we will attach to
@@ -619,8 +619,9 @@ class CharacterTypeDist(ConceptTypeDist):
             # # score the type-level location
             # ll = ll + self.Spatial.score(gpos, data_id)
             # TODO - update this to proper score. using uniform dist for now
-            lb = torch.tensor([0, -r.imsize[0]], dtype=torch.float)
-            ub = torch.tensor([r.imsize[1], 0], dtype=torch.float)
+            bounds = torch.cat([r.xlim.view(1, -1), r.ylim.view(1, -1)])
+            lb = bounds[:,0]
+            ub = bounds[:,1]
             gpos_score = dist.Uniform(lb, ub).log_prob(r.gpos)
             ll = ll + torch.sum(gpos_score)
         elif r.category in ['start', 'end', 'mid']:

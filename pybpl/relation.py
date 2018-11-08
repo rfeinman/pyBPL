@@ -201,22 +201,26 @@ class RelationIndependent(Relation):
         relation category
     gpos : (2,) tensor
         position; x-y coordinates
-    imsize : (2,) tensor or ndarray or list
-        the x and y dimensions of the image; this will set boundaries
+    xlim : (2,) tensor
+        [lower, upper]; bounds for the x direction
+    ylim : (2,) tensor
+        [lower, upper]; bounds for the y direction
     lib : Library
         library instance, which holds token-level distribution parameters
     """
-    def __init__(self, category, gpos, imsize, lib):
+    def __init__(self, category, gpos, xlim, ylim, lib):
         super(RelationIndependent, self).__init__(category, lib)
         assert category == 'unihist'
         assert gpos.shape == torch.Size([2])
         self.gpos = gpos
-        self.imsize = imsize
+        self.xlim = xlim
+        self.ylim = ylim
 
     def optimizable_parameters(self, eps=1e-4):
         params = [self.gpos]
-        lbs = [torch.tensor([0, -self.imsize[0]], dtype=torch.float)]
-        ubs =[torch.tensor([self.imsize[1], 0], dtype=torch.float)]
+        bounds = torch.cat([self.xlim.view(1, -1), self.ylim.view(1, -1)])
+        lbs = [bounds[:,0]]
+        ubs = [bounds[:,1]]
 
         return params, lbs, ubs
 
