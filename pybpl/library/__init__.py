@@ -8,7 +8,7 @@ Holds all parameters of the conditional probability
 distribution. These parameters have been learned from the training data.
 """
 from .library import Library
-from .spatial.spatial_hist import SpatialHist, logsumexp_t
+from .spatial.spatial_hist import SpatialHist
 from .spatial.spatial_model import SpatialModel
 
-__all__ = ["Library", "SpatialHist", "SpatialModel", "logsumexp_t"]
+__all__ = ["Library", "SpatialHist", "SpatialModel"]
