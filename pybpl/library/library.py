@@ -5,7 +5,7 @@ import numpy as np
 import torch
 
 from .spatial import SpatialModel
-from ..util_general import aeq
+from ..util import aeq
 
 
 class Library(object):

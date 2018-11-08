@@ -5,9 +5,8 @@ from __future__ import print_function, division
 
 import torch
 
-from .util_general import aeq, fspecial, imfilter
+from .util import aeq, fspecial, imfilter
 from . import splines
-from . import util_character
 
 
 # ----
@@ -72,7 +71,7 @@ def apply_warp(motor_unwarped, affine):
     b[:2] = affine[:2]
     b[2:4] = affine[2:4] - (affine[:2]-1)*com
     fn = lambda stk: affine_warp(stk, b)
-    motor_warped = util_character.apply_each_substroke(motor_unwarped, fn)
+    #motor_warped = util_character.apply_each_substroke(motor_unwarped, fn)
 
     return motor_warped
 
