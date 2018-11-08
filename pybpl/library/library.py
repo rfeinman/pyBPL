@@ -159,7 +159,7 @@ def get_data(item, path):
     item_path = os.path.join(path, item)
     data = io.loadmat(item_path)['value']
     data = data.astype(np.float32)  # convert to float32
-    out = torch.squeeze(torch.tensor(data))
+    out = torch.squeeze(torch.tensor(data, dtype=torch.float))
 
     return out
 
@@ -174,17 +174,16 @@ def load_hist(path):
     rg_bin = io.loadmat(os.path.join(path, 'rg_bin'))['value']
     prior_count = io.loadmat(os.path.join(path, 'prior_count'))['value']
     # fix some of the properties, convert to torch tensors
-    logpYX = torch.tensor(logpYX)
-    xlab = torch.tensor(xlab[0])
-    ylab = torch.tensor(ylab[0])
-    rg_bin = torch.tensor(rg_bin[0])
+    logpYX = torch.tensor(logpYX, dtype=torch.float)
+    xlab = torch.tensor(xlab[0], dtype=torch.float)
+    ylab = torch.tensor(ylab[0], dtype=torch.float)
+    rg_bin = torch.tensor(rg_bin[0], dtype=torch.float)
     prior_count = prior_count.item()
     # build the SpatialHist instance
     H = SpatialHist()
     H.set_properties(logpYX, xlab, ylab, rg_bin, prior_count)
 
     return H
-
 
 def fix_shape_params(shape):
     """
