@@ -33,10 +33,34 @@ pybpl.relation module
     :undoc-members:
     :show-inheritance:
 
-pybpl.inference module
+pybpl.library module
 ----------------------
 
-.. automodule:: pybpl.inference
+.. automodule:: pybpl.library
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+pybpl.rendering module
+----------------------
+
+.. automodule:: pybpl.rendering
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+pybpl.splines module
+----------------------
+
+.. automodule:: pybpl.splines
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+pybpl.util module
+----------------------
+
+.. automodule:: pybpl.util
     :members:
     :undoc-members:
     :show-inheritance:

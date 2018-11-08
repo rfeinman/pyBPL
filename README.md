@@ -94,8 +94,7 @@ strokes you would like the generated character type to have.
 #### General
 
 All functions required to sample character types, tokens and images are now
-complete. The `inference` package is incomplete; this is where all functions
-for infering motor programs will be contained.
+complete. Currently, independent relations sample their position from a uniform distribution over the entire image window. This must be updated to reflect the actual spatial distributions of each stroke id (a hyperparameter of the BPL model). Inference algorithms are in the works. 
 
 #### Library
 
