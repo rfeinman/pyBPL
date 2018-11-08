@@ -613,17 +613,11 @@ class CharacterTypeDist(ConceptTypeDist):
 
         # now score the category-specific type-level parameters
         if r.category == 'unihist':
-            # data_id = torch.tensor([stroke_ix])
-            # # convert (2,) tensor to (1,2) tensor
-            # gpos = r.gpos.view(1,2)
-            # # score the type-level location
-            # ll = ll + self.Spatial.score(gpos, data_id)
-            # TODO - update this to proper score. using uniform dist for now
-            bounds = torch.cat([r.xlim.view(1, -1), r.ylim.view(1, -1)])
-            lb = bounds[:,0]
-            ub = bounds[:,1]
-            gpos_score = dist.Uniform(lb, ub).log_prob(r.gpos)
-            ll = ll + torch.sum(gpos_score)
+            data_id = torch.tensor([stroke_ix])
+            # convert (2,) tensor to (1,2) tensor
+            gpos = r.gpos.view(1,2)
+            # score the type-level location
+            ll = ll + torch.squeeze(self.Spatial.score(gpos, data_id))
         elif r.category in ['start', 'end', 'mid']:
             # score the stroke attachment index
             probs = torch.ones(nprev)

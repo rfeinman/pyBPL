@@ -4,8 +4,7 @@ import scipy.io as io
 import numpy as np
 import torch
 
-from .spatial_hist import SpatialHist
-from .spatial_model import SpatialModel
+from .spatial import SpatialModel
 from ..util_general import aeq
 
 
@@ -43,31 +42,15 @@ class Library(object):
         self.diagSigma = self.diagSigma.byte()
 
         # Finally, load SpatialModel
-        spatial_path = os.path.join(lib_dir, 'Spatial')
-        hists = sorted(os.listdir(spatial_path))
-        list_SH = []
-        for hist in hists:
-            SH = load_hist(os.path.join(spatial_path, hist))
-            list_SH.append(SH)
-        SM = SpatialModel()
-        SM.set_properties(list_SH)
-        self.Spatial = SM
+        clump_ID = 2
+        xlim = torch.tensor([0, 105], dtype=torch.float)
+        ylim = torch.tensor([-105, 0], dtype=torch.float)
+        spatial_model = SpatialModel(xlim, ylim, clump_ID)
+        spatial_model.initialize_unif()
+        self.Spatial = spatial_model
 
-        # private properties
-        self.__eval_int = 1e-2
-
-        # Learned ink model
+        # Check consistency of the library
         self.check_consistent()
-
-    def restrict_library(self, keep):
-        """
-        Remove primitives from library, except for those in "keep"
-        TODO - do wee need this?
-
-        :param keep: [(N,) array] array of bools; true for an entry if we want
-                        to keep that primitive
-        """
-        raise NotImplementedError
 
     @property
     def ncpt(self):
@@ -162,28 +145,6 @@ def get_data(item, path):
     out = torch.squeeze(torch.tensor(data, dtype=torch.float))
 
     return out
-
-def load_hist(path):
-    """
-    load spatial histogram
-    """
-    # load all hist properties
-    logpYX = io.loadmat(os.path.join(path, 'logpYX'))['value']
-    xlab = io.loadmat(os.path.join(path, 'xlab'))['value']
-    ylab = io.loadmat(os.path.join(path, 'ylab'))['value']
-    rg_bin = io.loadmat(os.path.join(path, 'rg_bin'))['value']
-    prior_count = io.loadmat(os.path.join(path, 'prior_count'))['value']
-    # fix some of the properties, convert to torch tensors
-    logpYX = torch.tensor(logpYX, dtype=torch.float)
-    xlab = torch.tensor(xlab[0], dtype=torch.float)
-    ylab = torch.tensor(ylab[0], dtype=torch.float)
-    rg_bin = torch.tensor(rg_bin[0], dtype=torch.float)
-    prior_count = prior_count.item()
-    # build the SpatialHist instance
-    H = SpatialHist()
-    H.set_properties(logpYX, xlab, ylab, rg_bin, prior_count)
-
-    return H
 
 def fix_shape_params(shape):
     """
