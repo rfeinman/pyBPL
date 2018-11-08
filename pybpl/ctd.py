@@ -541,7 +541,7 @@ class CharacterTypeDist(ConceptTypeDist):
         for p in prev_parts:
             assert isinstance(p, Stroke)
         nprev = len(prev_parts)
-        stroke_num = nprev + 1
+        stroke_ix = nprev
         xlim = self.Spatial.xlim
         ylim = self.Spatial.ylim
         # first sample the relation category
@@ -553,7 +553,7 @@ class CharacterTypeDist(ConceptTypeDist):
 
         # now sample the category-specific type-level parameters
         if category == 'unihist':
-            data_id = torch.tensor([stroke_num])
+            data_id = torch.tensor([stroke_ix])
             gpos = self.Spatial.sample(data_id)
             # convert (1,2) tensor to (2,) tensor
             gpos = torch.squeeze(gpos)
@@ -602,7 +602,7 @@ class CharacterTypeDist(ConceptTypeDist):
         for p in prev_parts:
             assert isinstance(p, Stroke)
         nprev = len(prev_parts)
-        stroke_num = nprev + 1
+        stroke_ix = nprev
         # first score the relation category
         if nprev == 0:
             ll = 0.
@@ -613,7 +613,7 @@ class CharacterTypeDist(ConceptTypeDist):
 
         # now score the category-specific type-level parameters
         if r.category == 'unihist':
-            # data_id = torch.tensor([stroke_num])
+            # data_id = torch.tensor([stroke_ix])
             # # convert (2,) tensor to (1,2) tensor
             # gpos = r.gpos.view(1,2)
             # # score the type-level location
