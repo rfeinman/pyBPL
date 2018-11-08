@@ -24,7 +24,7 @@ class SpatialModel(object):
 
         :param data_start: [(n,2) tensor] input data array
         :param data_id: [(n,) tensor] index array
-        :param clump_id: [int] the id of...
+        :param clump_id: [int] the part index at which we start to clump.
         :param xlim: [list of 2 ints] (xmin,xmax); range of x-dimension
         :param ylim: [list of 2 ints] (ymin,ymax); range of y-dimension
         :param nbin_per_side: [int] number of bins per dimension
@@ -61,6 +61,7 @@ class SpatialModel(object):
         self.list_SH.append(sh)
         self.xlim = xlim
         self.ylim = ylim
+        self.clump_id = clump_id
 
     def set_properties(self, list_SH):
         """
@@ -81,18 +82,7 @@ class SpatialModel(object):
             assert torch.all(elt.ylim == ylim)
         self.xlim = xlim
         self.ylim = ylim
-
-    @property
-    def last_model_id(self):
-        """
-        Stroke ids after this are given to the same model (inclusive)
-
-        :return:
-            out: [int] id of the last model
-        """
-        out = len(self.list_SH) - 1
-
-        return out
+        self.clump_id = len(list_SH)-1
 
     def score(self, data_start, data_id):
         """
@@ -112,7 +102,7 @@ class SpatialModel(object):
 
         # for each stroke id
         ll = 0.
-        for sid in range(self.last_model_id+1):
+        for sid in range(self.clump_id+1):
             sel = new_id == sid
             nsel = torch.sum(sel)
             # if nsel > 0 then score
@@ -138,7 +128,7 @@ class SpatialModel(object):
         new_id = self.__map_indx(data_id)
         ndat = len(data_start)
         ll = torch.zeros(ndat)
-        for sid in range(self.last_model_id+1):
+        for sid in range(self.clump_id+1):
             sel = new_id == sid
             nsel = torch.sum(sel)
             # if nsel > 0 then score
@@ -163,7 +153,7 @@ class SpatialModel(object):
 
         # for each stroke id
         samples = torch.zeros(nsamp, 2)
-        for sid in range(self.last_model_id+1):
+        for sid in range(self.clump_id+1):
             sel = new_id == sid
             nsel = torch.sum(sel)
             # if nsel > 0 then sample
@@ -179,10 +169,9 @@ class SpatialModel(object):
 
         :return: None
         """
-        n = self.last_model_id
-        nrow = np.ceil(np.sqrt(n))
+        nrow = np.ceil(np.sqrt(self.clump_id+1))
         plt.figure()
-        for sid in range(self.last_model_id):
+        for sid in range(self.clump_id+1):
             plt.subplot(nrow, nrow, sid+1)
             self.list_SH[sid].plot(subplot=True)
             plt.title("%i" % sid)
@@ -197,6 +186,6 @@ class SpatialModel(object):
             new_id:
         """
         new_id = old_id
-        new_id[new_id>self.last_model_id] = self.last_model_id
+        new_id[new_id>self.clump_id] = self.clump_id
 
         return new_id
