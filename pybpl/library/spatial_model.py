@@ -90,7 +90,7 @@ class SpatialModel(object):
         :return:
             out: [int] id of the last model
         """
-        out = len(self.list_SH)
+        out = len(self.list_SH) - 1
 
         return out
 
@@ -112,7 +112,7 @@ class SpatialModel(object):
 
         # for each stroke id
         ll = 0.
-        for sid in range(self.last_model_id):
+        for sid in range(self.last_model_id+1):
             sel = new_id == sid
             nsel = torch.sum(sel)
             # if nsel > 0 then score
@@ -138,7 +138,7 @@ class SpatialModel(object):
         new_id = self.__map_indx(data_id)
         ndat = len(data_start)
         ll = torch.zeros(ndat)
-        for sid in range(self.last_model_id):
+        for sid in range(self.last_model_id+1):
             sel = new_id == sid
             nsel = torch.sum(sel)
             # if nsel > 0 then score
@@ -163,7 +163,7 @@ class SpatialModel(object):
 
         # for each stroke id
         samples = torch.zeros(nsamp, 2)
-        for sid in range(self.last_model_id):
+        for sid in range(self.last_model_id+1):
             sel = new_id == sid
             nsel = torch.sum(sel)
             # if nsel > 0 then sample
