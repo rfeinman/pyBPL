@@ -5,8 +5,8 @@ import torch
 from torch.distributions.multivariate_normal import MultivariateNormal
 from torch.distributions.uniform import Uniform
 
-from ..library import SpatialHist
-from ..util import logsumexp_t
+from .spatial_hist import SpatialHist
+from ...util import logsumexp_t
 
 class TestSpatialHist(unittest.TestCase):
 
