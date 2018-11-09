@@ -16,7 +16,8 @@ from . import rendering
 
 class PartToken(object):
     """
-    TODO
+    An abstract base class for part tokens. Holds all token-level parameters
+    of the part.
     """
     __metaclass__ = ABCMeta
 
@@ -30,7 +31,8 @@ class PartToken(object):
 
 class Part(object):
     """
-    TODO
+    An abstract base class for parts. Holds all type-level parameters of the
+    part.
     """
     __metaclass__ = ABCMeta
 
@@ -57,14 +59,14 @@ class Part(object):
 
 class StrokeToken(PartToken):
     """
-    TODO
+    Stroke tokens hold all token-level parameters of the stroke.
 
     Parameters
     ----------
-    shapes : TODO
-        TODO
-    invscales : TODO
-        TODO
+    shapes : (ncpt, 2, nsub) tensor
+        shapes tokens
+    invscales : (nsub,) tensor
+        invscales tokens
     """
     def __init__(self, shapes, invscales):
         super(StrokeToken, self).__init__()
@@ -73,6 +75,24 @@ class StrokeToken(PartToken):
         self.position = None
 
     def optimizable_parameters(self, eps=1e-4):
+        """
+        Returns a list of parameters that can be optimized via gradient descent.
+        Includes lists of lower and upper bounds, with one per parameter.
+
+        Parameters
+        ----------
+        eps : float
+            tolerance for constrained optimization
+
+        Returns
+        -------
+        params : list
+            optimizable parameters
+        lbs : list
+            lower bound for each parameter
+        ubs : list
+            upper bound for each parameter
+                """
         params = [self.shapes, self.invscales]
         lbs = [None, torch.full(self.invscales.shape, eps)]
         ubs = [None, None]
@@ -81,6 +101,9 @@ class StrokeToken(PartToken):
 
     @property
     def motor(self):
+        """
+        TODO
+        """
         assert self.position is not None
         motor, _ = rendering.vanilla_to_motor(
             self.shapes, self.invscales, self.position
@@ -90,6 +113,9 @@ class StrokeToken(PartToken):
 
     @property
     def motor_spline(self):
+        """
+        TODO
+        """
         assert self.position is not None
         _, motor_spline = rendering.vanilla_to_motor(
             self.shapes, self.invscales, self.position
@@ -105,11 +131,18 @@ class Stroke(Part):
 
     Parameters
     ----------
-    TODO
+    nsub : tensor
+        scalar; number of sub-strokes
+    ids : (nsub,) tensor
+        sub-stroke ID sequence
+    shapes : (ncpt, 2, nsub) tensor
+        shapes types
+    invscales : (nsub,) tensor
+        invscales types
+    lib : Library
+        library instance
     """
-    def __init__(
-            self, nsub, ids, shapes, invscales, lib
-    ):
+    def __init__(self, nsub, ids, shapes, invscales, lib):
         super(Stroke, self).__init__()
         self.nsub = nsub
         self.ids = ids
@@ -121,6 +154,24 @@ class Stroke(Part):
         self.sigma_invscale = lib.tokenvar['sigma_invscale']
 
     def optimizable_parameters(self, eps=1e-4):
+        """
+        Returns a list of parameters that can be optimized via gradient descent.
+        Includes lists of lower and upper bounds, with one per parameter.
+
+        Parameters
+        ----------
+        eps : float
+            tolerance for constrained optimization
+
+        Returns
+        -------
+        params : list
+            optimizable parameters
+        lbs : list
+            lower bound for each parameter
+        ubs : list
+            upper bound for each parameter
+        """
         params = [self.shapes, self.invscales]
         lbs = [None, torch.full(self.invscales.shape, eps)]
         ubs = [None, None]
@@ -129,12 +180,12 @@ class Stroke(Part):
 
     def sample_shapes_token(self):
         """
-        TODO
+        Sample a token of each sub-stroke's shapes
 
         Returns
         -------
         shapes_token : (ncpt, 2, nsub) tensor
-            TODO
+            sampled shapes token
         """
         shapes_dist = dist.normal.Normal(self.shapes, self.sigma_shape)
         # sample shapes token
@@ -144,85 +195,79 @@ class Stroke(Part):
 
     def score_shapes_token(self, shapes_token):
         """
-        TODO
+        Compute the log-likelihood of each sub-strokes's shapes
 
         Parameters
         ----------
         shapes_token : (ncpt, 2, nsub) tensor
-            TODO
+            shapes tokens to score
 
         Returns
         -------
-        ll : TODO
-            TODO
+        ll : (nsub,) tensor
+            vector of log-likelihood scores
         """
         shapes_dist = dist.normal.Normal(self.shapes, self.sigma_shape)
         # compute scores for every element in shapes_token
         ll = shapes_dist.log_prob(shapes_token)
-        # sum scores
-        ll = torch.sum(ll)
 
         return ll
 
     def sample_invscales_token(self):
         """
-        TODO
+        Sample a token of each sub-stroke's scale
 
         Returns
         -------
         invscales_token : (nsub,) tensor
-            TODO
+            sampled scales tokens
         """
         scales_dist = dist.normal.Normal(self.invscales, self.sigma_invscale)
-        ll = torch.tensor(-float('inf'))
-        while ll == -float('inf'):
+        while True:
             invscales_token = scales_dist.sample()
             ll = self.score_invscales_token(invscales_token)
+            if not torch.any(ll == -float('inf')):
+                break
 
         return invscales_token
 
     def score_invscales_token(self, invscales_token):
         """
-        TODO
+        Compute the log-likelihood of each sub-stroke's scale
 
         Parameters
         ----------
         invscales_token : (nsub,) tensor
-            TODO
+            scales tokens to score
 
         Returns
         -------
-        ll : tensor
-            TODO
+        ll : (nsub,) tensor
+            vector of log-likelihood scores
         """
         scales_dist = dist.normal.Normal(self.invscales, self.sigma_invscale)
         # compute scores for every element in invscales_token
         ll = scales_dist.log_prob(invscales_token)
 
-        # don't allow invscales that are negative
-        out_of_bounds = invscales_token <= 0
-        if out_of_bounds.any():
-            ll = torch.tensor(-float('inf'))
-            return ll
-
         # correction for positive only invscales
         p_below = scales_dist.cdf(0.)
-        p_above = 1.- p_below
+        p_above = 1. - p_below
         ll = ll - torch.log(p_above)
 
-        # sum scores
-        ll = torch.sum(ll)
+        # don't allow invscales that are negative
+        out_of_bounds = invscales_token <= 0
+        ll[out_of_bounds] = -float('inf')
 
         return ll
 
     def sample_token(self):
         """
-        TODO
+        Sample a stroke token
 
         Returns
         -------
         token : StrokeToken
-            TODO
+            stroke token sample
         """
         shapes = self.sample_shapes_token()
         invscales = self.sample_invscales_token()
@@ -232,20 +277,20 @@ class Stroke(Part):
 
     def score_token(self, token):
         """
-        TODO
+        Compute the log-likelihood of a stroke token
 
         Parameters
         ----------
         token : StrokeToken
-            TODO
+            stroke token to score
 
         Returns
         -------
         ll : tensor
-            TODO
+            scalar; log-likelihood of the stroke token
         """
-        ll = 0.
-        ll = ll + self.score_shapes_token(token.shapes)
-        ll = ll + self.score_invscales_token(token.invscales)
+        shapes_scores = self.score_shapes_token(token.shapes)
+        invscales_scores = self.score_invscales_token(token.invscales)
+        ll = torch.sum(shapes_scores) + torch.sum(invscales_scores)
 
         return ll
