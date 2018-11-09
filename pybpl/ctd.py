@@ -404,12 +404,12 @@ class CharacterTypeDist(ConceptTypeDist):
 
         Parameters
         ----------
-        subid : (k,) tensor
+        subid : (nsub,) tensor
             sub-stroke ID sequence
 
         Returns
         -------
-        invscales : (k,) tensor
+        invscales : (nsub,) tensor
             scale values for each sub-stroke
         """
         if self.lib.isunif:
@@ -430,14 +430,14 @@ class CharacterTypeDist(ConceptTypeDist):
 
         Parameters
         ----------
-        subid : (k,) tensor
+        subid : (nsub,) tensor
             sub-stroke ID sequence
-        invscales : (k,) tensor
+        invscales : (nsub,) tensor
             scale values for each sub-stroke
 
         Returns
         -------
-        ll : (k,) tensor
+        ll : (nsub,) tensor
             vector of log-likelihood scores
         """
         if self.lib.isunif:
