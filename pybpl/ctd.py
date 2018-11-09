@@ -200,31 +200,27 @@ class CharacterTypeDist(ConceptTypeDist):
     # Sub-strokes model methods
     # ----
 
-    def sample_nsub(self, k, nsamp=1):
+    def sample_nsub(self, k):
         """
-        Sample a sub-stroke count (or a vector of sub-stroke counts if nsamp>1)
+        Sample a sub-stroke count
 
         Parameters
         ----------
         k : tensor
             scalar; stroke count
-        nsamp : int
-            number of samples to draw
 
         Returns
         -------
-        nsub : (nsamp,) tensor
-            vector of sub-stroke counts. scalar if nsamp=1
+        nsub : tensor
+            scalar; sub-stroke count
         """
-        # probability of each sub-stroke count, conditioned on the number of strokes
-        # NOTE: subtract 1 from stroke counts to get Python index
+        # probability of each sub-stroke count, conditioned on the number of
+        # strokes. NOTE: subtract 1 from stroke counts to get Python index
         pvec = self.lib.pmat_nsub[k-1]
         # make sure pvec is a vector
         assert len(pvec.shape) == 1
-        # sample from the categorical distribution. Add 1 to 0-indexed samples
-        nsub = dist.Categorical(probs=pvec).sample(torch.Size([nsamp])) + 1
-        # convert vector to scalar if nsamp=1
-        nsub = torch.squeeze(nsub)
+        # sample from the categorical distribution. Add 1 to 0-indexed sample
+        nsub = dist.Categorical(probs=pvec).sample() + 1
 
         return nsub
 
@@ -283,7 +279,7 @@ class CharacterTypeDist(ConceptTypeDist):
             # update transition probabilities; condition on previous sub-stroke
             pT = self.lib.pT(ss)
         # convert list into tensor
-        subid = torch.tensor(subid)
+        subid = torch.stack(subid)
 
         return subid
 
@@ -298,17 +294,17 @@ class CharacterTypeDist(ConceptTypeDist):
 
         Returns
         -------
-        ll : tensor
+        ll : (nsub,) tensor
             scalar; log-probability of the sub-stroke ID sequence
         """
         # set initial transition probabilities
         pT = torch.exp(self.lib.logStart)
-        # log-prob accumulator
-        ll = 0.
-        # step through sub-stroke IDs and add to accumulator
-        for ss in subid:
+        # initialize log-prob vector
+        ll = torch.zeros(len(subid), dtype=torch.float)
+        # step through sub-stroke IDs
+        for i, ss in enumerate(subid):
             # add to log-prob accumulator
-            ll = ll + dist.Categorical(probs=pT).log_prob(ss)
+            ll[i] = dist.Categorical(probs=pT).log_prob(ss)
             # update transition probabilities; condition on previous sub-stroke
             pT = self.lib.pT(ss)
 
@@ -391,8 +387,7 @@ class CharacterTypeDist(ConceptTypeDist):
         # create multivariate normal distribution
         mvn = dist.MultivariateNormal(shapes_mu, shapes_Cov)
         # score points using the multivariate normal distribution
-        ll_vec = mvn.log_prob(shapes)
-        ll = torch.sum(ll_vec)
+        ll = mvn.log_prob(shapes)
 
         return ll
 
@@ -440,8 +435,8 @@ class CharacterTypeDist(ConceptTypeDist):
 
         Returns
         -------
-        ll : TODO
-            TODO
+        ll : (k,) tensor
+            vector of log-likelihood scores
         """
         if self.lib.isunif:
             raise NotImplementedError
@@ -452,8 +447,7 @@ class CharacterTypeDist(ConceptTypeDist):
         # create gamma distribution
         gamma = dist.Gamma(self.scales_con[subid], self.scales_rate[subid])
         # score points using the gamma distribution
-        ll_vec = gamma.log_prob(invscales)
-        ll = torch.sum(ll_vec)
+        ll = gamma.log_prob(invscales)
 
         return ll
 
@@ -505,10 +499,12 @@ class CharacterTypeDist(ConceptTypeDist):
         ll : tensor
             scalar; log-probability of the stroke type
         """
-        ll = self.score_nsub(k, p.nsub)
-        ll = ll + self.score_subIDs(p.ids)
-        ll = ll + self.score_shapes_type(p.ids, p.shapes)
-        ll = ll + self.score_invscales_type(p.ids, p.invscales)
+        nsub_score = self.score_nsub(k, p.nsub)
+        subIDs_scores = self.score_subIDs(p.ids)
+        shapes_scores = self.score_shapes_type(p.ids, p.shapes)
+        invscales_scores = self.score_invscales_type(p.ids, p.invscales)
+        ll = nsub_score + torch.sum(subIDs_scores) + torch.sum(shapes_scores) \
+             + torch.sum(invscales_scores)
 
         return ll
 
@@ -627,6 +623,21 @@ class CharacterTypeDist(ConceptTypeDist):
         return ll
 
     def sample_type(self, k=None):
+        """
+        Sample a character type
+
+        Parameters
+        ----------
+        k : int
+            optional; number of strokes for the type. If 'None' this will be
+            sampled
+
+        Returns
+        -------
+        c : Character
+            character type
+
+        """
         c = super(CharacterTypeDist, self).sample_type(k)
         c = Character(c.k, c.P, c.R, self.lib)
 
