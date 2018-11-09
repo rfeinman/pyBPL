@@ -25,14 +25,16 @@ from .relation import Relation, RelationToken
 
 class ConceptToken(object):
     """
-    Abstract base class for concept tokens
+    Abstract base class for concept tokens. Concept tokens consist of a list
+    of PartTokens and a list of RelationTokens. 'ConceptToken' defines the
+    distribution P(Image | Token = token)
 
     Parameters
     ----------
     P : list of PartToken
-        TODO
+        part tokens
     R : list of RelationToken
-        TODO
+        relation tokens
     """
     __metaclass__ = ABCMeta
 
@@ -50,11 +52,21 @@ class ConceptToken(object):
     def optimizable_parameters(self, eps=1e-4):
         pass
 
+    @abstractmethod
+    def sample_image(self):
+        pass
+
+    @abstractmethod
+    def score_image(self, image):
+        pass
+
 
 class Concept(object):
     """
-    An abstract base class for concepts. A concept is a probabilistic program
-    that samples Concept tokens. Concepts are made up of parts and relations.
+    An abstract base class for concept types. A concept (type) is a
+    probabilistic program that samples concept tokens. Concepts are made up of
+    parts and relations. 'Concept' defines the distribution
+    P(Token | Type = type)
 
     Parameters
     ----------
@@ -102,11 +114,26 @@ class Concept(object):
         return token
 
     def score_token(self, token):
+        """
+        Compute the log-likelihood of a concept token
+
+        Parameters
+        ----------
+        token : ConceptToken
+            concept token to be scored
+
+        Returns
+        -------
+        ll : tensor
+            scalar; log-likelihood of the token
+        """
         ll = 0.
         for i in range(self.k):
             ll = ll + self.P[i].score_token(token.P[i])
             ll = ll + self.R[i].score_token(token.R[i])
-            ll = ll + token.R[i].score_location(token.P[i].position, token.P[:i])
+            ll = ll + token.R[i].score_location(
+                token.P[i].position, token.P[:i]
+            )
 
         return ll
 
@@ -117,22 +144,24 @@ class Concept(object):
 
 class CharacterToken(ConceptToken):
     """
-    Character token stores the token-level parameters of a character sample
+    Character tokens hold all token-level parameters of the character. They
+    consist of a list of PartTokens and a list of RelationTokens.
+    'CharacterToken' defines the distribution P(Image | Token = token)
 
     Parameters
     ----------
     P : list of StrokeToken
-        TODO
+        stroke tokens
     R : list of RelationToken
-        TODO
-    affine : TODO
-        TODO
-    epsilon : TODO
-        TODO
-    blur_sigma : TODO
-        TODO
-    parameters : TODO
-        TODO
+        relation tokens
+    affine : (4,) tensor
+        affine transformation
+    epsilon : float
+        image noise quantity
+    blur_sigma : float
+        image blur quantity
+    parameters : defaultps
+        default BPL parameters; will be used for stroke rendering
     """
     def __init__(self, P, R, affine, epsilon, blur_sigma, parameters):
         super(CharacterToken, self).__init__(P, R)
@@ -144,6 +173,24 @@ class CharacterToken(ConceptToken):
         self.parameters = parameters
 
     def optimizable_parameters(self, eps=1e-4):
+        """
+        Returns a list of parameters that can be optimized via gradient descent.
+        Includes lists of lower and upper bounds, with one per parameter.
+
+        Parameters
+        ----------
+        eps : float
+            tolerance for constrained optimization
+
+        Returns
+        -------
+        params : list
+            optimizable parameters
+        lbs : list
+            lower bound for each parameter
+        ubs : list
+            upper bound for each parameter
+        """
         params = []
         lbs = []
         ubs = []
@@ -161,6 +208,10 @@ class CharacterToken(ConceptToken):
 
     @property
     def pimg(self):
+        """
+        The binary image probability map. Returns a (H,W) tensor with a value
+        in range [0,1] at each entry
+        """
         pimg, _ = rendering.apply_render(
             self.P, self.affine, self.epsilon, self.blur_sigma, self.parameters
         )
@@ -169,6 +220,10 @@ class CharacterToken(ConceptToken):
 
     @property
     def ink_off_page(self):
+        """
+        Boolean indicating whether or not there was ink drawn outside of the
+        image window
+        """
         _, ink_off_page = rendering.apply_render(
             self.P, self.affine, self.epsilon, self.blur_sigma, self.parameters
         )
@@ -176,12 +231,33 @@ class CharacterToken(ConceptToken):
         return ink_off_page
 
     def sample_image(self):
+        """
+        Samples a binary image
+
+        Returns
+        -------
+        image : (H,W) tensor
+            binary image sample
+        """
         binom = dist.binomial.Binomial(1, self.pimg)
         image = binom.sample()
 
         return image
 
     def score_image(self, image):
+        """
+        Compute the log-likelihood of a binary image
+
+        Parameters
+        ----------
+        image : (H,W) tensor
+            binary image to score
+
+        Returns
+        -------
+        ll : tensor
+            scalar; log-likelihood of the image
+        """
         binom = dist.binomial.Binomial(1, self.pimg)
         ll = binom.log_prob(image)
         ll = torch.sum(ll)
@@ -191,9 +267,9 @@ class CharacterToken(ConceptToken):
 
 class Character(Concept):
     """
-    A Character is a probabilistic program that samples Character tokens.
+    A Character (type) is a probabilistic program that samples Character tokens.
     Parts are strokes, and relations are either [independent, attach,
-    attach-along].
+    attach-along]. 'Character' defines the distribution P(Token | Type = type).
 
     Parameters
     ----------
@@ -216,6 +292,24 @@ class Character(Concept):
         self.parameters = defaultps()
 
     def optimizable_parameters(self, eps=1e-4):
+        """
+        Returns a list of parameters that can be optimized via gradient descent.
+        Includes lists of lower and upper bounds, with one per parameter.
+
+        Parameters
+        ----------
+        eps : float
+            tolerance for constrained optimization
+
+        Returns
+        -------
+        params : list
+            optimizable parameters
+        lbs : list
+            lower bound for each parameter
+        ubs : list
+            upper bound for each parameter
+        """
         params = []
         lbs = []
         ubs = []
@@ -260,11 +354,11 @@ class Character(Concept):
 
     def sample_affine(self):
         """
-        TODO
+        Sample an affine warp
 
         Returns
         -------
-        affine : TODO
+        affine : (4,) tensor
             affine transformation
         """
         warnings.warn('skipping affine warp for now.')
@@ -274,14 +368,13 @@ class Character(Concept):
 
     def sample_image_noise(self):
         """
-        TODO
+        Sample an "epsilon," i.e. image noise quantity
 
         Returns
         -------
         epsilon : float
             scalar; image noise quantity
         """
-        #epsilon = CPD.sample_image_noise(self.parameters)
         warnings.warn('using fixed image noise for now.')
         # set rendering parameters to minimum noise
         epsilon = self.parameters.min_epsilon
@@ -290,14 +383,13 @@ class Character(Concept):
 
     def sample_image_blur(self):
         """
-        TODO
+        Sample a "blur_sigma," i.e. image blur quantity
 
         Returns
         -------
         blur_sigma: float
             scalar; image blur quantity
         """
-        #blur_sigma = CPD.sample_image_blur(self.parameters)
         warnings.warn('using fixed image blur for now.')
         # set rendering parameters to minimum noise
         blur_sigma = self.parameters.min_blur_sigma
