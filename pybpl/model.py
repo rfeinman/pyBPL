@@ -1,120 +1,21 @@
-class Type(object):
+from __future__ import division, print_function
+from abc import ABCMeta,abstractmethod
+import warnings
+import torch
+import torch.distributions
 
-    def __init__(self,k,P,R):
-        self.k = k
-        self.part_types = P
-        self.relation_types = R
-        
-    def parameters(self):
-        '''
-        return list of parameters
-        '''
-        pass
+from .library import Library
+from .relation import (Relation,RelationIndependent,RelationAttach,
+                      RelationAttachAlong)
 
-    def train(self):
-        '''
-        makes params require grad
-        '''
-        pass
-    def eval(self):
-        '''
-        makes params require no grad
-        '''
-        pass
-    def to(self,device):
-        '''
-        moves parameters to device
-        '''
-        pass
+from .part import Stroke
+from .concept import Concept,Character
+from .splines import bspline_gen_s
 
-class Token(object):
-
-    def __init__(self,P,R):
-        self.part_tokens = P
-        self.relation_tokens = R
-
-    def parameters(self):
-        '''
-        return list of parameters
-        '''
-        pass
-
-    def train(self):
-        '''
-        makes params require grad
-        '''
-        pass
-    def eval(self):
-        '''
-        makes params require no grad
-        '''
-        pass
-    def to(self,device):
-        '''
-        moves parameters to device
-        '''
-        pass
+# list of acceptable dtypes for 'k' parameter
+int_types = [torch.uint8,torch.int8,torch.int16,torch.int32,torch.int64]
 
 
-
-
-
-class TypeDist():
-    '''
-    prior over Type
-    '''
-    def __init__(self,lib)
-        pass
-    def sample_type():
-        '''
-        Note: Should only be called from Model
-        Note: Should return Type object
-        '''
-        pass
-    def score_type(_type):
-        '''
-        Note: Should only be called from Model
-        Note: should return a log probability
-        '''
-        pass
-
-class TokenDist():
-    '''
-    prior over Token
-    '''
-    def __init__(self,lib)
-        pass
-    def sample_token(self,_type):
-        '''
-        Note: Should only be called from Model
-        Note: Should return Token object
-        '''
-        pass
-    def score_token(self,token):
-        '''
-        Note: Should only be called from Model
-        Note: Should return a log probability
-        '''
-        pass
-
-class ImageDist():
-    '''
-    Likelihood Distribution
-    '''
-    def __init__(self,lib)
-        pass
-
-    def sample_image(self,_type):
-        '''
-        Note: Should only be called from Model
-        '''
-        pass
-    def score_image(self,token):
-        '''
-        Note: Should only be called from Model
-        Note: Should return a log probability
-        '''
-        pass
 
 class Model(object):
     '''
@@ -146,8 +47,18 @@ class Model(object):
 
 
 
+
+
+
+
+
+
+
+
 # Optimization would look something like this
 
+
+lib = Library('../lib_data/')
 model = Model(lib)
 _type = model.sample_type()
 token = model.sample_token(_type)
