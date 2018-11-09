@@ -2,6 +2,7 @@
 Parameters...
 """
 from __future__ import division, print_function
+import torch
 
 class defaultps(object):
     def __init__(self):
@@ -9,37 +10,37 @@ class defaultps(object):
         self.libname = 'library'
 
         # number of particles to use in search algorithm
-        self.K = 5
+        self.K = torch.tensor(5, dtype=torch.int)
 
         ## image model parameters ##
         # number of convolutions
-        self.ink_ncon = 2
+        self.ink_ncon = torch.tensor(2, dtype=torch.int)
         # image size
-        self.imsize = [105, 105]
+        self.imsize = torch.Size([105, 105])
         # amount of ink per point
-        self.ink_pp = 2
+        self.ink_pp = torch.tensor(2, dtype=torch.float)
         # distance between points to which you get full ink
-        self.ink_max_dist = 2
+        self.ink_max_dist = torch.tensor(2, dtype=torch.float)
         # ink parameter 1
-        self.ink_a = 0.5
+        self.ink_a = torch.tensor(0.5, dtype=torch.float)
         # ink parameter 2
-        self.ink_b = 6
+        self.ink_b = torch.tensor(6, dtype=torch.float)
 
         ## Creating a trajectory from a spline ##
         # maxmium number of evaluations
-        self.spline_max_neval = 200
+        self.spline_max_neval = torch.tensor(200, dtype=torch.int)
         # minimum
-        self.spline_min_neval = 10
+        self.spline_min_neval = torch.tensor(10, dtype=torch.int)
         # 1 trajectory point for every this many units pixel distance)
-        self.spline_grain = 1.5
+        self.spline_grain = torch.tensor(1.5, dtype=torch.float)
 
         ## Max/min noise parameters for image model ##
         # blur kernel width
-        self.max_blur_sigma = 16
-        self.min_blur_sigma = 0.5
+        self.max_blur_sigma = torch.tensor(16, dtype=torch.float)
+        self.min_blur_sigma = torch.tensor(0.5, dtype=torch.float)
         # pixel flipping
-        self.max_epsilon = 0.5
-        self.min_epsilon = 1e-4
+        self.max_epsilon = torch.tensor(0.5, dtype=torch.float)
+        self.min_epsilon = torch.tensor(1e-4, dtype=torch.float)
 
         ## search parameters ##
         # scale changes must be less than a factor of 2

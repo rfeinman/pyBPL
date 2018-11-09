@@ -156,10 +156,10 @@ class CharacterToken(ConceptToken):
         relation tokens
     affine : (4,) tensor
         affine transformation
-    epsilon : float
-        image noise quantity
-    blur_sigma : float
-        image blur quantity
+    epsilon : tensor
+        scalar; image noise quantity
+    blur_sigma : tensor
+        scalar; image blur quantity
     parameters : defaultps
         default BPL parameters; will be used for stroke rendering
     """
@@ -372,7 +372,7 @@ class Character(Concept):
 
         Returns
         -------
-        epsilon : float
+        epsilon : tensor
             scalar; image noise quantity
         """
         warnings.warn('using fixed image noise for now.')
@@ -387,7 +387,7 @@ class Character(Concept):
 
         Returns
         -------
-        blur_sigma: float
+        blur_sigma: tensor
             scalar; image blur quantity
         """
         warnings.warn('using fixed image blur for now.')
