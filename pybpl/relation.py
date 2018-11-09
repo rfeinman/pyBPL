@@ -17,14 +17,15 @@ categories_allowed = ['unihist', 'start', 'end', 'mid']
 
 class RelationToken(object):
     """
-    TODO
+    RelationToken instances hold all of the token-level information for a
+    relation
 
     Parameters
     ----------
-    rel : TODO
-        TODO
-    kwargs : TODO
-        TODO
+    rel : Relation
+        relation type
+    eval_spot_token : tensor
+        Optional parameter. Token-level evaluation spot for RelationAttachAlong
     """
     def __init__(self, rel, **kwargs):
         self.rel = rel
@@ -35,6 +36,24 @@ class RelationToken(object):
             self.eval_spot_token = kwargs['eval_spot_token']
 
     def optimizable_parameters(self, eps=1e-4):
+        """
+        Returns a list of parameters that can be optimized via gradient descent.
+        Includes lists of lower and upper bounds, with one per parameter.
+
+        Parameters
+        ----------
+        eps : float
+            tolerance for constrained optimization
+
+        Returns
+        -------
+        params : list
+            optimizable parameters
+        lbs : list
+            lower bound for each parameter
+        ubs : list
+            upper bound for each parameter
+        """
         if self.rel.category == 'mid':
             _, lb, ub = bspline_gen_s(self.rel.ncpt, 1)
             params = [self.eval_spot_token]
@@ -49,7 +68,7 @@ class RelationToken(object):
 
     def sample_location(self, prev_parts):
         """
-        TODO
+        Sample a location from the relation token
 
         Parameters
         ----------
@@ -58,7 +77,7 @@ class RelationToken(object):
 
         Returns
         -------
-        loc : tensor
+        loc : (2,) tensor
             location; x-y coordinates
 
         """
@@ -72,19 +91,19 @@ class RelationToken(object):
 
     def score_location(self, loc, prev_parts):
         """
-        TODO
+        Compute the log-likelihood of a location
 
         Parameters
         ----------
-        loc : TODO
-            TODO
-        prev_parts : TODO
-            TODO
+        loc : (2,) tensor
+            location; x-y coordinates
+        prev_parts : list of PartToken
+            previous part tokens
 
         Returns
         -------
         ll : tensor
-            TODO
+            scalar; log-likelihood of the location
 
         """
         for pt in prev_parts:
@@ -102,13 +121,13 @@ class RelationToken(object):
 
         Parameters
         ----------
-        prev_parts : TODO
-            TODO
+        prev_parts : list of PartToken
+            previous part tokens
 
         Returns
         -------
-        loc : TODO
-            TODO
+        loc : (2,) tensor
+            attach point (location); x-y coordinates
 
         """
         if self.rel.category == 'unihist':
@@ -133,7 +152,9 @@ class RelationToken(object):
 
 class Relation(object):
     """
-    TODO
+    Relations define the relationship between the current part and all previous
+    parts. They fall into 4 categories: ['unihist','start','end','mid']. Holds
+    all type-level parameters of the relation
 
     Parameters
     ----------
@@ -156,36 +177,57 @@ class Relation(object):
 
     @abstractmethod
     def optimizable_parameters(self, eps=1e-4):
+        """
+        Returns a list of parameters that can be optimized via gradient descent.
+        Includes lists of lower and upper bounds, with one per parameter.
+
+        Parameters
+        ----------
+        eps : float
+            tolerance for constrained optimization
+
+        Returns
+        -------
+        params : list
+            optimizable parameters
+        lbs : list
+            lower bound for each parameter
+        ubs : list
+            upper bound for each parameter
+        """
         pass
 
     def sample_token(self):
         """
-        TODO
+        Sample a token of the relation
 
         Returns
         -------
-        rtoken : RelationToken
-            TODO
+        token : RelationToken
+            relation token sample
         """
-        rtoken = RelationToken(self)
+        token = RelationToken(self)
 
-        return rtoken
+        return token
 
     def score_token(self, token):
         """
-        TODO
+        Compute the log-likelihood of a relation token
 
         Parameters
         ----------
         token : RelationToken
-            TODO
+            relation token to score
 
         Returns
         -------
         ll : tensor
-            TODO
+            scalar; log-likelihood of the relation token
 
         """
+        # default this to 0. The only relation category that has token-level
+        # parameters is the 'mid'. For 'mid' this function is over-ridden
+        # (see RelationAttachAlong)
         ll = torch.tensor(0.)
 
         return ll
@@ -288,12 +330,12 @@ class RelationAttachAlong(RelationAttach):
 
     def sample_token(self):
         """
-        TODO
+        Sample a token of the relation
 
         Returns
         -------
         token : RelationToken
-            TODO
+            sampled relation token
         """
         eval_spot_dist = dist.normal.Normal(self.eval_spot, self.sigma_attach)
         eval_spot_token = sample_eval_spot_token(eval_spot_dist, self.ncpt)
@@ -303,17 +345,17 @@ class RelationAttachAlong(RelationAttach):
 
     def score_token(self, token):
         """
-        TODO
+        Compute the log-likelihood of a relation token
 
         Parameters
         ----------
         token : RelationToken
-            TODO
+            relation token to score
 
         Returns
         -------
         ll : tensor
-            TODO
+            scalar; log-likelihood of the relation token
         """
         assert hasattr(token, 'eval_spot_token')
         eval_spot_dist = dist.normal.Normal(self.eval_spot, self.sigma_attach)
@@ -327,19 +369,19 @@ class RelationAttachAlong(RelationAttach):
 
 def sample_eval_spot_token(eval_spot_dist, ncpt):
     """
-    TODO
+    Sample an evaluation spot token
 
     Parameters
     ----------
-    eval_spot_dist : TODO
-        TODO
-    ncpt : TODO
-        TODO
+    eval_spot_dist : Distribution
+        torch distribution; will be used to sample evaluation spot tokens
+    ncpt : int
+        number of control points
 
     Returns
     -------
     eval_spot_token : tensor
-        token-level spline coordinate
+        scalar; token-level spline coordinate
     """
     ll = torch.tensor(-float('inf'))
     while ll == -float('inf'):
@@ -351,33 +393,32 @@ def sample_eval_spot_token(eval_spot_dist, ncpt):
 
 def score_eval_spot_token(eval_spot_token, eval_spot_dist, ncpt):
     """
-    TODO
+    Compute the log-likelihood of an evaluation spot token
 
     Parameters
     ----------
     eval_spot_token : tensor
-        token-level spline coordinate
-    eval_spot_dist : TODO
-        TODO
-    ncpt : TODO
-        TODO
+        scalar; token-level spline coordinate
+    eval_spot_dist : Distribution
+        torch distribution; will be used to score evaluation spot tokens
+    ncpt : int
+        number of control points
 
     Returns
     -------
     ll : tensor
-        TODO
+        scalar; log-likelihood of the evaluation spot token
     """
     assert type(eval_spot_token) in [int, float] or \
            (type(eval_spot_token) == torch.Tensor and
             eval_spot_token.shape == torch.Size([]))
     _, lb, ub = bspline_gen_s(ncpt, 1)
     if eval_spot_token < lb or eval_spot_token > ub:
-        ll = torch.tensor(-float('inf'))
-        return ll
-    ll = eval_spot_dist.log_prob(eval_spot_token)
-
-    # correction for bounds
-    p_within = eval_spot_dist.cdf(ub) - eval_spot_dist.cdf(lb)
-    ll = ll - torch.log(p_within)
+        ll = torch.tensor(-float('inf'), dtype=torch.float)
+    else:
+        ll = eval_spot_dist.log_prob(eval_spot_token)
+        # correction for bounds
+        p_within = eval_spot_dist.cdf(ub) - eval_spot_dist.cdf(lb)
+        ll = ll - torch.log(p_within)
 
     return ll
