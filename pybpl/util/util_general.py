@@ -94,8 +94,10 @@ def imfilter(A, h, mode='conv'):
 
 def fspecial(hsize, sigma, ftype='gaussian'):
     """
-    Implementation of MATLAB's "fspecial" function. Create filter kernel using
-    numpy, return as torch.Tensor
+    Implementation of MATLAB's "fspecial" function for option ftype='gaussian'.
+    Calculate the 2-dimensional gaussian kernel which is the product of two
+    gaussian distributions for two different variables (in this case called
+    x and y)
 
     :param hsize:
     :param sigma:
@@ -105,20 +107,29 @@ def fspecial(hsize, sigma, ftype='gaussian'):
     if not ftype == 'gaussian':
         raise NotImplementedError("Only Gaussain kernel implemented.")
     assert isinstance(hsize, int)
-    assert isinstance(sigma, float) or isinstance(sigma, int)
+    if isinstance(sigma, torch.Tensor):
+        assert sigma.shape == torch.Size([])
+        assert sigma.dtype == torch.float
+    else:
+        assert isinstance(sigma, float) or isinstance(sigma, int)
     assert hsize % 2 == 1, 'Image size must be odd'
 
-    # store image midpoint
-    mid = int((hsize-1)/2)
-    # store 2D gaussian covariance matrix
-    cov = sigma**2*np.eye(2)
-    # initialize the kernel
-    kernel = np.zeros(shape=(hsize, hsize))
-    for xi in range(hsize):
-        for yi in range(hsize):
-            kernel[xi, yi] = multivariate_normal.pdf([mid-xi, mid-yi], cov=cov)
+    # create a x, y coordinate grid of shape (kernel_size, kernel_size, 2)
+    x_cord = torch.arange(hsize, dtype=torch.float)
+    x_grid = x_cord.repeat(hsize).view(hsize, hsize)
+    y_grid = x_grid.t()
+    xy_grid = torch.stack([x_grid, y_grid], dim=-1)
+    # store the mean
+    mean = (hsize-1)//2
+    # compute the kernel
+    kernel = torch.exp(
+        -torch.sum((xy_grid - mean)**2., dim=-1) / (2*sigma**2)
+    )
+    kernel /= (2.*np.pi*sigma**2)
+    # Make sure sum of values in gaussian kernel equals 1.
+    kernel /= torch.sum(kernel)
 
-    return torch.tensor(kernel, dtype=torch.float32)
+    return kernel
 
 # ----
 # Other functions
