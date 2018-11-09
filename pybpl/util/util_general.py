@@ -111,7 +111,7 @@ def fspecial(hsize, sigma, ftype='gaussian'):
     # store image midpoint
     mid = int((hsize-1)/2)
     # store 2D gaussian covariance matrix
-    cov = sigma*np.eye(2)
+    cov = sigma**2*np.eye(2)
     # initialize the kernel
     kernel = np.zeros(shape=(hsize, hsize))
     for xi in range(hsize):
