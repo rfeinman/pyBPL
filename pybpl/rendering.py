@@ -208,17 +208,17 @@ def render_image(cell_traj, epsilon, blur_sigma, parameters):
 
         # compute distance between each trajectory point and the next one
         if myt.shape[0] == 1:
-            myink = torch.tensor(ink, dtype=torch.float)
+            myink = ink
         else:
             dist = pair_dist(myt) # shape (k,)
-            dist = torch.min(dist, torch.tensor(max_dist, dtype=torch.float))
+            dist = torch.min(dist, max_dist)
             dist = torch.cat([dist[:1], dist])
             myink = (ink/max_dist)*dist # shape (k,)
 
         # make sure we have the minimum amount of ink, if a particular
         # trajectory is very small
         sumink = torch.sum(myink)
-        if aeq(sumink, torch.tensor(0., dtype=torch.float)):
+        if torch.abs(sumink) < 1e-6:
             nink = myink.shape[0]
             myink = (ink/nink)*torch.ones_like(myink)
         elif sumink < ink:
@@ -249,13 +249,18 @@ def render_image(cell_traj, epsilon, blur_sigma, parameters):
     b = parameters.ink_b
     ink_ncon = parameters.ink_ncon
     H_broaden = b*torch.tensor(
-        [[a/12, a/6, a/12],[a/6, 1-a, a/6],[a/12, a/6, a/12]]
+        [[a/12, a/6, a/12],[a/6, 1-a, a/6],[a/12, a/6, a/12]],
+        dtype=torch.float
     )
     for i in range(ink_ncon):
         pimg = imfilter(pimg, H_broaden, mode='conv')
 
-    # threshold again
-    pimg = torch.min(pimg, torch.tensor(1.))
+    # store min and maximum pimg values for truncation
+    min_val = torch.tensor(0., dtype=torch.float)
+    max_val = torch.tensor(1., dtype=torch.float)
+
+    # truncate
+    pimg = torch.min(pimg, max_val)
 
     # filter the image to get Gaussian
     # noise around the area with ink
@@ -266,8 +271,8 @@ def render_image(cell_traj, epsilon, blur_sigma, parameters):
         pimg = imfilter(pimg, H_gaussian, mode='conv')
 
     # final truncation
-    pimg = torch.min(pimg, torch.tensor(1.))
-    pimg = torch.max(pimg, torch.tensor(0.))
+    pimg = torch.min(pimg, max_val)
+    pimg = torch.max(pimg, min_val)
 
     # probability of each pixel being on
     pimg = (1-epsilon)*pimg + epsilon*(1-pimg)
