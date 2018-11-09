@@ -154,7 +154,8 @@ class Relation(object):
     """
     Relations define the relationship between the current part and all previous
     parts. They fall into 4 categories: ['unihist','start','end','mid']. Holds
-    all type-level parameters of the relation
+    all type-level parameters of the relation. This is an abstract base class
+    that must be inherited from to build specific categories of relations.
 
     Parameters
     ----------
@@ -172,7 +173,7 @@ class Relation(object):
         # token-level position distribution parameters
         sigma_x = lib.rel['sigma_x']
         sigma_y = lib.rel['sigma_y']
-        loc_Cov = torch.tensor([[sigma_x, 0.], [0., sigma_y]])
+        loc_Cov = torch.diag(torch.stack([sigma_x, sigma_y]))
         self.loc_dist = dist.MultivariateNormal(torch.zeros(2), loc_Cov)
 
     @abstractmethod
@@ -228,14 +229,16 @@ class Relation(object):
         # default this to 0. The only relation category that has token-level
         # parameters is the 'mid'. For 'mid' this function is over-ridden
         # (see RelationAttachAlong)
-        ll = torch.tensor(0.)
+        ll = 0.
 
         return ll
 
 
 class RelationIndependent(Relation):
     """
-    TODO
+    RelationIndependent (or 'unihist' relations) are assigned when the part's
+    location is independent of all previous parts. The global position (gpos)
+    of the part is sampled at random from the prior on positions
 
     Parameters
     ----------
@@ -269,7 +272,7 @@ class RelationIndependent(Relation):
 
 class RelationAttach(Relation):
     """
-    TODO
+    RelationAttach is assigned when the part will attach to a previous part
 
     Parameters
     ----------
@@ -295,7 +298,8 @@ class RelationAttach(Relation):
 
 class RelationAttachAlong(RelationAttach):
     """
-    TODO
+    RelationAttachAlong is assigned when the part will attach to a previous
+    part somewhere in the middle of that part (as opposed to the start or end)
 
     Parameters
     ----------
@@ -383,10 +387,11 @@ def sample_eval_spot_token(eval_spot_dist, ncpt):
     eval_spot_token : tensor
         scalar; token-level spline coordinate
     """
-    ll = torch.tensor(-float('inf'))
-    while ll == -float('inf'):
+    while True:
         eval_spot_token = eval_spot_dist.sample()
         ll = score_eval_spot_token(eval_spot_token, eval_spot_dist, ncpt)
+        if not ll == -float('inf'):
+            break
 
     return eval_spot_token
 
