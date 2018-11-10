@@ -8,12 +8,12 @@ import warnings
 import torch
 import torch.distributions as dist
 
-from .library import Library
-from .relation import (Relation, RelationIndependent, RelationAttach,
+from ..library import Library
+from ..relation import (Relation, RelationIndependent, RelationAttach,
                        RelationAttachAlong)
-from .part import Stroke
-from .concept import Concept, Character
-from .splines import bspline_gen_s
+from ..part import Stroke
+from ..concept import Concept, Character
+from ..splines import bspline_gen_s
 
 # list of acceptable dtypes for 'k' parameter
 int_types = [torch.uint8, torch.int8, torch.int16, torch.int32, torch.int64]
