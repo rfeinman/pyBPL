@@ -1,0 +1,30 @@
+# 'Helper' LaTeX files to ignore
+*.aux
+*.fdb_latexmk
+*.nav
+*.out
+*.snm
+*.toc
+*.pdfsync
+*.blg
+*.bbl
+*.log
+*.fls
+*.synctex.gz
+*.synctex
+
+# Python related files to ignore
+*.pyc
+*.ipynb_checkpoints
+*.so  # Come when you build cython extensions
+**/__pycache__/
+
+# Don't track the OSX .DS_Store files
+*.DS_Store
+
+# Pytorch torchtext files for datasets and word vectors
+**/.data/
+**/.vector_cache/
+
+#
+*_backup*

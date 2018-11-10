@@ -12,8 +12,18 @@ import sys
 import matplotlib.pylab as plt
 
 sys.path.insert(0, os.path.abspath('..'))
-from source.other import *
-from source.types import *
+
+
+
+from source.ctd import *
+from source.library import *
+from source.parameters import *
+from source.part import *
+from source.relation import *
+from source.rendering import *
+from source.splines import *
+from source.util.util_character import *
+from source.util.util_general import *
 
 import imageio
 import tqdm
@@ -23,7 +33,7 @@ int_types = [torch.uint8, torch.int8, torch.int16, torch.int32, torch.int64]
 
 if __name__ == "__main__":
 
-    lib = Library('../../../lib_data/')
+    lib = Library('lib_data/')
     type_dist = TypeDist(lib)
 
     def box_only(obj):
@@ -71,9 +81,9 @@ if __name__ == "__main__":
         )
         r2 = RelationAttachAlong(
             category='mid',
-            attach_ix=0,
-            attach_subix=0,
-            eval_spot=4.5,
+            attach_ix=torch.tensor(0),
+            attach_subix=torch.tensor(0),
+            eval_spot=torch.tensor(4.5),
             lib=lib
         )
         # third stroke has 1 sub-stroke, with id "0"
@@ -95,18 +105,18 @@ if __name__ == "__main__":
         P = [s1, s2, s3]
         R = [r1, r2, r3]
 
-        token_dist = TokenDist(k,P,R,lib)
+        type_tokendist = TypeTokenDist(k,P,R,lib)
         
-        return token_dist
+        return type_tokendist
 
-    token_dist = get_token_dist()
-    token = token_dist.sample_token()
+    type_tokendist = get_token_dist()
+    token_imdist = type_tokendist.sample_token()
 
 
 
-    def  get_optimizable_variables(ctype, ctoken, eps):
-        assert isinstance(ctype, TokenDist)
-        assert isinstance(ctoken, Token_ImDist)
+    def get_optimizable_variables(ctype, ctoken, eps):
+        assert isinstance(ctype, TypeTokenDist)
+        assert isinstance(ctoken, TokenImDist)
         parameters = []
         lbs = []
         ubs = []
@@ -140,9 +150,10 @@ if __name__ == "__main__":
 
         return parameters, lbs, ubs, names
 
-    params, lbs, ubs, param_names = get_optimizable_variables(token_dist,token,eps=1e-4)
+    params, lbs, ubs, param_names = \
+        get_optimizable_variables(type_tokendist,token_imdist,eps=1e-4)
 
-    token.blur_sigma = 5.
+    token_imdist.blur_sigma = 5.
 
     #plt.figure(figsize=(2,2))
     #plt.imshow(token.pimg.detach().numpy(), cmap='Greys')
@@ -165,11 +176,11 @@ if __name__ == "__main__":
     for idx in tqdm.tqdm(range(nb_iter)):
         if idx % interval == 0:
             # store pimg at this iteration for later viewing
-            imgs.append(np.copy(token.pimg.detach().numpy()))
+            imgs.append(np.copy(token_imdist.pimg.detach().numpy()))
         # compute scores
-        score_type = type_dist.score_type(token_dist)
-        score_token = token_dist.score_token(token)
-        score_img = token.score_image(img_target)
+        score_type = type_dist.score_type(type_tokendist)
+        score_token = type_tokendist.score_token(token_imdist)
+        score_img = token_imdist.score_image(img_target)
         score = score_type + score_token + score_img
         # append to lists
         score_type_list.append(score_type)

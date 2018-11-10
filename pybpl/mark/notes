@@ -1,0 +1,22 @@
+
+in ctd.py
+
+
+ConceptTypeDist -> AbstractTypeDist
+
+CharacterTypeDist -> TypeDist
+
+in concept.py
+
+Concept Token -> AbstractTokenImDist (meaning it is an abstraction of an object
+                                      that is both a Token and an ImDist)
+
+
+Concept -> AbstractTypeTokenDist     (meaning it is an abstraction of an object
+                                      that is both a Type and a TokenDist)
+
+
+CharacterToken -> TokenImDist       (meaning it is both a Token and an ImDist)
+
+
+Character  ->  TypeTokenDist        (meaning it is both a Type and a TokenDist)
