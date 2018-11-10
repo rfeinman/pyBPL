@@ -1,4 +1,11 @@
-class Type(object):
+from __future__ import division, print_function
+import torch
+
+from .type_dist import TypeDist
+from .token_dist import TokenDist
+from .image_dist import ImageDist
+
+class ConceptType(object):
 
     def __init__(self,k,P,R):
         self.k = k
@@ -27,7 +34,7 @@ class Type(object):
         '''
         pass
 
-class Token(object):
+class ConceptToken(object):
 
     def __init__(self,P,R):
         self.part_tokens = P
@@ -56,65 +63,6 @@ class Token(object):
         pass
 
 
-
-
-
-class TypeDist():
-    '''
-    prior over Type
-    '''
-    def __init__(self,lib)
-        pass
-    def sample_type():
-        '''
-        Note: Should only be called from Model
-        Note: Should return Type object
-        '''
-        pass
-    def score_type(_type):
-        '''
-        Note: Should only be called from Model
-        Note: should return a log probability
-        '''
-        pass
-
-class TokenDist():
-    '''
-    prior over Token
-    '''
-    def __init__(self,lib)
-        pass
-    def sample_token(self,_type):
-        '''
-        Note: Should only be called from Model
-        Note: Should return Token object
-        '''
-        pass
-    def score_token(self,token):
-        '''
-        Note: Should only be called from Model
-        Note: Should return a log probability
-        '''
-        pass
-
-class ImageDist():
-    '''
-    Likelihood Distribution
-    '''
-    def __init__(self,lib)
-        pass
-
-    def sample_image(self,_type):
-        '''
-        Note: Should only be called from Model
-        '''
-        pass
-    def score_image(self,token):
-        '''
-        Note: Should only be called from Model
-        Note: Should return a log probability
-        '''
-        pass
 
 class Model(object):
     '''
@@ -145,28 +93,28 @@ class Model(object):
         return self.image_dist.score_image(token,image)
 
 
+def fit_image(im, lib):
+    # Optimization would look something like this
 
-# Optimization would look something like this
+    model = Model(lib)
+    _type = model.sample_type()
+    token = model.sample_token(_type)
 
-model = Model(lib)
-_type = model.sample_type()
-token = model.sample_token(_type)
+    optimizer = torch.optim.Adam([{'params': _type.parameters()},
+                                  {'params': token.parameters()}],
+                                  lr=0.001)
 
-optimizer = torch.optim.Adam([{'params': _type.parameters()},
-                              {'params': token.parameters()}], 
-                              lr=0.001)
+    # Set requires_grad to True
+    _type.train()
+    token.train()
 
-# Set requires_grad to True
-_type.train()
-token.train()
-
-for idx in iters:
-    optimizer.zero_grad()
-    type_score = model.score_type(_type)
-    token_score = model.score_token(_type,token)
-    image_score = model.score_image(token,im)
-    score = type_score + token_score + image_score
-    loss = -score
-    loss.backward()
-    optimizer.step()
+    for idx in range(100):
+        optimizer.zero_grad()
+        type_score = model.score_type(_type)
+        token_score = model.score_token(_type,token)
+        image_score = model.score_image(token,im)
+        score = type_score + token_score + image_score
+        loss = -score
+        loss.backward()
+        optimizer.step()
 
