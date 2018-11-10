@@ -20,6 +20,11 @@ int_types = [torch.uint8, torch.int8, torch.int16, torch.int32, torch.int64]
 
 
 
+class Type(object):
+    def __init__(self,k,P,R):
+        self.k = k
+        self.P = P
+        self.R = R
 
 
 # was ConceptTypeDist
@@ -95,9 +100,9 @@ class AbstractTypeDist(object):
             R.append(r)
         # create the concept type, i.e. a motor program for sampling
         # concept tokens
-        c = AbstractTypeTokenDist(k, P, R)
-
-        return c
+        
+        t = Type(k,P,R)
+        return t
 
     def score_type(self, c):
         """
@@ -643,7 +648,6 @@ class TypeDist(AbstractTypeDist):
             character type
 
         """
-        c = super(TypeDist, self).sample_type(k)
-        c = TypeTokenDist(c.k, c.P, c.R, self.lib)
 
-        return c
+        t = super(TypeDist, self).sample_type(k)
+        return t

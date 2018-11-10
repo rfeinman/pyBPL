@@ -25,7 +25,7 @@ from .relation import Relation, RelationToken
 
 
 # Was ConceptToken
-class AbstractTokenImDist(object):
+class AbstractImDist(object):
     """
     Abstract base class for concept tokens. Concept tokens consist of a list
     of PartTokens and a list of RelationTokens. 'AbstractTokenImDist' defines the
@@ -40,15 +40,15 @@ class AbstractTokenImDist(object):
     """
     __metaclass__ = ABCMeta
 
-    def __init__(self, P, R):
-        assert isinstance(P, list)
-        assert isinstance(R, list)
-        assert len(P) == len(R)
-        for ptoken, rtoken in zip(P, R):
+    def __init__(self, token):
+        assert isinstance(token.P, list)
+        assert isinstance(token.R, list)
+        assert len(token.P) == len(token.R)
+        for ptoken, rtoken in zip(token.P, token.R):
             assert isinstance(ptoken, PartToken)
             assert isinstance(rtoken, RelationToken)
-        self.P = P
-        self.R = R
+        self.P = token.P
+        self.R = token.R
 
     @abstractmethod
     def optimizable_parameters(self, eps=1e-4):
@@ -62,8 +62,17 @@ class AbstractTokenImDist(object):
     def score_image(self, image):
         pass
 
+
+
+class Token(object):
+    def __init__(self,P,R):
+        self.P = P
+        self.R = R
+
+
+
 # was Concept
-class AbstractTypeTokenDist(object):
+class AbstractTokenDist(object):
     """
     An abstract base class for concept types. A concept (type) is a
     probabilistic program that samples concept tokens. Concepts are made up of
@@ -81,17 +90,19 @@ class AbstractTypeTokenDist(object):
     """
     __metaclass__ = ABCMeta
 
-    def __init__(self, k, P, R):
-        assert isinstance(P, list)
-        assert isinstance(R, list)
-        assert len(P) == len(R)
-        assert k > 0
-        for ptype, rtype in zip(P, R):
+    def __init__(self, t):
+        
+        
+        assert isinstance(t.P, list)
+        assert isinstance(t.R, list)
+        assert len(t.P) == len(t.R)
+        assert t.k > 0
+        for ptype, rtype in zip(t.P, t.R):
             assert isinstance(ptype, Part)
             assert isinstance(rtype, Relation)
-        self.k = k
-        self.P = P
-        self.R = R
+        self.k = t.k
+        self.P = t.P
+        self.R = t.R
 
     @abstractmethod
     def optimizable_parameters(self, eps=1e-4):
@@ -111,8 +122,8 @@ class AbstractTypeTokenDist(object):
             # append them to the list
             P.append(ptoken)
             R.append(rtoken)
-        token = AbstractTokenImDist(P, R)
-
+        
+        token = Token(P,R)
         return token
 
     def score_token(self, token):
@@ -145,7 +156,7 @@ class AbstractTypeTokenDist(object):
 # ------------------------- #
 
 # was CharacterToken
-class TokenImDist(AbstractTokenImDist):
+class ImDist(AbstractImDist):
     """
     Character tokens hold all token-level parameters of the character. They
     consist of a list of PartTokens and a list of RelationTokens.
@@ -166,9 +177,10 @@ class TokenImDist(AbstractTokenImDist):
     parameters : defaultps
         default BPL parameters; will be used for stroke rendering
     """
-    def __init__(self, P, R, affine, epsilon, blur_sigma, parameters):
-        super(TokenImDist, self).__init__(P, R)
-        for ptoken in P:
+    def __init__(self, token, affine, epsilon, blur_sigma, parameters):
+        
+        super(ImDist, self).__init__(token)
+        for ptoken in token.P:
             assert isinstance(ptoken, StrokeToken)
         self.affine = affine
         self.epsilon = epsilon
@@ -269,7 +281,7 @@ class TokenImDist(AbstractTokenImDist):
 
 
 # was Character
-class TypeTokenDist(AbstractTypeTokenDist):
+class TokenDist(AbstractTokenDist):
     """
     A Character (type) is a probabilistic program that samples Character tokens.
     Parts are strokes, and relations are either [independent, attach,
@@ -287,9 +299,9 @@ class TypeTokenDist(AbstractTypeTokenDist):
         library instance
     """
 
-    def __init__(self, k, P, R, lib):
-        super(TypeTokenDist, self).__init__(k, P, R)
-        for p in P:
+    def __init__(self, t, lib):
+        super(TokenDist, self).__init__(t)
+        for p in t.P:
             assert isinstance(p, Stroke)
         assert isinstance(lib, Library)
         self.lib = lib
@@ -338,23 +350,8 @@ class TypeTokenDist(AbstractTypeTokenDist):
         token : CharacterToken
             character token
         """
-        # sample part and relation tokens
-        concept_token = super(TypeTokenDist, self).sample_token()
+        return super(TokenDist, self).sample_token()
 
-        # sample affine warp
-        affine = self.sample_affine() # (4,) tensor
-
-        # sample rendering parameters
-        epsilon = self.sample_image_noise()
-        blur_sigma = self.sample_image_blur()
-
-        # create the character token
-        token = TokenImDist(
-            concept_token.P, concept_token.R, affine, epsilon, blur_sigma,
-            self.parameters
-        )
-
-        return token
 
     def sample_affine(self):
         """
