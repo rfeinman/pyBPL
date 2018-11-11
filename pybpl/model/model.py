@@ -28,7 +28,7 @@ class CharacterModel(object):
         return self.token_dist.score_token(ctype, ctoken)
 
     def sample_image(self, ctoken):
-        return self.image_dist.score_image(ctoken)
+        return self.image_dist.sample_image(ctoken)
 
     def score_image(self, ctoken, image):
         return self.image_dist.score_image(ctoken, image)
