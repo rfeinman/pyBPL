@@ -11,8 +11,8 @@ import torch.distributions as dist
 from ..library import Library
 from ..relation import (Relation, RelationIndependent, RelationAttach,
                        RelationAttachAlong)
-from ..part import Stroke
-from ..concept import Concept, Character
+from ..part import StrokeType
+from ..concept import ConceptType, CharacterType
 from ..splines import bspline_gen_s
 
 # list of acceptable dtypes for 'k' parameter
@@ -91,7 +91,7 @@ class ConceptTypeDist(object):
             R.append(r)
         # create the concept type, i.e. a motor program for sampling
         # concept tokens
-        c = Concept(k, P, R)
+        c = ConceptType(k, P, R)
 
         return c
 
@@ -110,7 +110,7 @@ class ConceptTypeDist(object):
         ll : tensor
             scalar; log-probability of the concept type
         """
-        assert isinstance(c, Concept)
+        assert isinstance(c, ConceptType)
         # score the number of parts
         ll = 0.
         ll = ll + self.score_k(c.k)
@@ -478,7 +478,7 @@ class CharacterTypeDist(ConceptTypeDist):
         # sample scales for each sub-stroke in the sequence
         invscales = self.sample_invscales_type(ids)
         # initialize the stroke type
-        p = Stroke(nsub, ids, shapes, invscales, self.lib)
+        p = StrokeType(nsub, ids, shapes, invscales)
 
         return p
 
@@ -524,7 +524,7 @@ class CharacterTypeDist(ConceptTypeDist):
             relation type sample
         """
         for p in prev_parts:
-            assert isinstance(p, Stroke)
+            assert isinstance(p, StrokeType)
         nprev = len(prev_parts)
         stroke_ix = nprev
         spatial = self.lib.Spatial
@@ -586,7 +586,7 @@ class CharacterTypeDist(ConceptTypeDist):
         """
         assert isinstance(r, Relation)
         for p in prev_parts:
-            assert isinstance(p, Stroke)
+            assert isinstance(p, StrokeType)
         nprev = len(prev_parts)
         stroke_ix = nprev
         spatial = self.lib.Spatial
@@ -639,6 +639,6 @@ class CharacterTypeDist(ConceptTypeDist):
 
         """
         c = super(CharacterTypeDist, self).sample_type(k)
-        c = Character(c.k, c.P, c.R, self.lib)
+        c = CharacterType(c.k, c.P, c.R)
 
         return c
