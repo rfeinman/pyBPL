@@ -1,7 +1,10 @@
 from __future__ import division, print_function
 from abc import ABCMeta, abstractmethod
+import torch
+import torch.distributions as dist
 
 from ..parameters import defaultps
+from ..part import PartType, StrokeType, PartToken, StrokeToken
 from ..concept import ConceptType, CharacterType, ConceptToken, CharacterToken
 
 
@@ -226,15 +229,153 @@ class StrokeTokenDist(PartTokenDist):
     def __init__(self, lib):
         super(PartTokenDist, self).__init__(lib)
 
+    def sample_shapes_token(self, shapes_type):
+        """
+        Sample a token of each sub-stroke's shapes
+
+        Parameters
+        ----------
+        shapes_type : (ncpt, 2, nsub) tensor
+            shapes type to condition on
+
+        Returns
+        -------
+        shapes_token : (ncpt, 2, nsub) tensor
+            sampled shapes token
+        """
+        shapes_dist = dist.normal.Normal(
+            shapes_type, self.lib.tokenvar['sigma_shape']
+        )
+        # sample shapes token
+        shapes_token = shapes_dist.sample()
+
+        return shapes_token
+
+    def score_shapes_token(self, shapes_type, shapes_token):
+        """
+        Compute the log-likelihood of each sub-strokes's shapes
+
+        Parameters
+        ----------
+        shapes_type : (ncpt, 2, nsub) tensor
+            shapes type to condition on
+        shapes_token : (ncpt, 2, nsub) tensor
+            shapes tokens to score
+
+        Returns
+        -------
+        ll : (nsub,) tensor
+            vector of log-likelihood scores
+        """
+        shapes_dist = dist.normal.Normal(
+            shapes_type, self.lib.tokenvar['sigma_shape']
+        )
+        # compute scores for every element in shapes_token
+        ll = shapes_dist.log_prob(shapes_token)
+
+        return ll
+
+    def sample_invscales_token(self, invscales_type):
+        """
+        Sample a token of each sub-stroke's scale
+
+        Parameters
+        ----------
+        invscales_type : (nsub,) tensor
+            invscales type to condition on
+
+        Returns
+        -------
+        invscales_token : (nsub,) tensor
+            sampled invscales token
+        """
+        scales_dist = dist.normal.Normal(
+            invscales_type, self.lib.tokenvar['sigma_invscale']
+        )
+        while True:
+            invscales_token = scales_dist.sample()
+            ll = self.score_invscales_token(invscales_token)
+            if not torch.any(ll == -float('inf')):
+                break
+
+        return invscales_token
+
+    def score_invscales_token(self, invscales_type, invscales_token):
+        """
+        Compute the log-likelihood of each sub-stroke's scale
+
+        Parameters
+        ----------
+        invscales_type : (nsub,) tensor
+            invscales type to condition on
+        invscales_token : (nsub,) tensor
+            scales tokens to score
+
+        Returns
+        -------
+        ll : (nsub,) tensor
+            vector of log-likelihood scores
+        """
+        scales_dist = dist.normal.Normal(
+            invscales_type, self.lib.tokenvar['sigma_invscale']
+        )
+        # compute scores for every element in invscales_token
+        ll = scales_dist.log_prob(invscales_token)
+
+        # correction for positive only invscales
+        p_below = scales_dist.cdf(0.)
+        p_above = 1. - p_below
+        ll = ll - torch.log(p_above)
+
+        # don't allow invscales that are negative
+        out_of_bounds = invscales_token <= 0
+        ll[out_of_bounds] = -float('inf')
+
+        return ll
+
     def sample_part_token(self, ptype):
         """
-        TODO
+        Sample a stroke token
+
+        Parameters
+        ----------
+        ptype : StrokeType
+            stroke type to condition on
+
+        Returns
+        -------
+        ptoken : StrokeToken
+            stroke token sample
         """
+        shapes_token = self.sample_shapes_token(ptype.shapes)
+        invscales_token = self.sample_invscales_token(ptype.invscales)
+        ptoken = StrokeToken(shapes_token, invscales_token)
+
+        return ptoken
 
     def score_part_token(self, ptype, ptoken):
         """
-        TODO
+        Compute the log-likelihood of a stroke token
+
+        Parameters
+        ----------
+        ptype : StrokeType
+            stroke type to condition on
+        ptoken : StrokeToken
+            stroke token to score
+
+        Returns
+        -------
+        ll : tensor
+            scalar; log-likelihood of the stroke token
         """
+        shapes_scores = self.score_shapes_token(ptype.invscales, ptoken.shapes)
+        invscales_scores = self.score_invscales_token(
+            ptype.invscales, ptoken.invscales
+        )
+        ll = torch.sum(shapes_scores) + torch.sum(invscales_scores)
+
+        return ll
 
 
 class RelationTokenDist(object):
