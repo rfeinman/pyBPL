@@ -6,14 +6,14 @@ from .. import rendering
 
 
 class ImageDist(object):
-    '''
+    """
     Likelihood Distribution
-    '''
+    """
     def __init__(self, lib):
         self.parameters = lib.parameters
 
     def sample_image(self, ctoken):
-        '''
+        """
         Samples a binary image
         Note: Should only be called from Model
 
@@ -21,7 +21,7 @@ class ImageDist(object):
         -------
         image : (H,W) tensor
             binary image sample
-        '''
+        """
         pimg, _ = rendering.apply_render(
             ctoken.P, ctoken.affine, ctoken.epsilon, ctoken.blur_sigma,
             self.parameters
@@ -32,7 +32,7 @@ class ImageDist(object):
         return image
 
     def score_image(self, ctoken, image):
-        '''
+        """
         Compute the log-likelihood of a binary image
         Note: Should only be called from Model
 
@@ -45,7 +45,7 @@ class ImageDist(object):
         -------
         ll : tensor
             scalar; log-likelihood of the image
-        '''
+        """
         pimg, _ = rendering.apply_render(
             ctoken.P, ctoken.affine, ctoken.epsilon, ctoken.blur_sigma,
             self.parameters

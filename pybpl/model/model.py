@@ -7,9 +7,9 @@ from .image_dist import ImageDist
 
 
 class Model(object):
-    '''
+    """
     Sampling from and Scoring according to the graphical model
-    '''
+    """
     def __init__(self,lib):
         self.type_dist = TypeDist(lib)
         self.token_dist = TokenDist(lib)
