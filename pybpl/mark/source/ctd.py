@@ -119,7 +119,7 @@ class AbstractTypeDist(object):
         ll : tensor
             scalar; log-probability of the concept type
         """
-        assert isinstance(c, AbstractTypeTokenDist)
+        assert isinstance(c, Type)
         # score the number of parts
         ll = 0.
         ll = ll + self.score_k(c.k)

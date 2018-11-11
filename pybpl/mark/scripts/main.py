@@ -41,8 +41,7 @@ def box_only(obj):
     )
 
 
-
-def get_token_dist(typedist):
+def get_good_token_dist(typedist):
     # first stroke has 1 sub-stroke, with id "0"
     s1 = Stroke(
         nsub=torch.tensor(1), 
@@ -92,10 +91,9 @@ def get_token_dist(typedist):
     P = [s1, s2, s3]
     R = [r1, r2, r3]
 
-    type_tokendist = TypeTokenDist(k,P,R,lib)
-        
-    return type_tokendist
-
+    _type = Type(k,P,R)
+    token_dist = TokenDist(_type,lib)
+    return token_dist
 
 
 
@@ -115,6 +113,7 @@ if __name__ == "__main__":
     type_dist = TypeDist(lib)
     _type = type_dist.sample_type(k=3)
     token_dist = TokenDist(_type,lib)
+    token_dist = get_good_token_dist(type_dist)
     token = token_dist.sample_token()
 
     # sample affine warp
@@ -127,46 +126,49 @@ if __name__ == "__main__":
     im_dist = ImDist(token,affine,epsilon,blur_sigma,params)
 
 
-    def get_optimizable_variables(ctype, ctoken, eps):
-        assert isinstance(ctype, TypeTokenDist)
-        assert isinstance(ctoken, TokenImDist)
+    def get_optimizable_variables(_type, token, eps):
+        assert isinstance(_type, Type)
+        assert isinstance(token, Token)
         parameters = []
         lbs = []
         ubs = []
         names = []
-        for i in range(ctype.k):
+        for i in range(_type.k):
             # shapes type
-            ctype.P[i].shapes.requires_grad_()
-            parameters.append(ctype.P[i].shapes)
+            _type.P[i].shapes.requires_grad_()
+            parameters.append(_type.P[i].shapes)
             lbs.append([])
             ubs.append([])
             names.append('shapes_type_%i'%i)
             # shapes token
-            ctoken.P[i].shapes.requires_grad_()
-            parameters.append(ctoken.P[i].shapes)
+            token.P[i].shapes.requires_grad_()
+            parameters.append(token.P[i].shapes)
             lbs.append([])
             ubs.append([])
             names.append('shapes_token_%i'%i)
             
             # scales type
-            ctype.P[i].invscales.requires_grad_()
-            parameters.append(ctype.P[i].invscales)
-            lbs.append(torch.full(ctype.P[i].invscales.shape, eps))
+            _type.P[i].invscales.requires_grad_()
+            parameters.append(_type.P[i].invscales)
+            lbs.append(torch.full(_type.P[i].invscales.shape, eps))
             ubs.append([])
             names.append('invscales_type_%i'%i)
             # scales token
-            ctoken.P[i].invscales.requires_grad_()
-            parameters.append(ctoken.P[i].invscales)
-            lbs.append(torch.full(ctoken.P[i].invscales.shape, eps))
+            token.P[i].invscales.requires_grad_()
+            parameters.append(token.P[i].invscales)
+            lbs.append(torch.full(token.P[i].invscales.shape, eps))
             ubs.append([])
             names.append('invscales_token_%i'%i)
+
+        
+
 
         return parameters, lbs, ubs, names
 
     params, lbs, ubs, param_names = \
-        get_optimizable_variables(type_tokendist,token_imdist,eps=1e-4)
+        get_optimizable_variables(_type,token,eps=1e-4)
 
-    token_imdist.blur_sigma = 5.
+    im_dist.blur_sigma = 5.
 
     #plt.figure(figsize=(2,2))
     #plt.imshow(token.pimg.detach().numpy(), cmap='Greys')
@@ -174,10 +176,9 @@ if __name__ == "__main__":
     #plt.show()
 
 
-
-    nb_iter = 300
+    nb_iter = 500
     interval = 30 # how often we will log pimg status
-    lr = 5e-4
+    lr = 0.01
     img_target = torch.tensor(img_target)
 
     score_type_list = []
@@ -189,11 +190,11 @@ if __name__ == "__main__":
     for idx in tqdm.tqdm(range(nb_iter)):
         if idx % interval == 0:
             # store pimg at this iteration for later viewing
-            imgs.append(np.copy(token_imdist.pimg.detach().numpy()))
+            imgs.append(np.copy(im_dist.pimg.detach().numpy()))
         # compute scores
-        score_type = type_dist.score_type(type_tokendist)
-        score_token = type_tokendist.score_token(token_imdist)
-        score_img = token_imdist.score_image(img_target)
+        score_type = type_dist.score_type(_type)
+        score_token = token_dist.score_token(token)
+        score_img = im_dist.score_image(img_target)
         score = score_type + score_token + score_img
         # append to lists
         score_type_list.append(score_type)
