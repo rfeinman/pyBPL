@@ -1,44 +1,43 @@
 from __future__ import division, print_function
 import torch
 
-from .type_dist import TypeDist
-from .token_dist import TokenDist
-from .image_dist import ImageDist
+from .type_dist import CharacterTypeDist
+from .token_dist import CharacterTokenDist
+from .image_dist import CharacterImageDist
 
 
-class Model(object):
+class CharacterModel(object):
     """
     Sampling from and Scoring according to the graphical model
     """
-    def __init__(self,lib):
-        self.type_dist = TypeDist(lib)
-        self.token_dist = TokenDist(lib)
-        self.image_dist = ImageDist(lib)
+    def __init__(self, lib):
+        self.type_dist = CharacterTypeDist(lib)
+        self.token_dist = CharacterTokenDist(lib)
+        self.image_dist = CharacterImageDist(lib)
 
     def sample_type(self):
         return self.type_dist.sample_type()
-        
-    
-    def sample_token(self,_type):
-        return self.token_dist.sample_token(_type)
 
-    def sample_image(self,token):
-        pass
+    def score_type(self, ctype):
+        return self.type_dist.score_type(ctype)
 
-    def score_type(self,_type):
-        return self.type_dist.score_type(_type)
+    def sample_token(self, ctype):
+        return self.token_dist.sample_token(ctype)
 
-    def score_token(self,_type,token):
-        return self.token_dist.score_token(_type,token)
+    def score_token(self, ctype, ctoken):
+        return self.token_dist.score_token(ctype, ctoken)
 
-    def score_image(self,token,image):
-        return self.image_dist.score_image(token,image)
+    def sample_image(self, ctoken):
+        return self.image_dist.score_image(ctoken)
+
+    def score_image(self, ctoken, image):
+        return self.image_dist.score_image(ctoken, image)
 
 
 def fit_image(im, lib):
     # Optimization would look something like this
 
-    model = Model(lib)
+    model = CharacterModel(lib)
     _type = model.sample_type()
     token = model.sample_token(_type)
 

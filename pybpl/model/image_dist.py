@@ -1,16 +1,33 @@
 from __future__ import division, print_function
+from abc import ABCMeta, abstractmethod
 import torch
 import torch.distributions as dist
 
 from .. import rendering
+from ..parameters import defaultps
 
 
-class ImageDist(object):
+class ConceptImageDist(object):
+    __metaclass__ = ABCMeta
+
+    def __init__(self, lib):
+        self.lib = lib
+
+    @abstractmethod
+    def sample_image(self, ctoken):
+        pass
+
+    @abstractmethod
+    def score_image(self, ctoken, image):
+        pass
+
+class CharacterImageDist(ConceptImageDist):
     """
-    Likelihood Distribution
+    Defines the likelihood distribution P(Image | Token)
     """
     def __init__(self, lib):
-        self.parameters = lib.parameters
+        super(CharacterImageDist, self).__init__(lib)
+        self.default_ps = defaultps()
 
     def sample_image(self, ctoken):
         """
@@ -24,7 +41,7 @@ class ImageDist(object):
         """
         pimg, _ = rendering.apply_render(
             ctoken.P, ctoken.affine, ctoken.epsilon, ctoken.blur_sigma,
-            self.parameters
+            self.default_ps
         )
         binom = dist.binomial.Binomial(1, pimg)
         image = binom.sample()
@@ -48,7 +65,7 @@ class ImageDist(object):
         """
         pimg, _ = rendering.apply_render(
             ctoken.P, ctoken.affine, ctoken.epsilon, ctoken.blur_sigma,
-            self.parameters
+            self.default_ps
         )
         binom = dist.binomial.Binomial(1, pimg)
         ll = binom.log_prob(image)
