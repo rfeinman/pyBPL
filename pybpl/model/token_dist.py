@@ -6,9 +6,9 @@ from ..concept import ConceptType, CharacterType, ConceptToken, CharacterToken
 
 
 class ConceptTokenDist(object):
-    '''
+    """
     Defines the distribution P(Token | Type) for concepts
-    '''
+    """
     __metaclass__ = ABCMeta
 
     def __init__(self, lib):
@@ -26,7 +26,7 @@ class ConceptTokenDist(object):
 
     @abstractmethod
     def sample_token(self, ctype):
-        '''
+        """
         Parameters
         ----------
         ctype : ConceptType
@@ -34,7 +34,7 @@ class ConceptTokenDist(object):
         Returns
         -------
         ctoken : ConceptToken
-        '''
+        """
         assert isinstance(ctype, ConceptType)
         P = []
         R = []
@@ -54,7 +54,7 @@ class ConceptTokenDist(object):
 
     @abstractmethod
     def score_token(self, ctype, ctoken):
-        '''
+        """
         Parameters
         ----------
         ctype : ConceptType
@@ -63,7 +63,7 @@ class ConceptTokenDist(object):
         Returns
         -------
         ll : tensor
-        '''
+        """
         ll = 0.
         for i in range(ctype.k):
             ll = ll + self.pdist.score_part_token(
@@ -81,13 +81,13 @@ class ConceptTokenDist(object):
 
 
 class CharacterTokenDist(ConceptTokenDist):
-    '''
+    """
     Defines the distribution P(Token | Type) for characters
-    '''
+    """
     def __init__(self, lib):
         super(CharacterTokenDist, self).__init__(lib)
         self.pdist = StrokeTokenDist(lib)
-        self.parameters = defaultps()
+        self.default_ps = defaultps()
 
     def sample_location(self, rtoken, prev_parts):
         pass
@@ -96,7 +96,7 @@ class CharacterTokenDist(ConceptTokenDist):
         pass
 
     def sample_affine(self):
-        '''
+        """
         Sample an affine warp
         TODO: update this function. right now it returns None
 
@@ -104,7 +104,7 @@ class CharacterTokenDist(ConceptTokenDist):
         -------
         affine : (4,) tensor
             affine transformation
-        '''
+        """
         # set affine to None for now
         affine = None
 
@@ -114,7 +114,7 @@ class CharacterTokenDist(ConceptTokenDist):
         return 0.
 
     def sample_image_noise(self):
-        '''
+        """
         Sample an "epsilon," i.e. image noise quantity
         TODO: update this function. right now it returns fixed quantity
 
@@ -122,9 +122,9 @@ class CharacterTokenDist(ConceptTokenDist):
         -------
         epsilon : tensor
             scalar; image noise quantity
-        '''
+        """
         # set rendering parameters to minimum noise for now
-        epsilon = self.parameters.min_epsilon
+        epsilon = self.default_ps.min_epsilon
 
         return epsilon
 
@@ -132,7 +132,7 @@ class CharacterTokenDist(ConceptTokenDist):
         return 0.
 
     def sample_image_blur(self):
-        '''
+        """
         Sample a "blur_sigma," i.e. image blur quantity
         TODO: update this function. right now it returns fixed quantity
 
@@ -140,9 +140,9 @@ class CharacterTokenDist(ConceptTokenDist):
         -------
         blur_sigma: tensor
             scalar; image blur quantity
-        '''
+        """
         # set rendering parameters to minimum noise for now
-        blur_sigma = self.parameters.min_blur_sigma
+        blur_sigma = self.default_ps.min_blur_sigma
 
         return blur_sigma
 
@@ -150,7 +150,7 @@ class CharacterTokenDist(ConceptTokenDist):
         return 0.
 
     def sample_token(self, ctype):
-        '''
+        """
         Sample a character token from P(Token | Type = type).
         Note: should only be called from Model
 
@@ -163,7 +163,7 @@ class CharacterTokenDist(ConceptTokenDist):
         -------
         ctoken : CharacterToken
             character token
-        '''
+        """
         # sample part and relation tokens
         concept_token = super(CharacterTokenDist, self).sample_token()
 
@@ -183,7 +183,7 @@ class CharacterTokenDist(ConceptTokenDist):
         return ctoken
 
     def score_token(self, ctype, ctoken):
-        '''
+        """
         Compute the log-probability of a concept token,
         log P(Token = token | Type = type).
         Note: Should only be called from Model
@@ -199,7 +199,7 @@ class CharacterTokenDist(ConceptTokenDist):
         -------
         ll : tensor
             scalar; log-likelihood of the token
-        '''
+        """
         ll = super(CharacterTokenDist, self).score_token(ctype, ctoken)
         ll += self.score_affine(ctoken.affine)
         ll += self.score_image_noise(ctoken.epsilon)
@@ -226,6 +226,16 @@ class StrokeTokenDist(PartTokenDist):
     def __init__(self, lib):
         super(PartTokenDist, self).__init__(lib)
 
+    def sample_part_token(self, ptype):
+        """
+        TODO
+        """
+
+    def score_part_token(self, ptype, ptoken):
+        """
+        TODO
+        """
+
 
 class RelationTokenDist(object):
     __metaclass__ = ABCMeta
@@ -233,10 +243,14 @@ class RelationTokenDist(object):
     def __init__(self, lib):
         self.lib = lib
 
-    @abstractmethod
     def sample_relation_token(self, rtype):
+        """
+        TODO
+        """
         pass
 
-    @abstractmethod
     def score_relation_token(self, rtype, rtoken):
+        """
+        TODO
+        """
         pass
