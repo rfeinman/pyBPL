@@ -11,9 +11,9 @@ class ConceptType(object):
     ----------
     k : tensor
         scalar; part count
-    P : list of Part
+    P : list of PartType
         part type list
-    R : list of Relation
+    R : list of RelationType
         relation type list
     '''
     def __init__(self, k, P, R):
@@ -22,33 +22,49 @@ class ConceptType(object):
         assert len(P) == len(R)
         assert k > 0
         for ptype, rtype in zip(P, R):
-            assert isinstance(ptype, Part)
-            assert isinstance(rtype, Relation)
+            assert isinstance(ptype, PartType)
+            assert isinstance(rtype, RelationType)
         self.k = k
         self.part_types = P
         self.relation_types = R
 
+    @abstractmethod
     def parameters(self):
         '''
         return list of parameters
         '''
         pass
 
+    @abstractmethod
+    def lbs(self, eps=1e-4):
+        '''
+        return list of lower bounds for parameters
+        '''
+
+    @abstractmethod
+    def ubs(self, eps=1e-4):
+        '''
+        return list of upper bounds for parameters
+        '''
+
     def train(self):
         '''
         makes params require grad
+        TODO
         '''
         pass
 
     def eval(self):
         '''
         makes params require no grad
+        TODO
         '''
         pass
 
     def to(self, device):
         '''
         moves parameters to device
+        TODO
         '''
         pass
 
@@ -61,16 +77,16 @@ class CharacterType(ConceptType):
     ----------
     k : tensor
         scalar; part count
-    P : list of Stroke
+    P : list of StrokeType
         part type list
-    R : list of Relation
+    R : list of RelationType
         relation type list
     '''
 
     def __init__(self, k, P, R):
         super(CharacterType, self).__init__(k, P, R)
         for p in P:
-            assert isinstance(p, Stroke)
+            assert isinstance(p, StrokeType)
 
     def parameters(self):
         '''
@@ -155,27 +171,43 @@ class ConceptToken(object):
         self.part_tokens = P
         self.relation_tokens = R
 
+    @abstractmethod
     def parameters(self):
         '''
         return list of parameters
         '''
         pass
 
+    @abstractmethod
+    def lbs(self, eps=1e-4):
+        '''
+        return list of lower bounds for parameters
+        '''
+
+    @abstractmethod
+    def ubs(self, eps=1e-4):
+        '''
+        return list of upper bounds for parameters
+        '''
+
     def train(self):
         '''
         makes params require grad
+        TODO
         '''
         pass
 
     def eval(self):
         '''
         makes params require no grad
+        TODO
         '''
         pass
 
     def to(self, device):
         '''
         moves parameters to device
+        TODO
         '''
         pass
 
