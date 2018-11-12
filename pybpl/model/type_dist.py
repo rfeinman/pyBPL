@@ -9,7 +9,7 @@ import torch
 import torch.distributions as dist
 
 from ..library import Library
-from ..relation import (Relation, RelationIndependent, RelationAttach,
+from ..relation import (RelationType, RelationIndependent, RelationAttach,
                        RelationAttachAlong)
 from ..part import StrokeType
 from ..concept import ConceptType, CharacterType
@@ -520,7 +520,7 @@ class CharacterTypeDist(ConceptTypeDist):
 
         Returns
         -------
-        r : Relation
+        r : RelationType
             relation type sample
         """
         for p in prev_parts:
@@ -543,7 +543,7 @@ class CharacterTypeDist(ConceptTypeDist):
             gpos = spatial.sample(data_id)
             # convert (1,2) tensor to (2,) tensor
             gpos = torch.squeeze(gpos)
-            r = RelationIndependent(category, gpos, xlim, ylim, self.lib)
+            r = RelationIndependent(category, gpos, xlim, ylim)
         elif category in ['start', 'end', 'mid']:
             # sample random stroke uniformly from previous strokes. this is the
             # stroke we will attach to
@@ -558,10 +558,10 @@ class CharacterTypeDist(ConceptTypeDist):
                 _, lb, ub = bspline_gen_s(self.lib.ncpt, 1)
                 eval_spot = dist.Uniform(lb, ub).sample()
                 r = RelationAttachAlong(
-                    category, attach_ix, attach_subix, eval_spot, self.lib
+                    category, attach_ix, attach_subix, eval_spot, self.lib.ncpt
                 )
             else:
-                r = RelationAttach(category, attach_ix, self.lib)
+                r = RelationAttach(category, attach_ix)
         else:
             raise TypeError('invalid relation')
 
@@ -574,7 +574,7 @@ class CharacterTypeDist(ConceptTypeDist):
 
         Parameters
         ----------
-        r : Relation
+        r : RelationType
             relation type to score
         prev_parts : list of Stroke
             previous stroke types
@@ -584,7 +584,7 @@ class CharacterTypeDist(ConceptTypeDist):
         ll : tensor
             scalar; log-probability of the relation type
         """
-        assert isinstance(r, Relation)
+        assert isinstance(r, RelationType)
         for p in prev_parts:
             assert isinstance(p, StrokeType)
         nprev = len(prev_parts)

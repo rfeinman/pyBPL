@@ -4,7 +4,9 @@ import torch
 import torch.distributions as dist
 
 from ..parameters import defaultps
+from ..splines import bspline_gen_s
 from ..part import PartType, StrokeType, PartToken, StrokeToken
+from ..relation import RelationToken
 from ..concept import ConceptType, CharacterType, ConceptToken, CharacterToken
 
 
@@ -91,12 +93,57 @@ class CharacterTokenDist(ConceptTokenDist):
         super(CharacterTokenDist, self).__init__(lib)
         self.pdist = StrokeTokenDist(lib)
         self.default_ps = defaultps()
+        # token-level position distribution parameters
+        sigma_x = lib.rel['sigma_x']
+        sigma_y = lib.rel['sigma_y']
+        loc_Cov = torch.diag(torch.stack([sigma_x, sigma_y]))
+        self.loc_dist = dist.MultivariateNormal(torch.zeros(2), loc_Cov)
 
     def sample_location(self, rtoken, prev_parts):
-        pass
+        """
+        Sample a location for a given part
+
+        Parameters
+        ----------
+        prev_parts : list of PartToken
+            previous part tokens
+
+        Returns
+        -------
+        loc : (2,) tensor
+            location; x-y coordinates
+        """
+        for pt in prev_parts:
+            assert isinstance(pt, PartToken)
+        base = rtoken.get_attach_point(prev_parts)
+        assert base.shape == torch.Size([2])
+        loc = base + self.loc_dist.sample()
+
+        return loc
 
     def score_location(self, rtoken, prev_parts, loc):
-        pass
+        """
+        Compute the log-likelihood of a location
+
+        Parameters
+        ----------
+        loc : (2,) tensor
+            location; x-y coordinates
+        prev_parts : list of PartToken
+            previous part tokens
+
+        Returns
+        -------
+        ll : tensor
+            scalar; log-likelihood of the location
+        """
+        for pt in prev_parts:
+            assert isinstance(pt, PartToken)
+        base = rtoken.get_attach_point(prev_parts)
+        assert base.shape == torch.Size([2])
+        ll = self.loc_dist.log_prob(loc - base)
+
+        return ll
 
     def sample_affine(self):
         """
@@ -386,12 +433,109 @@ class RelationTokenDist(object):
 
     def sample_relation_token(self, rtype):
         """
-        TODO
+        Parameters
+        ----------
+        rtype : Relation
+
+        Returns
+        -------
+        rtoken : RelationToken
         """
-        pass
+        if rtype.category == 'mid':
+            assert hasattr(rtype, 'eval_spot')
+            eval_spot_dist = dist.normal.Normal(
+                rtype.eval_spot, self.lib.tokenvar['sigma_attach']
+            )
+            eval_spot_token = sample_eval_spot_token(
+                eval_spot_dist, self.lib.ncpt
+            )
+            rtoken = RelationToken(rtype, eval_spot_token=eval_spot_token)
+        else:
+            rtoken = RelationToken(rtype)
+
+        return rtoken
 
     def score_relation_token(self, rtype, rtoken):
         """
-        TODO
+
+        Parameters
+        ----------
+        rtype : Relation
+        rtoken : RelationToken
+
+        Returns
+        -------
+        ll : tensor
+            scalar; log-probability of relation token
         """
-        pass
+        if rtype.category == 'mid':
+            assert hasattr(rtype, 'eval_spot')
+            assert hasattr(rtoken, 'eval_spot_token')
+            eval_spot_dist = dist.normal.Normal(
+                rtype.eval_spot, self.lib.tokenvar['sigma_attach']
+            )
+            ll = score_eval_spot_token(
+                rtoken.eval_spot_token, eval_spot_dist, self.lib.ncpt
+            )
+        else:
+            ll = 0.
+
+        return ll
+
+
+def sample_eval_spot_token(eval_spot_dist, ncpt):
+    """
+    Sample an evaluation spot token
+
+    Parameters
+    ----------
+    eval_spot_dist : Distribution
+        torch distribution; will be used to sample evaluation spot tokens
+    ncpt : int
+        number of control points
+
+    Returns
+    -------
+    eval_spot_token : tensor
+        scalar; token-level spline coordinate
+    """
+    while True:
+        eval_spot_token = eval_spot_dist.sample()
+        ll = score_eval_spot_token(eval_spot_token, eval_spot_dist, ncpt)
+        if not ll == -float('inf'):
+            break
+
+    return eval_spot_token
+
+
+def score_eval_spot_token(eval_spot_token, eval_spot_dist, ncpt):
+    """
+    Compute the log-likelihood of an evaluation spot token
+
+    Parameters
+    ----------
+    eval_spot_token : tensor
+        scalar; token-level spline coordinate
+    eval_spot_dist : Distribution
+        torch distribution; will be used to score evaluation spot tokens
+    ncpt : int
+        number of control points
+
+    Returns
+    -------
+    ll : tensor
+        scalar; log-likelihood of the evaluation spot token
+    """
+    assert type(eval_spot_token) in [int, float] or \
+           (type(eval_spot_token) == torch.Tensor and
+            eval_spot_token.shape == torch.Size([]))
+    _, lb, ub = bspline_gen_s(ncpt, 1)
+    if eval_spot_token < lb or eval_spot_token > ub:
+        ll = torch.tensor(-float('inf'), dtype=torch.float)
+    else:
+        ll = eval_spot_dist.log_prob(eval_spot_token)
+        # correction for bounds
+        p_within = eval_spot_dist.cdf(ub) - eval_spot_dist.cdf(lb)
+        ll = ll - torch.log(p_within)
+
+    return ll

@@ -5,14 +5,11 @@ concepts.
 from __future__ import print_function, division
 from abc import ABCMeta, abstractmethod
 import torch
-import torch.distributions as dist
 
 from .part import PartToken
 from .splines import bspline_eval, bspline_gen_s
 
 categories_allowed = ['unihist', 'start', 'end', 'mid']
-
-
 
 
 class RelationToken(object):
@@ -22,23 +19,22 @@ class RelationToken(object):
 
     Parameters
     ----------
-    rel : Relation
+    rtype : Relation
         relation type
     eval_spot_token : tensor
         Optional parameter. Token-level evaluation spot for RelationAttachAlong
     """
-    def __init__(self, rel, **kwargs):
-        self.rel = rel
-        if rel.category in ['unihist', 'start', 'end']:
+    def __init__(self, rtype, **kwargs):
+        self.rtype = rtype
+        if rtype.category in ['unihist', 'start', 'end']:
             assert kwargs == {}
         else:
             assert set(kwargs.keys()) == {'eval_spot_token'}
             self.eval_spot_token = kwargs['eval_spot_token']
 
-    def optimizable_parameters(self, eps=1e-4):
+    def parameters(self):
         """
         Returns a list of parameters that can be optimized via gradient descent.
-        Includes lists of lower and upper bounds, with one per parameter.
 
         Parameters
         ----------
@@ -47,72 +43,59 @@ class RelationToken(object):
 
         Returns
         -------
-        params : list
+        parameters : list
             optimizable parameters
+        """
+        if self.rtype.category == 'mid':
+            parameters = [self.eval_spot_token]
+        else:
+            parameters = []
+
+        return parameters
+
+    def lbs(self, eps=1e-4):
+        """
+        Returns a list of lower bounds for each of the optimizable parameters.
+
+        Parameters
+        ----------
+        eps : float
+            tolerance for constrained optimization
+
+        Returns
+        -------
         lbs : list
             lower bound for each parameter
+        """
+        if self.rtype.category == 'mid':
+            _, lb, _ = bspline_gen_s(self.rtype.ncpt, 1)
+            lbs = [lb+eps]
+        else:
+            lbs = []
+
+        return lbs
+
+    def ubs(self, eps=1e-4):
+        """
+        Returns a list of upper bounds for each of the optimizable parameters.
+
+        Parameters
+        ----------
+        eps : float
+            tolerance for constrained optimization
+
+        Returns
+        -------
         ubs : list
             upper bound for each parameter
         """
-        if self.rel.category == 'mid':
-            _, lb, ub = bspline_gen_s(self.rel.ncpt, 1)
-            params = [self.eval_spot_token]
-            lbs = [lb]
-            ubs = [ub]
+        if self.rtype.category == 'mid':
+            _, _, ub = bspline_gen_s(self.rtype.ncpt, 1)
+            ubs = [ub-eps]
         else:
-            params = []
-            lbs = []
             ubs = []
 
-        return params, lbs, ubs
-
-    def sample_location(self, prev_parts):
-        """
-        Sample a location from the relation token
-
-        Parameters
-        ----------
-        prev_parts : list of PartToken
-            previous part tokens
-
-        Returns
-        -------
-        loc : (2,) tensor
-            location; x-y coordinates
-
-        """
-        for pt in prev_parts:
-            assert isinstance(pt, PartToken)
-        base = self.get_attach_point(prev_parts)
-        assert base.shape == torch.Size([2])
-        loc = base + self.rel.loc_dist.sample()
-
-        return loc
-
-    def score_location(self, loc, prev_parts):
-        """
-        Compute the log-likelihood of a location
-
-        Parameters
-        ----------
-        loc : (2,) tensor
-            location; x-y coordinates
-        prev_parts : list of PartToken
-            previous part tokens
-
-        Returns
-        -------
-        ll : tensor
-            scalar; log-likelihood of the location
-
-        """
-        for pt in prev_parts:
-            assert isinstance(pt, PartToken)
-        base = self.get_attach_point(prev_parts)
-        assert base.shape == torch.Size([2])
-        ll = self.rel.loc_dist.log_prob(loc - base)
-
-        return ll
+        return ubs
 
     def get_attach_point(self, prev_parts):
         """
@@ -130,19 +113,19 @@ class RelationToken(object):
             attach point (location); x-y coordinates
 
         """
-        if self.rel.category == 'unihist':
-            loc = self.rel.gpos
+        if self.rtype.category == 'unihist':
+            loc = self.rtype.gpos
         else:
-            prev = prev_parts[self.rel.attach_ix]
-            if self.rel.category == 'start':
+            prev = prev_parts[self.rtype.attach_ix]
+            if self.rtype.category == 'start':
                 subtraj = prev.motor[0]
                 loc = subtraj[0]
-            elif self.rel.category == 'end':
+            elif self.rtype.category == 'end':
                 subtraj = prev.motor[-1]
                 loc = subtraj[-1]
             else:
-                assert self.rel.category == 'mid'
-                bspline = prev.motor_spline[:, :, self.rel.attach_subix]
+                assert self.rtype.category == 'mid'
+                bspline = prev.motor_spline[:, :, self.rtype.attach_subix]
                 loc, _ = bspline_eval(self.eval_spot_token, bspline)
                 # convert (1,2) tensor -> (2,) tensor
                 loc = torch.squeeze(loc, dim=0)
@@ -150,37 +133,30 @@ class RelationToken(object):
         return loc
 
 
-class Relation(object):
+class RelationType(object):
     """
     Relations define the relationship between the current part and all previous
-    parts. They fall into 4 categories: ['unihist','start','end','mid']. Holds
-    all type-level parameters of the relation. This is an abstract base class
-    that must be inherited from to build specific categories of relations.
+    parts. They fall into 4 categories: ['unihist','start','end','mid'].
+    RelationType holds all type-level parameters of the relation.
+    his is an abstract base class that must be inherited from to build specific
+    categories of relations.
 
     Parameters
     ----------
     category : string
         relation category
-    lib : Library
-        library instance, which holds token-level distribution parameters
     """
     __metaclass__ = ABCMeta
 
-    def __init__(self, category, lib):
+    def __init__(self, category):
         # make sure type is valid
         assert category in categories_allowed
         self.category = category
-        # token-level position distribution parameters
-        sigma_x = lib.rel['sigma_x']
-        sigma_y = lib.rel['sigma_y']
-        loc_Cov = torch.diag(torch.stack([sigma_x, sigma_y]))
-        self.loc_dist = dist.MultivariateNormal(torch.zeros(2), loc_Cov)
 
     @abstractmethod
-    def optimizable_parameters(self, eps=1e-4):
+    def parameters(self):
         """
         Returns a list of parameters that can be optimized via gradient descent.
-        Includes lists of lower and upper bounds, with one per parameter.
 
         Parameters
         ----------
@@ -189,52 +165,47 @@ class Relation(object):
 
         Returns
         -------
-        params : list
+        parameters : list
             optimizable parameters
+        """
+        pass
+
+    @abstractmethod
+    def lbs(self, eps=1e-4):
+        """
+        Returns a list of lower bounds for each of the optimizable parameters.
+
+        Parameters
+        ----------
+        eps : float
+            tolerance for constrained optimization
+
+        Returns
+        -------
         lbs : list
             lower bound for each parameter
+        """
+        pass
+
+    @abstractmethod
+    def ubs(self, eps=1e-4):
+        """
+        Returns a list of upper bounds for each of the optimizable parameters.
+
+        Parameters
+        ----------
+        eps : float
+            tolerance for constrained optimization
+
+        Returns
+        -------
         ubs : list
             upper bound for each parameter
         """
         pass
 
-    def sample_token(self):
-        """
-        Sample a token of the relation
 
-        Returns
-        -------
-        token : RelationToken
-            relation token sample
-        """
-        token = RelationToken(self)
-
-        return token
-
-    def score_token(self, token):
-        """
-        Compute the log-likelihood of a relation token
-
-        Parameters
-        ----------
-        token : RelationToken
-            relation token to score
-
-        Returns
-        -------
-        ll : tensor
-            scalar; log-likelihood of the relation token
-
-        """
-        # default this to 0. The only relation category that has token-level
-        # parameters is the 'mid'. For 'mid' this function is over-ridden
-        # (see RelationAttachAlong)
-        ll = 0.
-
-        return ll
-
-
-class RelationIndependent(Relation):
+class RelationIndependent(RelationType):
     """
     RelationIndependent (or 'unihist' relations) are assigned when the part's
     location is independent of all previous parts. The global position (gpos)
@@ -250,27 +221,34 @@ class RelationIndependent(Relation):
         [lower, upper]; bounds for the x direction
     ylim : (2,) tensor
         [lower, upper]; bounds for the y direction
-    lib : Library
-        library instance, which holds token-level distribution parameters
     """
-    def __init__(self, category, gpos, xlim, ylim, lib):
-        super(RelationIndependent, self).__init__(category, lib)
+    def __init__(self, category, gpos, xlim, ylim):
+        super(RelationIndependent, self).__init__(category)
         assert category == 'unihist'
         assert gpos.shape == torch.Size([2])
         self.gpos = gpos
         self.xlim = xlim
         self.ylim = ylim
 
-    def optimizable_parameters(self, eps=1e-4):
-        params = [self.gpos]
+    def parameters(self):
+        parameters = [self.gpos]
+
+        return parameters
+
+    def lbs(self, eps=1e-4):
         bounds = torch.cat([self.xlim.view(1, -1), self.ylim.view(1, -1)])
-        lbs = [bounds[:,0]]
-        ubs = [bounds[:,1]]
+        lbs = [bounds[:,0]+eps]
 
-        return params, lbs, ubs
+        return lbs
+
+    def ubs(self, eps=1e-4):
+        bounds = torch.cat([self.xlim.view(1, -1), self.ylim.view(1, -1)])
+        ubs = [bounds[:,1]-eps]
+
+        return ubs
 
 
-class RelationAttach(Relation):
+class RelationAttach(RelationType):
     """
     RelationAttach is assigned when the part will attach to a previous part
 
@@ -280,20 +258,26 @@ class RelationAttach(Relation):
         relation category
     attach_ix : int
         index of previous part to which this part will attach
-    lib : Library
-        library instance, which holds token-level distribution parameters
     """
-    def __init__(self, category, attach_ix, lib):
-        super(RelationAttach, self).__init__(category, lib)
+    def __init__(self, category, attach_ix):
+        super(RelationAttach, self).__init__(category)
         assert category in ['start', 'end', 'mid']
         self.attach_ix = attach_ix
 
-    def optimizable_parameters(self, eps=1e-4):
-        params = []
+    def parameters(self):
+        parameters = []
+
+        return parameters
+
+    def lbs(self, eps=1e-4):
         lbs = []
+
+        return lbs
+
+    def ubs(self, eps=1e-4):
         ubs = []
 
-        return params, lbs, ubs
+        return ubs
 
 
 class RelationAttachAlong(RelationAttach):
@@ -312,118 +296,29 @@ class RelationAttachAlong(RelationAttach):
         this part will attach
     eval_spot : tensor
         type-level spline coordinate
-    lib : Library
-        library instance, which holds token-level distribution parameters
+    ncpt : int
+        number of control points
     """
-    def __init__(self, category, attach_ix, attach_subix, eval_spot, lib):
-        super(RelationAttachAlong, self).__init__(category, attach_ix, lib)
+    def __init__(self, category, attach_ix, attach_subix, eval_spot, ncpt):
+        super(RelationAttachAlong, self).__init__(category, attach_ix)
         assert category == 'mid'
         self.attach_subix = attach_subix
         self.eval_spot = eval_spot
-        # token-level eval_spot distribution parameters
-        self.ncpt = lib.ncpt
-        self.sigma_attach = lib.tokenvar['sigma_attach']
+        self.ncpt = ncpt
 
-    def optimizable_parameters(self, eps=1e-4):
-        _, lb, ub = bspline_gen_s(self.ncpt, 1)
-        params = [self.eval_spot]
-        lbs = [lb]
-        ubs = [ub]
+    def parameters(self):
+        parameters = [self.eval_spot]
 
-        return params, lbs, ubs
+        return parameters
 
-    def sample_token(self):
-        """
-        Sample a token of the relation
+    def lbs(self, eps=1e-4):
+        _, lb, _ = bspline_gen_s(self.ncpt, 1)
+        lbs = [lb+eps]
 
-        Returns
-        -------
-        token : RelationToken
-            sampled relation token
-        """
-        eval_spot_dist = dist.normal.Normal(self.eval_spot, self.sigma_attach)
-        eval_spot_token = sample_eval_spot_token(eval_spot_dist, self.ncpt)
-        token = RelationToken(self, eval_spot_token=eval_spot_token)
+        return lbs
 
-        return token
+    def ubs(self, eps=1e-4):
+        _, _, ub = bspline_gen_s(self.ncpt, 1)
+        ubs = [ub-eps]
 
-    def score_token(self, token):
-        """
-        Compute the log-likelihood of a relation token
-
-        Parameters
-        ----------
-        token : RelationToken
-            relation token to score
-
-        Returns
-        -------
-        ll : tensor
-            scalar; log-likelihood of the relation token
-        """
-        assert hasattr(token, 'eval_spot_token')
-        eval_spot_dist = dist.normal.Normal(self.eval_spot, self.sigma_attach)
-        ll = score_eval_spot_token(
-            token.eval_spot_token, eval_spot_dist, self.ncpt
-        )
-
-        return ll
-
-
-
-def sample_eval_spot_token(eval_spot_dist, ncpt):
-    """
-    Sample an evaluation spot token
-
-    Parameters
-    ----------
-    eval_spot_dist : Distribution
-        torch distribution; will be used to sample evaluation spot tokens
-    ncpt : int
-        number of control points
-
-    Returns
-    -------
-    eval_spot_token : tensor
-        scalar; token-level spline coordinate
-    """
-    while True:
-        eval_spot_token = eval_spot_dist.sample()
-        ll = score_eval_spot_token(eval_spot_token, eval_spot_dist, ncpt)
-        if not ll == -float('inf'):
-            break
-
-    return eval_spot_token
-
-
-def score_eval_spot_token(eval_spot_token, eval_spot_dist, ncpt):
-    """
-    Compute the log-likelihood of an evaluation spot token
-
-    Parameters
-    ----------
-    eval_spot_token : tensor
-        scalar; token-level spline coordinate
-    eval_spot_dist : Distribution
-        torch distribution; will be used to score evaluation spot tokens
-    ncpt : int
-        number of control points
-
-    Returns
-    -------
-    ll : tensor
-        scalar; log-likelihood of the evaluation spot token
-    """
-    assert type(eval_spot_token) in [int, float] or \
-           (type(eval_spot_token) == torch.Tensor and
-            eval_spot_token.shape == torch.Size([]))
-    _, lb, ub = bspline_gen_s(ncpt, 1)
-    if eval_spot_token < lb or eval_spot_token > ub:
-        ll = torch.tensor(-float('inf'), dtype=torch.float)
-    else:
-        ll = eval_spot_dist.log_prob(eval_spot_token)
-        # correction for bounds
-        p_within = eval_spot_dist.cdf(ub) - eval_spot_dist.cdf(lb)
-        ll = ll - torch.log(p_within)
-
-    return ll
+        return ubs
