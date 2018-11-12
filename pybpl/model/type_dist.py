@@ -21,8 +21,8 @@ int_types = [torch.uint8, torch.int8, torch.int16, torch.int32, torch.int64]
 
 class ConceptTypeDist(object):
     """
-    Abstract base class for concept type distributions. 'ConceptTypeDist'
-    defines the prior distribution P(Type)
+    Abstract base class for concept type distributions. Defines the prior
+    distribution P(Type) for concept types
     """
     __metaclass__ = ABCMeta
 
@@ -128,9 +128,7 @@ class ConceptTypeDist(object):
 
 class CharacterTypeDist(ConceptTypeDist):
     """
-    A CharacterTypeDist is a probabilistic program that samples character types
-    from the prior. It can also compute the log-likelihood of character types.
-    'CharacterTypeDist' defines the prior distribution P(Type)
+    Defines the prior distribution P(Type) for character types
 
     Parameters
     ----------
