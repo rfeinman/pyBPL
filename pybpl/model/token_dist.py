@@ -411,7 +411,7 @@ class StrokeTokenDist(PartTokenDist):
         ll : tensor
             scalar; log-likelihood of the stroke token
         """
-        shapes_scores = self.score_shapes_token(ptype.invscales, ptoken.shapes)
+        shapes_scores = self.score_shapes_token(ptype.shapes, ptoken.shapes)
         invscales_scores = self.score_invscales_token(
             ptype.invscales, ptoken.invscales
         )
