@@ -42,25 +42,25 @@ The following code loads the BPL model with and samples a token
 
 ```python
 from pybpl.library import Library
-from pybpl.ctd import CharacterTypeDist
+from pybpl.model import CharacterModel
 
 # load the hyperparameters of the BPL graphical model (i.e. the "library")
 lib = Library(lib_dir='/path/to/lib_dir')
 
-# build the type distribution P(Type)
-type_dist = CharacterTypeDist(lib)
+# create the BPL graphical model
+model = CharacterModel(lib)
 
-# sample a character type from the prior P(Type) and score its log-likelihood
-char_type = type_dist.sample_type()
-ll_type = type_dist.score_type(char_type)
+# sample a character type from the prior P(Type) and score its log-probability
+char_type = model.sample_type()
+ll_type = model.score_type(char_type)
 
-# sample a character token from P(Token | Type=type) and score its log-likelihood
-char_token = char_type.sample_token()
-ll_token_given_type = char_type.score_token(char_token)
+# sample a character token from P(Token | Type=type) and score its log-probability
+char_token = model.sample_token(char_type)
+ll_token_given_type = model.score_token(char_type, char_token)
 
 # sample an image from P(Image | Token=token)
-image = char_token.sample_image()
-ll_image_given_token = char_token.score_image(image)
+image = model.sample_image(char_token)
+ll_image_given_token = model.score_image(char_token, image)
 
 ```
 
