@@ -27,7 +27,8 @@ class ConceptTypeDist(object):
     __metaclass__ = ABCMeta
 
     def __init__(self, lib):
-        self.lib = lib
+        self.pdist = PartTypeDist(lib)
+        self.rdist = RelationTypeDist(lib)
 
     @abstractmethod
     def sample_k(self):
@@ -84,9 +85,9 @@ class ConceptTypeDist(object):
         # for each part, sample part parameters
         for _ in range(k):
             # sample the part type
-            p = self.sample_part_type(k)
+            p = self.pdist.sample_part_type(k)
             # sample the relation type
-            r = self.sample_relation_type(P)
+            r = self.rdist.sample_relation_type(P)
             # append to the lists
             P.append(p)
             R.append(r)
@@ -117,9 +118,9 @@ class ConceptTypeDist(object):
         ll = ll + self.score_k(ctype.k)
         # step through and score each part
         for i in range(ctype.k):
-            ll = ll + self.score_part_type(ctype.part_types[i], ctype.k)
-            ll = ll + self.score_relation_type(
-                ctype.relation_types[i], ctype.part_types[:i]
+            ll = ll + self.pdist.score_part_type(ctype.k, ctype.part_types[i])
+            ll = ll + self.rdist.score_relation_type(
+                ctype.part_types[:i], ctype.relation_types[i]
             )
 
         return ll
@@ -136,27 +137,17 @@ class CharacterTypeDist(ConceptTypeDist):
     lib : Library
         library instance
     """
-    __relation_categories = ['unihist', 'start', 'end', 'mid']
 
     def __init__(self, lib):
         assert isinstance(lib, Library)
         super(CharacterTypeDist, self).__init__(lib)
+        # override part type dist
+        self.pdist = StrokeTypeDist(lib)
         # distribution of 'k' (number of strokes)
         assert len(lib.pkappa.shape) == 1
         self.kappa = dist.Categorical(probs=lib.pkappa)
-        # distribution of relation categories
-        self.rel_mixdist = dist.Categorical(probs=lib.rel['mixprob'])
-        # invscales distribution
-        scales_theta = lib.scale['theta']
-        assert len(scales_theta.shape) == 2
-        self.scales_con = scales_theta[:,0] # gamma concentration
-        # NOTE: PyTorch gamma dist uses rate parameter, which is inv of scale
-        self.scales_rate = 1/scales_theta[:,1] # gamma rate
+        # part distribution
 
-
-    # ----
-    # Stroke count model methods
-    # ----
 
     def sample_k(self):
         """
@@ -197,10 +188,63 @@ class CharacterTypeDist(ConceptTypeDist):
 
         return ll
 
+    def sample_type(self, k=None):
+        """
+        Sample a character type
 
-    # ----
-    # Sub-strokes model methods
-    # ----
+        Parameters
+        ----------
+        k : int
+            optional; number of strokes for the type. If 'None' this will be
+            sampled
+
+        Returns
+        -------
+        c : CharacterType
+            character type
+
+        """
+        c = super(CharacterTypeDist, self).sample_type(k)
+        ctype = CharacterType(c.k, c.part_types, c.relation_types)
+
+        return ctype
+
+
+class PartTypeDist(object):
+    __metaclass__ = ABCMeta
+    def __init__(self, lib):
+        pass
+
+    @abstractmethod
+    def sample_part_type(self, k):
+        pass
+
+    @abstractmethod
+    def score_part_type(self, k, ptype):
+        pass
+
+
+class StrokeTypeDist(PartTypeDist):
+    def __init__(self, lib):
+        super(StrokeTypeDist, self).__init__(lib)
+        # is uniform
+        self.isunif = lib.isunif
+        # number of control points
+        self.ncpt = lib.ncpt
+        # sub-stroke count distribution
+        self.pmat_nsub = lib.pmat_nsub
+        # sub-stroke id distribution
+        self.logStart = lib.logStart
+        self.pT = lib.pT
+        # shapes distribution
+        self.shapes_mu = lib.shape['mu']
+        self.shapes_Cov = lib.shape['Sigma']
+        # invscales distribution
+        scales_theta = lib.scale['theta']
+        assert len(scales_theta.shape) == 2
+        self.scales_con = scales_theta[:,0]  # gamma concentration
+        # NOTE: PyTorch gamma dist uses rate parameter, which is inv of scale
+        self.scales_rate = 1 / scales_theta[:,1]  # gamma rate
 
     def sample_nsub(self, k):
         """
@@ -218,7 +262,7 @@ class CharacterTypeDist(ConceptTypeDist):
         """
         # probability of each sub-stroke count, conditioned on the number of
         # strokes. NOTE: subtract 1 from stroke counts to get Python index
-        pvec = self.lib.pmat_nsub[k-1]
+        pvec = self.pmat_nsub[k-1]
         # make sure pvec is a vector
         assert len(pvec.shape) == 1
         # sample from the categorical distribution. Add 1 to 0-indexed sample
@@ -245,7 +289,7 @@ class CharacterTypeDist(ConceptTypeDist):
         # nsub should be a scalar
         assert nsub.shape == torch.Size([])
         # collect pvec for this k
-        pvec = self.lib.pmat_nsub[k-1]
+        pvec = self.pmat_nsub[k-1]
         # make sure pvec is a vector
         assert len(pvec.shape) == 1
         # score using the categorical distribution
@@ -270,7 +314,7 @@ class CharacterTypeDist(ConceptTypeDist):
         # nsub should be a scalar
         assert nsub.shape == torch.Size([])
         # set initial transition probabilities
-        pT = torch.exp(self.lib.logStart)
+        pT = torch.exp(self.logStart)
         # sub-stroke sequence is a list
         subid = []
         # step through and sample 'nsub' sub-strokes
@@ -279,7 +323,7 @@ class CharacterTypeDist(ConceptTypeDist):
             ss = dist.Categorical(probs=pT).sample()
             subid.append(ss)
             # update transition probabilities; condition on previous sub-stroke
-            pT = self.lib.pT(ss)
+            pT = self.pT(ss)
         # convert list into tensor
         subid = torch.stack(subid)
 
@@ -300,7 +344,7 @@ class CharacterTypeDist(ConceptTypeDist):
             scalar; log-probability of the sub-stroke ID sequence
         """
         # set initial transition probabilities
-        pT = torch.exp(self.lib.logStart)
+        pT = torch.exp(self.logStart)
         # initialize log-prob vector
         ll = torch.zeros(len(subid), dtype=torch.float)
         # step through sub-stroke IDs
@@ -308,14 +352,9 @@ class CharacterTypeDist(ConceptTypeDist):
             # add to log-prob accumulator
             ll[i] = dist.Categorical(probs=pT).log_prob(ss)
             # update transition probabilities; condition on previous sub-stroke
-            pT = self.lib.pT(ss)
+            pT = self.pT(ss)
 
         return ll
-
-
-    # ----
-    # Shapes model methods
-    # ----
 
     def sample_shapes_type(self, subid):
         """
@@ -331,25 +370,22 @@ class CharacterTypeDist(ConceptTypeDist):
         shapes : (ncpt, 2, nsub) tensor
             sampled shapes of bsplines
         """
-        if self.lib.isunif:
+        if self.isunif:
             raise NotImplementedError
-        # record num control points
-        ncpt = self.lib.ncpt
-        # record shapes mean and covariance
-        shapes_mu = self.lib.shape['mu'][subid]
-        shapes_Cov = self.lib.shape['Sigma'][subid]
         # check that subid is a vector
         assert len(subid.shape) == 1
         # record vector length
         nsub = len(subid)
         # create multivariate normal distribution
-        mvn = dist.MultivariateNormal(shapes_mu, shapes_Cov)
+        mvn = dist.MultivariateNormal(
+            self.shapes_mu[subid], self.shapes_Cov[subid]
+        )
         # sample points from the multivariate normal distribution
         shapes = mvn.sample()
         # transpose axes (nsub, ncpt*2) -> (ncpt*2, nsub)
         shapes = shapes.transpose(0,1)
         # reshape tensor (ncpt*2, nsub) -> (ncpt, 2, nsub)
-        shapes = shapes.view(ncpt,2,nsub)
+        shapes = shapes.view(self.ncpt,2,nsub)
 
         return shapes
 
@@ -370,33 +406,25 @@ class CharacterTypeDist(ConceptTypeDist):
         ll : (nsub,) tensor
             vector of log-likelihood scores
         """
-        if self.lib.isunif:
+        if self.isunif:
             raise NotImplementedError
-        # record num control points
-        ncpt = self.lib.ncpt
-        # record shapes mean and covariance
-        shapes_mu = self.lib.shape['mu'][subid]
-        shapes_Cov = self.lib.shape['Sigma'][subid]
         # check that subid is a vector
         assert len(subid.shape) == 1
         # record vector length
         nsub = len(subid)
         assert shapes.shape[-1] == nsub
         # reshape tensor (ncpt, 2, nsub) -> (ncpt*2, nsub)
-        shapes = shapes.view(ncpt*2,nsub)
+        shapes = shapes.view(self.ncpt*2,nsub)
         # transpose axes (ncpt*2, nsub) -> (nsub, ncpt*2)
         shapes = shapes.transpose(0,1)
         # create multivariate normal distribution
-        mvn = dist.MultivariateNormal(shapes_mu, shapes_Cov)
+        mvn = dist.MultivariateNormal(
+            self.shapes_mu[subid], self.shapes_Cov[subid]
+        )
         # score points using the multivariate normal distribution
         ll = mvn.log_prob(shapes)
 
         return ll
-
-
-    # ----
-    # Invscales model methods
-    # ----
 
     def sample_invscales_type(self, subid):
         """
@@ -412,7 +440,7 @@ class CharacterTypeDist(ConceptTypeDist):
         invscales : (nsub,) tensor
             scale values for each sub-stroke
         """
-        if self.lib.isunif:
+        if self.isunif:
             raise NotImplementedError
         # check that it is a vector
         assert len(subid.shape) == 1
@@ -440,7 +468,7 @@ class CharacterTypeDist(ConceptTypeDist):
         ll : (nsub,) tensor
             vector of log-likelihood scores
         """
-        if self.lib.isunif:
+        if self.isunif:
             raise NotImplementedError
         # make sure these are vectors
         assert len(invscales.shape) == 1
@@ -453,13 +481,9 @@ class CharacterTypeDist(ConceptTypeDist):
 
         return ll
 
-    # ----
-    # Over-arching part & relation methods
-    # ----
-
     def sample_part_type(self, k):
         """
-        Sample a stroke type from the prior, conditioned on a number of strokes
+        Sample a stroke type from the prior, conditioned on a stroke count
 
         Parameters
         ----------
@@ -468,7 +492,7 @@ class CharacterTypeDist(ConceptTypeDist):
 
         Returns
         -------
-        p : Stroke
+        p : StrokeType
             part type sample
         """
         # sample the number of sub-strokes
@@ -484,31 +508,39 @@ class CharacterTypeDist(ConceptTypeDist):
 
         return p
 
-    def score_part_type(self, p, k):
+    def score_part_type(self, k, ptype):
         """
         Compute the log-probability of the stroke type, conditioned on a
-        number of strokes, under the prior
+        stroke count, under the prior
 
         Parameters
         ----------
-        p : Stroke
-            part type to score
         k : tensor
             scalar; stroke count
+        ptype : StrokeType
+            part type to score
 
         Returns
         -------
         ll : tensor
             scalar; log-probability of the stroke type
         """
-        nsub_score = self.score_nsub(k, p.nsub)
-        subIDs_scores = self.score_subIDs(p.ids)
-        shapes_scores = self.score_shapes_type(p.ids, p.shapes)
-        invscales_scores = self.score_invscales_type(p.ids, p.invscales)
+        nsub_score = self.score_nsub(k, ptype.nsub)
+        subIDs_scores = self.score_subIDs(ptype.ids)
+        shapes_scores = self.score_shapes_type(ptype.ids, ptype.shapes)
+        invscales_scores = self.score_invscales_type(ptype.ids, ptype.invscales)
         ll = nsub_score + torch.sum(subIDs_scores) + torch.sum(shapes_scores) \
              + torch.sum(invscales_scores)
 
         return ll
+
+class RelationTypeDist(object):
+    __relation_categories = ['unihist', 'start', 'end', 'mid']
+    def __init__(self, lib):
+        self.ncpt = lib.ncpt
+        self.Spatial = lib.Spatial
+        # distribution of relation categories
+        self.rel_mixdist = dist.Categorical(probs=lib.rel['mixprob'])
 
     def sample_relation_type(self, prev_parts):
         """
@@ -517,7 +549,7 @@ class CharacterTypeDist(ConceptTypeDist):
 
         Parameters
         ----------
-        prev_parts : list of Stroke
+        prev_parts : list of StrokeType
             previous part types
 
         Returns
@@ -529,9 +561,6 @@ class CharacterTypeDist(ConceptTypeDist):
             assert isinstance(p, StrokeType)
         nprev = len(prev_parts)
         stroke_ix = nprev
-        spatial = self.lib.Spatial
-        xlim = spatial.xlim
-        ylim = spatial.ylim
         # first sample the relation category
         if nprev == 0:
             category = 'unihist'
@@ -542,10 +571,12 @@ class CharacterTypeDist(ConceptTypeDist):
         # now sample the category-specific type-level parameters
         if category == 'unihist':
             data_id = torch.tensor([stroke_ix])
-            gpos = spatial.sample(data_id)
+            gpos = self.Spatial.sample(data_id)
             # convert (1,2) tensor to (2,) tensor
             gpos = torch.squeeze(gpos)
-            r = RelationIndependent(category, gpos, xlim, ylim)
+            r = RelationIndependent(
+                category, gpos, self.Spatial.xlim, self.Spatial.ylim
+            )
         elif category in ['start', 'end', 'mid']:
             # sample random stroke uniformly from previous strokes. this is the
             # stroke we will attach to
@@ -557,10 +588,10 @@ class CharacterTypeDist(ConceptTypeDist):
                 probs = torch.ones(nsub)
                 attach_subix = dist.Categorical(probs=probs).sample()
                 # sample random type-level spline coordinate
-                _, lb, ub = bspline_gen_s(self.lib.ncpt, 1)
+                _, lb, ub = bspline_gen_s(self.ncpt, 1)
                 eval_spot = dist.Uniform(lb, ub).sample()
                 r = RelationAttachAlong(
-                    category, attach_ix, attach_subix, eval_spot, self.lib.ncpt
+                    category, attach_ix, attach_subix, eval_spot, self.ncpt
                 )
             else:
                 r = RelationAttach(category, attach_ix)
@@ -569,17 +600,17 @@ class CharacterTypeDist(ConceptTypeDist):
 
         return r
 
-    def score_relation_type(self, r, prev_parts):
+    def score_relation_type(self, prev_parts, r):
         """
         Compute the log-probability of the relation type of the current stroke
         under the prior
 
         Parameters
         ----------
+        prev_parts : list of StrokeType
+            previous stroke types
         r : RelationType
             relation type to score
-        prev_parts : list of Stroke
-            previous stroke types
 
         Returns
         -------
@@ -591,7 +622,6 @@ class CharacterTypeDist(ConceptTypeDist):
             assert isinstance(p, StrokeType)
         nprev = len(prev_parts)
         stroke_ix = nprev
-        spatial = self.lib.Spatial
         # first score the relation category
         if nprev == 0:
             ll = 0.
@@ -606,7 +636,7 @@ class CharacterTypeDist(ConceptTypeDist):
             # convert (2,) tensor to (1,2) tensor
             gpos = r.gpos.view(1,2)
             # score the type-level location
-            ll = ll + torch.squeeze(spatial.score(gpos, data_id))
+            ll = ll + torch.squeeze(self.Spatial.score(gpos, data_id))
         elif r.category in ['start', 'end', 'mid']:
             # score the stroke attachment index
             probs = torch.ones(nprev)
@@ -617,30 +647,9 @@ class CharacterTypeDist(ConceptTypeDist):
                 probs = torch.ones(nsub)
                 ll = ll + dist.Categorical(probs=probs).log_prob(r.attach_subix)
                 # score the type-level spline coordinate
-                _, lb, ub = bspline_gen_s(self.lib.ncpt, 1)
+                _, lb, ub = bspline_gen_s(self.ncpt, 1)
                 ll = ll + dist.Uniform(lb, ub).log_prob(r.eval_spot)
         else:
             raise TypeError('invalid relation')
 
         return ll
-
-    def sample_type(self, k=None):
-        """
-        Sample a character type
-
-        Parameters
-        ----------
-        k : int
-            optional; number of strokes for the type. If 'None' this will be
-            sampled
-
-        Returns
-        -------
-        c : Character
-            character type
-
-        """
-        c = super(CharacterTypeDist, self).sample_type(k)
-        ctype = CharacterType(c.k, c.part_types, c.relation_types)
-
-        return ctype
