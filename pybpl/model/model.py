@@ -36,6 +36,9 @@ class CharacterModel(object):
     def score_image(self, ctoken, image):
         return self.image_dist.score_image(ctoken, image)
 
+    def get_pimg(self, ctoken):
+        return self.image_dist.get_pimg(ctoken)
+
 
 def fit_image(im, lib):
     # Optimization would look something like this
