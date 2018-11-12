@@ -38,7 +38,7 @@ make html
 
 ## Usage Example
 
-The following code loads the BPL model with previously-learned hyperparameters 
+The following code loads the BPL model with pre-defined hyperparameters 
 and samples a token
 
 ```python
