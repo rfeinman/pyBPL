@@ -2,6 +2,7 @@ from __future__ import division, print_function
 from abc import ABCMeta, abstractmethod
 
 from .part import PartType, StrokeType, PartToken, StrokeToken
+from .relation import RelationType, RelationToken
 
 
 class ConceptType(object):

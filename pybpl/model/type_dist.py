@@ -26,8 +26,8 @@ class ConceptTypeDist(object):
     """
     __metaclass__ = ABCMeta
 
-    def __init__(self):
-        pass
+    def __init__(self, lib):
+        self.lib = lib
 
     @abstractmethod
     def sample_k(self):
@@ -53,6 +53,7 @@ class ConceptTypeDist(object):
     def score_relation_type(self, r, prev_parts):
         pass
 
+    @abstractmethod
     def sample_type(self, k=None):
         """
         Sample a concept type from the prior
@@ -64,7 +65,7 @@ class ConceptTypeDist(object):
 
         Returns
         -------
-        c : Concept
+        ctype : ConceptType
             concept type sample
         """
         if k is None:
@@ -91,18 +92,18 @@ class ConceptTypeDist(object):
             R.append(r)
         # create the concept type, i.e. a motor program for sampling
         # concept tokens
-        c = ConceptType(k, P, R)
+        ctype = ConceptType(k, P, R)
 
-        return c
+        return ctype
 
-    def score_type(self, c):
+    def score_type(self, ctype):
         """
         Compute the log-probability of a concept type under the prior
         $P(type) = P(k)*\prod_{i=1}^k [P(S_i)P(R_i|S_{0:i-1})]$
 
         Parameters
         ----------
-        c : Concept
+        ctype : ConceptType
             concept type to score
 
         Returns
@@ -110,14 +111,16 @@ class ConceptTypeDist(object):
         ll : tensor
             scalar; log-probability of the concept type
         """
-        assert isinstance(c, ConceptType)
+        assert isinstance(ctype, ConceptType)
         # score the number of parts
         ll = 0.
-        ll = ll + self.score_k(c.k)
+        ll = ll + self.score_k(ctype.k)
         # step through and score each part
-        for i in range(c.k):
-            ll = ll + self.score_part_type(c.P[i], c.k)
-            ll = ll + self.score_relation_type(c.R[i], c.P[:i])
+        for i in range(ctype.k):
+            ll = ll + self.score_part_type(ctype.part_types[i], ctype.k)
+            ll = ll + self.score_relation_type(
+                ctype.relation_types[i], ctype.part_types[:i]
+            )
 
         return ll
 
@@ -136,9 +139,8 @@ class CharacterTypeDist(ConceptTypeDist):
     __relation_categories = ['unihist', 'start', 'end', 'mid']
 
     def __init__(self, lib):
-        super(CharacterTypeDist, self).__init__()
         assert isinstance(lib, Library)
-        self.lib = lib
+        super(CharacterTypeDist, self).__init__(lib)
         # distribution of 'k' (number of strokes)
         assert len(lib.pkappa.shape) == 1
         self.kappa = dist.Categorical(probs=lib.pkappa)
@@ -639,6 +641,6 @@ class CharacterTypeDist(ConceptTypeDist):
 
         """
         c = super(CharacterTypeDist, self).sample_type(k)
-        c = CharacterType(c.k, c.P, c.R)
+        ctype = CharacterType(c.k, c.part_types, c.relation_types)
 
-        return c
+        return ctype

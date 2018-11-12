@@ -2,7 +2,7 @@ from __future__ import division, print_function
 import matplotlib.pyplot as plt
 
 from pybpl.library import Library
-from pybpl.ctd import CharacterTypeDist
+from pybpl.model import CharacterModel
 
 
 def display_type(c):
@@ -10,27 +10,25 @@ def display_type(c):
     print('num strokes: %i' % c.k)
     for i in range(c.k):
         print('Stroke #%i:' % i)
-        print('\tsub-stroke ids: ', list(c.P[i].ids.numpy()))
-        print('\trelation category: %s' % c.R[i].category)
+        print('\tsub-stroke ids: ', list(c.part_types[i].ids.numpy()))
+        print('\trelation category: %s' % c.relation_types[i].category)
     print('----END CHARACTER TYPE INFO----')
 
 def main():
     print('generating character...')
     lib = Library(lib_dir='./lib_data')
-    # generate the character type. This is a motor program for generating
-    # character tokens
-    type_dist = CharacterTypeDist(lib)
+    model = CharacterModel(lib)
     fig, axes = plt.subplots(nrows=10, ncols=3, figsize=(1.5, 5))
     for i in range(10):
-        c = type_dist.sample_type()
-        ll = type_dist.score_type(c)
+        ctype = model.sample_type()
+        ll = model.score_type(ctype)
         print('type %i' % i)
-        display_type(c)
+        display_type(ctype)
         print('log-likelihood: %0.2f \n' % ll.item())
         # sample a few character tokens and visualize them
         for j in range(3):
-            token = c.sample_token()
-            img = token.sample_image()
+            ctoken = model.sample_token(ctype)
+            img = model.sample_image(ctoken)
             axes[i,j].imshow(img, cmap='Greys')
             axes[i,j].tick_params(
                 which='both',

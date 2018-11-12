@@ -215,7 +215,7 @@ class CharacterTokenDist(ConceptTokenDist):
             character token
         """
         # sample part and relation tokens
-        concept_token = super(CharacterTokenDist, self).sample_token()
+        concept_token = super(CharacterTokenDist, self).sample_token(ctype)
 
         # sample affine warp
         affine = self.sample_affine() # (4,) tensor
@@ -274,7 +274,7 @@ class PartTokenDist(object):
 
 class StrokeTokenDist(PartTokenDist):
     def __init__(self, lib):
-        super(PartTokenDist, self).__init__(lib)
+        super(StrokeTokenDist, self).__init__(lib)
 
     def sample_shapes_token(self, shapes_type):
         """
@@ -341,7 +341,7 @@ class StrokeTokenDist(PartTokenDist):
         )
         while True:
             invscales_token = scales_dist.sample()
-            ll = self.score_invscales_token(invscales_token)
+            ll = self.score_invscales_token(invscales_type, invscales_token)
             if not torch.any(ll == -float('inf')):
                 break
 

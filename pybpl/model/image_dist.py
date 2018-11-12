@@ -40,8 +40,8 @@ class CharacterImageDist(ConceptImageDist):
             binary image sample
         """
         pimg, _ = rendering.apply_render(
-            ctoken.P, ctoken.affine, ctoken.epsilon, ctoken.blur_sigma,
-            self.default_ps
+            ctoken.part_tokens, ctoken.affine, ctoken.epsilon,
+            ctoken.blur_sigma, self.default_ps
         )
         binom = dist.binomial.Binomial(1, pimg)
         image = binom.sample()
@@ -64,8 +64,8 @@ class CharacterImageDist(ConceptImageDist):
             scalar; log-likelihood of the image
         """
         pimg, _ = rendering.apply_render(
-            ctoken.P, ctoken.affine, ctoken.epsilon, ctoken.blur_sigma,
-            self.default_ps
+            ctoken.part_tokens, ctoken.affine, ctoken.epsilon,
+            ctoken.blur_sigma, self.default_ps
         )
         binom = dist.binomial.Binomial(1, pimg)
         ll = binom.log_prob(image)
