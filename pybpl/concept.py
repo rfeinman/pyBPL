@@ -53,16 +53,16 @@ class ConceptType(object):
     def train(self):
         """
         makes params require grad
-        TODO
         """
-        pass
+        for param in self.parameters():
+            param.requires_grad_(True)
 
     def eval(self):
         """
         makes params require no grad
-        TODO
         """
-        pass
+        for param in self.parameters():
+            param.requires_grad_(False)
 
     def to(self, device):
         """
@@ -196,16 +196,16 @@ class ConceptToken(object):
     def train(self):
         """
         makes params require grad
-        TODO
         """
-        pass
+        for param in self.parameters():
+            param.requires_grad_(True)
 
     def eval(self):
         """
         makes params require no grad
-        TODO
         """
-        pass
+        for param in self.parameters():
+            param.requires_grad_(False)
 
     def to(self, device):
         """

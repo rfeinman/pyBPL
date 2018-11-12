@@ -32,6 +32,41 @@ class RelationToken(object):
             assert set(kwargs.keys()) == {'eval_spot_token'}
             self.eval_spot_token = kwargs['eval_spot_token']
 
+    def get_attach_point(self, prev_parts):
+        """
+        Get the mean attachment point of where the start of the next part
+        should be, given the previous part tokens.
+
+        Parameters
+        ----------
+        prev_parts : list of PartToken
+            previous part tokens
+
+        Returns
+        -------
+        loc : (2,) tensor
+            attach point (location); x-y coordinates
+
+        """
+        if self.rtype.category == 'unihist':
+            loc = self.rtype.gpos
+        else:
+            prev = prev_parts[self.rtype.attach_ix]
+            if self.rtype.category == 'start':
+                subtraj = prev.motor[0]
+                loc = subtraj[0]
+            elif self.rtype.category == 'end':
+                subtraj = prev.motor[-1]
+                loc = subtraj[-1]
+            else:
+                assert self.rtype.category == 'mid'
+                bspline = prev.motor_spline[:, :, self.rtype.attach_subix]
+                loc, _ = bspline_eval(self.eval_spot_token, bspline)
+                # convert (1,2) tensor -> (2,) tensor
+                loc = torch.squeeze(loc, dim=0)
+
+        return loc
+
     def parameters(self):
         """
         Returns a list of parameters that can be optimized via gradient descent.
@@ -97,40 +132,26 @@ class RelationToken(object):
 
         return ubs
 
-    def get_attach_point(self, prev_parts):
+    def train(self):
         """
-        Get the mean attachment point of where the start of the next part
-        should be, given the previous part tokens.
-
-        Parameters
-        ----------
-        prev_parts : list of PartToken
-            previous part tokens
-
-        Returns
-        -------
-        loc : (2,) tensor
-            attach point (location); x-y coordinates
-
+        makes params require grad
         """
-        if self.rtype.category == 'unihist':
-            loc = self.rtype.gpos
-        else:
-            prev = prev_parts[self.rtype.attach_ix]
-            if self.rtype.category == 'start':
-                subtraj = prev.motor[0]
-                loc = subtraj[0]
-            elif self.rtype.category == 'end':
-                subtraj = prev.motor[-1]
-                loc = subtraj[-1]
-            else:
-                assert self.rtype.category == 'mid'
-                bspline = prev.motor_spline[:, :, self.rtype.attach_subix]
-                loc, _ = bspline_eval(self.eval_spot_token, bspline)
-                # convert (1,2) tensor -> (2,) tensor
-                loc = torch.squeeze(loc, dim=0)
+        for param in self.parameters():
+            param.requires_grad_(True)
 
-        return loc
+    def eval(self):
+        """
+        makes params require no grad
+        """
+        for param in self.parameters():
+            param.requires_grad_(False)
+
+    def to(self, device):
+        """
+        moves parameters to device
+        TODO
+        """
+        pass
 
 
 class RelationType(object):
@@ -201,6 +222,27 @@ class RelationType(object):
         -------
         ubs : list
             upper bound for each parameter
+        """
+        pass
+
+    def train(self):
+        """
+        makes params require grad
+        """
+        for param in self.parameters():
+            param.requires_grad_(True)
+
+    def eval(self):
+        """
+        makes params require no grad
+        """
+        for param in self.parameters():
+            param.requires_grad_(False)
+
+    def to(self, device):
+        """
+        moves parameters to device
+        TODO
         """
         pass
 
