@@ -426,7 +426,6 @@ class StrokeTokenDist(PartTokenDist):
 
 
 class RelationTokenDist(object):
-    __metaclass__ = ABCMeta
 
     def __init__(self, lib):
         self.lib = lib
