@@ -29,6 +29,14 @@ class CharacterImageDist(ConceptImageDist):
         super(CharacterImageDist, self).__init__(lib)
         self.default_ps = defaultps()
 
+    def get_pimg(self, ctoken):
+        pimg, _ = rendering.apply_render(
+            ctoken.part_tokens, ctoken.affine, ctoken.epsilon,
+            ctoken.blur_sigma, self.default_ps
+        )
+
+        return pimg
+
     def sample_image(self, ctoken):
         """
         Samples a binary image
@@ -39,10 +47,7 @@ class CharacterImageDist(ConceptImageDist):
         image : (H,W) tensor
             binary image sample
         """
-        pimg, _ = rendering.apply_render(
-            ctoken.part_tokens, ctoken.affine, ctoken.epsilon,
-            ctoken.blur_sigma, self.default_ps
-        )
+        pimg = self.get_pimg(ctoken)
         binom = dist.binomial.Binomial(1, pimg)
         image = binom.sample()
 
@@ -63,10 +68,7 @@ class CharacterImageDist(ConceptImageDist):
         ll : tensor
             scalar; log-likelihood of the image
         """
-        pimg, _ = rendering.apply_render(
-            ctoken.part_tokens, ctoken.affine, ctoken.epsilon,
-            ctoken.blur_sigma, self.default_ps
-        )
+        pimg = self.get_pimg(ctoken)
         binom = dist.binomial.Binomial(1, pimg)
         ll = binom.log_prob(image)
         ll = torch.sum(ll)
