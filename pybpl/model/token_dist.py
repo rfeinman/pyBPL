@@ -17,7 +17,6 @@ class ConceptTokenDist(object):
     __metaclass__ = ABCMeta
 
     def __init__(self, lib):
-        self.lib = lib
         self.pdist = PartTokenDist(lib)
         self.rdist = RelationTokenDist(lib)
 
@@ -261,7 +260,7 @@ class CharacterTokenDist(ConceptTokenDist):
 class PartTokenDist(object):
     __metaclass__ = ABCMeta
     def __init__(self, lib):
-        self.lib = lib
+        pass
 
     @abstractmethod
     def sample_part_token(self, ptype):
@@ -275,6 +274,10 @@ class PartTokenDist(object):
 class StrokeTokenDist(PartTokenDist):
     def __init__(self, lib):
         super(StrokeTokenDist, self).__init__(lib)
+        # shapes distribution params
+        self.sigma_shape = lib.tokenvar['sigma_shape']
+        # invscale distribution params
+        self.sigma_invscale = lib.tokenvar['sigma_invscale']
 
     def sample_shapes_token(self, shapes_type):
         """
@@ -290,9 +293,7 @@ class StrokeTokenDist(PartTokenDist):
         shapes_token : (ncpt, 2, nsub) tensor
             sampled shapes token
         """
-        shapes_dist = dist.normal.Normal(
-            shapes_type, self.lib.tokenvar['sigma_shape']
-        )
+        shapes_dist = dist.normal.Normal(shapes_type, self.sigma_shape)
         # sample shapes token
         shapes_token = shapes_dist.sample()
 
@@ -314,9 +315,7 @@ class StrokeTokenDist(PartTokenDist):
         ll : (nsub,) tensor
             vector of log-likelihood scores
         """
-        shapes_dist = dist.normal.Normal(
-            shapes_type, self.lib.tokenvar['sigma_shape']
-        )
+        shapes_dist = dist.normal.Normal(shapes_type, self.sigma_shape)
         # compute scores for every element in shapes_token
         ll = shapes_dist.log_prob(shapes_token)
 
@@ -336,9 +335,7 @@ class StrokeTokenDist(PartTokenDist):
         invscales_token : (nsub,) tensor
             sampled invscales token
         """
-        scales_dist = dist.normal.Normal(
-            invscales_type, self.lib.tokenvar['sigma_invscale']
-        )
+        scales_dist = dist.normal.Normal(invscales_type, self.sigma_invscale)
         while True:
             invscales_token = scales_dist.sample()
             ll = self.score_invscales_token(invscales_type, invscales_token)
@@ -363,9 +360,7 @@ class StrokeTokenDist(PartTokenDist):
         ll : (nsub,) tensor
             vector of log-likelihood scores
         """
-        scales_dist = dist.normal.Normal(
-            invscales_type, self.lib.tokenvar['sigma_invscale']
-        )
+        scales_dist = dist.normal.Normal(invscales_type, self.sigma_invscale)
         # compute scores for every element in invscales_token
         ll = scales_dist.log_prob(invscales_token)
 
@@ -428,7 +423,10 @@ class StrokeTokenDist(PartTokenDist):
 class RelationTokenDist(object):
 
     def __init__(self, lib):
-        self.lib = lib
+        # number of control points
+        self.ncpt = lib.ncpt
+        # eval_spot_token distribution params
+        self.sigma_attach = lib.tokenvar['sigma_attach']
 
     def sample_relation_token(self, rtype):
         """
@@ -443,10 +441,10 @@ class RelationTokenDist(object):
         if rtype.category == 'mid':
             assert hasattr(rtype, 'eval_spot')
             eval_spot_dist = dist.normal.Normal(
-                rtype.eval_spot, self.lib.tokenvar['sigma_attach']
+                rtype.eval_spot, self.sigma_attach
             )
             eval_spot_token = sample_eval_spot_token(
-                eval_spot_dist, self.lib.ncpt
+                eval_spot_dist, self.ncpt
             )
             rtoken = RelationToken(rtype, eval_spot_token=eval_spot_token)
         else:
@@ -471,10 +469,10 @@ class RelationTokenDist(object):
             assert hasattr(rtype, 'eval_spot')
             assert hasattr(rtoken, 'eval_spot_token')
             eval_spot_dist = dist.normal.Normal(
-                rtype.eval_spot, self.lib.tokenvar['sigma_attach']
+                rtype.eval_spot, self.sigma_attach
             )
             ll = score_eval_spot_token(
-                rtoken.eval_spot_token, eval_spot_dist, self.lib.ncpt
+                rtoken.eval_spot_token, eval_spot_dist, self.ncpt
             )
         else:
             ll = 0.
