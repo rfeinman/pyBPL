@@ -8,7 +8,10 @@ from .image_dist import CharacterImageDist
 
 class CharacterModel(object):
     """
-    Sampling from and Scoring according to the graphical model
+    Sampling from and Scoring according to the graphical model. The model is
+    defined as P(Type, Token, Image) = P(Type)*P(Token | Type)*P(Image | Token).
+    The 3 component distributions P(Type), P(Token | Type), and P(Image | Token)
+    are denoted 'type_dist', 'token_dist' and 'image_dist', respectively.
     """
     def __init__(self, lib):
         self.type_dist = CharacterTypeDist(lib)
