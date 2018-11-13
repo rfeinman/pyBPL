@@ -68,7 +68,7 @@ ll_image_given_token = model.score_image(char_token, image)
 ## Demo
 Currently there are 2 working demos, both found in the `examples` subfolder.
 
-####1. generate character
+#### 1. generate character
 
 You can generate a character type and sample a few tokens of the type by
 running the following command from the root folder:
@@ -78,7 +78,7 @@ python examples/generate_character.py
 The script will sample a character type from the prior and then sample 4 tokens
 of the type, displaying the images.
 
-####2. optimize character type
+#### 2. optimize character type
 You can generate a character type and then optimize its parameters to maximize
 the likelihood of the type under the prior by running the following
 command from the root folder:
