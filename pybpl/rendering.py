@@ -119,12 +119,23 @@ def pair_dist(D):
 
 def seqadd(D, lind_x, lind_y, inkval):
     """
+    Add ink to an image at the indicated locations
 
-    :param D: [(m,n) tensor]
-    :param lind_x: [(k,) tensor]
-    :param lind_y: [(k,) tensor]
-    :param inkval: [(k,) tensor]
-    :return:
+    Parameters
+    ----------
+    D : (m,n) tensor
+        image that we'll be adding to
+    lind_x : (k,) tensor
+        x-coordinate for each adding point
+    lind_y : (k,) tensor
+        y-coordinate for each adding point
+    inkval : (k,) tensor
+        amount of ink to add for each adding point
+
+    Returns
+    -------
+    D : (m,n) tensor
+        image with ink added to it
     """
     assert len(lind_x) == len(lind_y) == len(inkval)
     out = check_bounds(
