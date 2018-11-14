@@ -138,12 +138,15 @@ def seqadd(D, lind_x, lind_y, inkval):
         image with ink added to it
     """
     assert len(lind_x) == len(lind_y) == len(inkval)
+    # check if any adding points are out of bounds
     out = check_bounds(
         torch.cat([lind_x.view(-1,1), lind_y.view(-1,1)], dim=1),
         (D.shape[0]-1, D.shape[1]-1)
     )
+    # keep only the adding points that are in bounds
     lind_x = lind_x[~out].long()
     lind_y = lind_y[~out].long()
+    inkval = inkval[~out]
     numel = len(lind_x)
     for i in range(numel):
         D[lind_x[i], lind_y[i]] = D[lind_x[i], lind_y[i]] + inkval[i]
