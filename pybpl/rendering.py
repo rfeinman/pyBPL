@@ -82,11 +82,20 @@ def apply_warp(motor_unwarped, affine):
 
 def check_bounds(myt, imsize):
     """
+    Given a list of 2D points (x-y coordinates) and an image size, return
+    a boolean vector indicating which points are out of the image boundary
 
-    :param myt: [(k,2) tensor]
-    :param imsize: [list or tuple]
-    :return:
-        out: [(k,) Byte tensor]
+    Parameters
+    ----------
+    myt : (k,2) tensor
+        list of 2D points
+    imsize : (2,) tensor
+        image size; H x W
+
+    Returns
+    -------
+    out : (k,) Byte tensor
+        vector indicating which points are out of bounds
     """
     xt = myt[:,0]
     yt = myt[:,1]
@@ -98,10 +107,18 @@ def check_bounds(myt, imsize):
 
 def pair_dist(D):
     """
+    Given a list of 2D points (x-y coordinates), compute the euclidean distance
+    between each point and the next point in the list
 
-    :param D: [(k,2) tensor]
-    :return:
-        z: [(k,) tensor]
+    Parameters
+    ----------
+    D : (k,2) tensor
+        list of 2D points
+
+    Returns
+    -------
+    z : (k-1,) tensor
+        list of distances
     """
     assert isinstance(D, torch.Tensor)
     assert len(D.shape) == 2
