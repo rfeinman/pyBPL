@@ -48,8 +48,8 @@ class CharacterImageDist(ConceptImageDist):
             binary image sample
         """
         pimg = self.get_pimg(ctoken)
-        binom = dist.binomial.Binomial(1, pimg)
-        image = binom.sample()
+        bern = dist.Bernoulli(pimg)
+        image = bern.sample()
 
         return image
 
@@ -69,8 +69,8 @@ class CharacterImageDist(ConceptImageDist):
             scalar; log-likelihood of the image
         """
         pimg = self.get_pimg(ctoken)
-        binom = dist.binomial.Binomial(1, pimg)
-        ll = binom.log_prob(image)
+        bern = dist.Bernoulli(pimg)
+        ll = bern.log_prob(image)
         ll = torch.sum(ll)
 
         return ll
