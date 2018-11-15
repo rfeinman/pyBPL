@@ -5,7 +5,7 @@ from __future__ import print_function, division
 
 import torch
 
-from .util import aeq, fspecial, imfilter
+from .util import sub2ind, fspecial, imfilter
 from . import splines
 
 
@@ -164,9 +164,18 @@ def seqadd(D, lind_x, lind_y, inkval):
     lind_x = lind_x[~out].long()
     lind_y = lind_y[~out].long()
     inkval = inkval[~out]
-    numel = len(lind_x)
-    for i in range(numel):
-        D[lind_x[i], lind_y[i]] = D[lind_x[i], lind_y[i]] + inkval[i]
+    # store the original shape of the image and then flatten it from 2D to 1D
+    shape = D.shape
+    D = D.view(-1)
+    # convert the indices from 2D to 1D
+    lind = sub2ind(shape, lind_x, lind_y)
+    # create a zeros vector of same size as inkval
+    z = torch.zeros_like(inkval)
+    # loop through unique index values
+    for i in torch.unique(lind):
+        D[i] += torch.sum(torch.where(lind==i, inkval, z))
+    # reshape the image back to 2D from 1D
+    D = D.view(shape)
 
     return D
 
