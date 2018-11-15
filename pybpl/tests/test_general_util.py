@@ -22,7 +22,7 @@ class TestGeneralUtil(unittest.TestCase):
         self.assertTrue(kernel.shape == torch.Size([11,11]))
         # make sure it has its mean in the center
         mean_i = torch.argmax(kernel)
-        mean_yi, mean_xi = ind2sub(kernel.shape, mean_i)
+        mean_xi, mean_yi = ind2sub(kernel.shape, mean_i)
         self.assertEqual(mean_yi, torch.tensor(5))
         self.assertEqual(mean_xi, torch.tensor(5))
         # TODO - more tests?

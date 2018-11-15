@@ -125,7 +125,7 @@ class SpatialHist(object):
         lin = Categorical(probs=pvec).sample(torch.Size([nsamp]))
 
         # Retrieve the [x, y] indices of these bins
-        yi, xi = ind2sub(self.logpYX.shape, lin)
+        xi, yi = ind2sub(self.logpYX.shape, lin)
 
         # Retrieve the edges for each of these bins
         xmin = self.xlab[xi]

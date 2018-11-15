@@ -13,26 +13,30 @@ def ind2sub(shape, index):
     """
     A PyTorch implementation of MATLAB's "ind2sub" function
 
-    :param shape: [torch.Size or list or array] shape of the hypothetical 2D
-                    matrix
-    :param index: [(n,) tensor] indices to convert
-    :return:
-        yi: [(n,) tensor] y sub-indices
-        xi: [(n,) tensor] x sub-indices
+    Parameters
+    ----------
+    shape : torch.Size or list or tuple
+        shape of the hypothetical 2D matrix
+    index : (n,) tensor
+        indices to convert
+
+    Returns
+    -------
+    rows : (n,) tensor
+    cols : (n,) tensor
     """
     # checks
     assert isinstance(shape, torch.Size) or \
            isinstance(shape, list) or \
-           isinstance(shape, tuple) or \
-           isinstance(shape, np.ndarray)
-    assert isinstance(index, torch.Tensor)
+           isinstance(shape, tuple)
+    assert isinstance(index, torch.Tensor) and len(index.shape) == 1
     valid_index = index < shape[0]*shape[1]
     assert valid_index.all()
     if not len(shape) == 2:
         raise NotImplementedError('only implemented for 2D case.')
     # compute inds
-    rows = index % shape[0]
-    cols = index / shape[0]
+    cols = index % shape[0]
+    rows = index / shape[0]
 
     return rows, cols
 
@@ -40,16 +44,20 @@ def sub2ind(shape, rows, cols):
     """
     A PyTorch implementation of MATLAB's "sub2ind" function
 
-    :param shape:
-    :param rows:
-    :param cols:
-    :return:
+    Parameters
+    ----------
+    shape : torch.Size or list or tuple
+    rows : (n,) tensor
+    cols : (n,) tensor
+
+    Returns
+    -------
+    index : (n,) tensor
     """
     # checks
     assert isinstance(shape, torch.Size) or \
            isinstance(shape, list) or \
-           isinstance(shape, tuple) or \
-           isinstance(shape, np.ndarray)
+           isinstance(shape, tuple)
     assert isinstance(rows, torch.Tensor) and len(rows.shape) == 1
     assert isinstance(cols, torch.Tensor) and len(cols.shape) == 1
     assert len(rows) == len(cols)
@@ -59,9 +67,7 @@ def sub2ind(shape, rows, cols):
     if not len(shape) == 2:
         raise NotImplementedError('only implemented for 2D case.')
     # compute inds
-    n_inds = shape[0]*shape[1]
-    ind_mat = torch.arange(n_inds).view(shape[1], shape[0])
-    ind_mat = torch.transpose(ind_mat, 0, 1)
+    ind_mat = torch.arange(shape[0]*shape[1]).view(shape)
     index = ind_mat[rows.long(), cols.long()]
 
     return index
