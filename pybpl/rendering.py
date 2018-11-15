@@ -169,11 +169,14 @@ def seqadd(D, lind_x, lind_y, inkval):
     D = D.view(-1)
     # convert the indices from 2D to 1D
     lind = sub2ind(shape, lind_x, lind_y)
-    # create a zeros vector of same size as inkval
-    z = torch.zeros_like(inkval)
-    # loop through unique index values
-    for i in torch.unique(lind):
-        D[i] += torch.sum(torch.where(lind==i, inkval, z))
+    # create a zeros vector of same size as inkval. needed for next step
+    zero = torch.zeros_like(inkval)
+    # sum all inkvals with same index
+    lind_unique = torch.unique(lind)
+    inkval_unique = torch.stack(
+        [torch.sum(torch.where(lind==i, inkval, zero)) for i in lind_unique]
+    )
+    D[lind_unique] += inkval_unique
     # reshape the image back to 2D from 1D
     D = D.view(shape)
 
