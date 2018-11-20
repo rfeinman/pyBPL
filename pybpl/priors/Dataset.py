@@ -10,6 +10,13 @@ class Dataset(object):
         data = loadmat('data_background',variable_names=['drawings','images','names','timing'])
         D = Dataset(data['drawings'],data['images'],data['names'],data['timing'])
         
+        Images are 105x105 are retrieved with:
+        D.images[alphabet][character][rendition] 
+
+        Drawings of a particular image are lists of strokes, where each
+        stroke is a list of timesteps, where each timestep is an (x,y) coord.
+        (x,y) coords of drawings are retrieved with:
+        D.drawings[alphabet][character][rendition][stroke][timestep]
         
         NOTES: 
         (1) ONLY CLEANING UP DRAWINGS AND IMAGES FOR NOW.
@@ -17,6 +24,7 @@ class Dataset(object):
         
         (2) ASK BRENDEN ABOUT FLIP_IMG
         '''
+
         self.names = names
         self.timing = timing
         
@@ -79,3 +87,23 @@ class Dataset(object):
         black pixels
         '''
         return ((I==True).sum() < (I==False).sum())
+
+    def first_stroke_locations(self):
+        
+        first_strokes = []
+
+        n_alpha = len(self.drawings)
+        for a in range(n_alpha):
+            alphabet = self.drawings[a]
+            n_char = len(alphabet)
+            for c in range(n_char):
+                char = alphabet[c]
+                n_rend = len(char)
+                for r in range(n_rend):
+                    rendition = char[r]
+                    first_stroke = rendition[0]
+                    first_stroke_start = first_stroke[0]
+                    first_strokes.append(first_stroke_start)
+
+        first_strokes = np.vstack(first_strokes)
+        return first_strokes
