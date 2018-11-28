@@ -278,13 +278,13 @@ class RelationIndependent(RelationType):
         return parameters
 
     def lbs(self, eps=1e-4):
-        bounds = torch.cat([self.xlim.view(1, -1), self.ylim.view(1, -1)])
+        bounds = torch.stack([self.xlim, self.ylim])
         lbs = [bounds[:,0]+eps]
 
         return lbs
 
     def ubs(self, eps=1e-4):
-        bounds = torch.cat([self.xlim.view(1, -1), self.ylim.view(1, -1)])
+        bounds = torch.stack([self.xlim, self.ylim])
         ubs = [bounds[:,1]-eps]
 
         return ubs
