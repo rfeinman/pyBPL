@@ -31,12 +31,14 @@ class PartType(object):
         """
         return list of lower bounds for parameters
         """
+        pass
 
     @abstractmethod
     def ubs(self, eps=1e-4):
         """
         return list of upper bounds for parameters
         """
+        pass
 
     def train(self):
         """
@@ -154,12 +156,14 @@ class PartToken(object):
         """
         return list of lower bounds for parameters
         """
+        pass
 
     @abstractmethod
     def ubs(self, eps=1e-4):
         """
         return list of upper bounds for parameters
         """
+        pass
 
     def train(self):
         """
