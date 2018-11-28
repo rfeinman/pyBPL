@@ -278,6 +278,8 @@ class StrokeTokenDist(PartTokenDist):
         self.sigma_shape = lib.tokenvar['sigma_shape']
         # invscale distribution params
         self.sigma_invscale = lib.tokenvar['sigma_invscale']
+        self.xlim = lib.Spatial.xlim
+        self.ylim = lib.Spatial.ylim
 
     def sample_shapes_token(self, shapes_type):
         """
@@ -391,7 +393,9 @@ class StrokeTokenDist(PartTokenDist):
         """
         shapes_token = self.sample_shapes_token(ptype.shapes)
         invscales_token = self.sample_invscales_token(ptype.invscales)
-        ptoken = StrokeToken(shapes_token, invscales_token)
+        ptoken = StrokeToken(
+            shapes_token, invscales_token, self.xlim, self.ylim
+        )
 
         return ptoken
 

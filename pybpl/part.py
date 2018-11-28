@@ -197,12 +197,20 @@ class StrokeToken(PartToken):
         shapes tokens
     invscales : (nsub,) tensor
         invscales tokens
+    xlim : (2,) tensor
+        [lower, upper] bound for x dimension. Needed for position optimization
+    ylim : (2,) tensor
+        [lower, upper] bound for y dimension. Needed for position optimization
     """
-    def __init__(self, shapes, invscales):
+    def __init__(self, shapes, invscales, xlim, ylim):
         super(StrokeToken, self).__init__()
         self.shapes = shapes
         self.invscales = invscales
         self.position = None
+
+        # for image bounds
+        self.xlim = xlim
+        self.ylim = ylim
 
     @property
     def motor(self):
@@ -237,7 +245,7 @@ class StrokeToken(PartToken):
         parameters : list
             optimizable parameters
         """
-        parameters = [self.shapes, self.invscales]
+        parameters = [self.shapes, self.invscales, self.position]
 
         return parameters
 
@@ -255,7 +263,8 @@ class StrokeToken(PartToken):
         lbs : list
             lower bound for each parameter
         """
-        lbs = [None, torch.full(self.invscales.shape, eps)]
+        bounds = torch.stack([self.xlim, self.ylim])
+        lbs = [None, torch.full(self.invscales.shape, eps), bounds[:,0]+eps]
 
         return lbs
 
@@ -273,7 +282,8 @@ class StrokeToken(PartToken):
         ubs : list
             upper bound for each parameter
         """
-        ubs = [None, None]
+        bounds = torch.stack([self.xlim, self.ylim])
+        ubs = [None, None, bounds[:,1]-eps]
 
         return ubs
 
