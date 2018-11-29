@@ -17,7 +17,7 @@ This code repository requires PyTorch >= 0.4.0. A full list of requirements can
 be found in `requirements.txt`. To install, run the following command to clone
 the repository into a folder of your choice:
 ```
-git clone https://github.com/mtensor/pyBPL.git
+git clone https://github.com/rfeinman/pyBPL.git
 ```
 On UNIX machines, after cloning this repository, it is recommended that you
 add the repository path to your `PYTHONPATH` environment variable to
