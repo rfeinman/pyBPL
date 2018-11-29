@@ -182,8 +182,7 @@ class CharacterTokenDist(ConceptTokenDist):
 
     def sample_image_blur(self):
         """
-        Sample a "blur_sigma," i.e. image blur quantity
-        TODO: update this function. right now it returns fixed quantity
+        Sample a "blur_sigma," i.e. image blur quantity.
 
         Returns
         -------
@@ -191,12 +190,32 @@ class CharacterTokenDist(ConceptTokenDist):
             scalar; image blur quantity
         """
         # set rendering parameters to minimum noise for now
-        blur_sigma = self.default_ps.min_blur_sigma
+        lb = self.default_ps.min_blur_sigma
+        ub = self.default_ps.max_blur_sigma
+        blur_sigma = dist.Uniform(lb, ub).sample()
 
         return blur_sigma
 
     def score_image_blur(self, blur_sigma):
-        return 0.
+        """
+        Compute the log-probability of an image blur quantity.
+
+        Parameters
+        ----------
+        blur_sigma : tensor
+            scalar; image blur quantity
+
+        Returns
+        -------
+        ll : tensor
+            scalar; log-probability of the image blur
+
+        """
+        lb = self.default_ps.min_blur_sigma
+        ub = self.default_ps.max_blur_sigma
+        ll = dist.Uniform(lb, ub).log_prob(blur_sigma)
+
+        return ll
 
     def sample_token(self, ctype):
         """

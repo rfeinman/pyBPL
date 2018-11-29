@@ -254,6 +254,7 @@ class CharacterToken(ConceptToken):
         for p, r in zip(self.part_tokens, self.relation_tokens):
             parameters.extend(p.parameters())
             parameters.extend(r.parameters())
+        parameters.append(self.blur_sigma)
 
         return parameters
 
@@ -275,6 +276,7 @@ class CharacterToken(ConceptToken):
         for p, r in zip(self.part_tokens, self.relation_tokens):
             lbs.extend(p.lbs(eps))
             lbs.extend(r.lbs(eps))
+        lbs.append(None)
 
         return lbs
 
@@ -296,5 +298,6 @@ class CharacterToken(ConceptToken):
         for p, r in zip(self.part_tokens, self.relation_tokens):
             ubs.extend(p.ubs(eps))
             ubs.extend(r.ubs(eps))
+        ubs.append(None)
 
         return ubs

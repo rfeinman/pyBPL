@@ -131,9 +131,9 @@ def fspecial(hsize, sigma, ftype='gaussian'):
     kernel = torch.exp(
         -torch.sum((xy_grid - mean)**2., dim=-1) / (2*sigma**2)
     )
-    kernel /= (2.*np.pi*sigma**2)
+    kernel = kernel / (2.*np.pi*sigma**2)
     # Make sure sum of values in gaussian kernel equals 1.
-    kernel /= torch.sum(kernel)
+    kernel = kernel / torch.sum(kernel)
 
     return kernel
 
