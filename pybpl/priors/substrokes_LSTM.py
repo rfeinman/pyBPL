@@ -14,6 +14,8 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--data_dir', required=True, type=str)
 parser.add_argument('--nb_epoch', default=100, type=int)
 parser.add_argument('--batch_size', default=64, type=int)
+parser.add_argument('--embedding_dim', default=50, type=int)
+parser.add_argument('--lstm_dim', default=50, type=int)
 
 def load_data(data_dir):
     """
@@ -28,8 +30,13 @@ def load_data(data_dir):
     -------
     X : (n,m) ndarray
         data set; contains n sequences, each of length m
+    vocab_size : int
+        size of the token vocabulary
     """
-    return
+    X = None
+    vocab_size = 1000
+
+    return X, vocab_size
 
 def shift_tokens(X):
     """
@@ -48,7 +55,7 @@ def shift_tokens(X):
     """
     return
 
-def build_model(vocab_size):
+def build_model(vocab_size, embedding_dim, lstm_dim):
     """
     Build the LSTM model for next-token prediction
 
@@ -56,6 +63,10 @@ def build_model(vocab_size):
     ----------
     vocab_size : int
         size of the vocabulary of the input data
+    embedding_dim : int
+        dimensionality of the token embeddings
+    lstm_dim : int
+        dimensionality of the lstm layer
 
     Returns
     -------
@@ -63,8 +74,8 @@ def build_model(vocab_size):
         compiled Keras model
     """
     model = Sequential([
-        Embedding(input_dim=vocab_size+1, output_dim=50, mask_zero=True),
-        LSTM(50, return_sequences=True),
+        Embedding(vocab_size+1, embedding_dim, mask_zero=True),
+        LSTM(lstm_dim, return_sequences=True),
         TimeDistributed(Dense(vocab_size+1, activation='softmax'))
     ])
     model.compile(
@@ -74,14 +85,17 @@ def build_model(vocab_size):
 
     return model
 
-if __name__ == "__main__":
+def main():
     args = parser.parse_args()
 
     X, vocab_size = load_data(args.data_dir)
     Y = shift_tokens(X)
 
-    model = build_model(vocab_size)
+    model = build_model(vocab_size, args.embedding_dim, args.lstm_dim)
     model.fit(
         X, Y, nb_epoch=args.nb_epoch, batch_size=args.batch_size,
         verbose=1, validation_split=0.25, shuffle=True
     )
+
+if __name__ == "__main__":
+    main()
