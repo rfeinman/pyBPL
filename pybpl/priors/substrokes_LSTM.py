@@ -4,22 +4,27 @@ Train an LSTM to predict the next sub-stroke given the previous ones
 
 from __future__ import division, print_function
 import argparse
+import numpy as np
+from keras import utils
 from keras.models import Sequential
 from keras.layers import TimeDistributed
 from keras.layers.core import Dense
 from keras.layers.recurrent import LSTM
 from keras.layers.embeddings import Embedding
+from keras.preprocessing.sequence import pad_sequences
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--data_dir', required=True, type=str)
+parser.add_argument('--max_len', default=None, type=int)
 parser.add_argument('--nb_epoch', default=100, type=int)
 parser.add_argument('--batch_size', default=64, type=int)
 parser.add_argument('--embedding_dim', default=50, type=int)
 parser.add_argument('--lstm_dim', default=50, type=int)
 
-def load_data(data_dir):
+
+def load_sequences(data_dir):
     """
-    Load the data set
+    Load the data set of sequences. TODO: update this to load from data file
 
     Parameters
     ----------
@@ -28,32 +33,88 @@ def load_data(data_dir):
 
     Returns
     -------
-    X : (n,m) ndarray
-        data set; contains n sequences, each of length m
+    seqs : list of lists
+        List of sequence samples. Each sequence samples is a list of ints
+        within the range [1, vocab_size] inclusive. Samples may have varying
+        length
     vocab_size : int
         size of the token vocabulary
     """
-    X = None
-    vocab_size = 1000
+    # generate random data set for now
+    vocab_size = 10
+    seqs = []
+    for i in range(1000):
+        seq_len = np.random.randint(1,11)
+        seq = np.random.choice(range(1,vocab_size+1), seq_len)
+        seqs.append(list(seq))
 
-    return X, vocab_size
+    return seqs, vocab_size
 
-def shift_tokens(X):
+def get_inputs(seqs, vocab_size, max_len):
     """
+    TODO
+
+    Parameters
+    ----------
+    seqs : list of lists
+        sequence samples. Each sequence samples is a list of ints within the
+        range [1, vocab_size] inclusive. Samples may have varying length
+    vocab_size : int
+        size of the token vocabulary
+    max_len : int
+        maximum sequence length; longer sequences will be truncated
+
+    Returns
+    -------
+    X : (n,m) ndarray
+        data set; contains n sequences, each of length m
+
+    """
+    # record nb samples
+    n = len(seqs)
+    # if max_len is not specified, set it to equal the maximum sequence length
+    if max_len is None:
+        max_len = max([len(s) for s in seqs])
+    # create the data matrix
+    X = np.zeros((n, max_len+1), dtype='int32')
+    X[:,1:] = pad_sequences(seqs, max_len, padding='post', truncating='post')
+    # add 'start' token to beginning of each sequence
+    X[:,0] = (vocab_size+1)*np.ones(n, dtype='int32')
+
+    return X
+
+def get_targets(seqs, vocab_size, max_len):
+    """
+    TODO.
     Shift all tokens ahead by one time-step, thereby creating the prediction
     targets
 
     Parameters
     ----------
-    X : (n,m) ndarray
-        data set
+    seqs : list of lists
+        sequence samples. Each sequence samples is a list of ints within the
+        range [1, vocab_size] inclusive. Samples may have varying length
+    vocab_size : int
+        size of the token vocabulary
+    max_len : int
+        maximum sequence length; longer sequences will be truncated
 
     Returns
     -------
-    Y : (n,m) ndarray
+    Y : (n,m,v) ndarray
         shifted data set
     """
-    return
+    # if max_len is not specified, set it to equal the maximum sequence length
+    if max_len is None:
+        max_len = max([len(s) for s in seqs])
+    # add 'end' token to end of each sequence
+    seqs = [s+[vocab_size+1] for s in seqs]
+    # create the data matrix
+    Y = pad_sequences(seqs, max_len+1, padding='post', truncating='post')
+    # one-hot-encode the categories
+    Y = utils.to_categorical(Y, num_classes=vocab_size+2)
+
+    return Y
 
 def build_model(vocab_size, embedding_dim, lstm_dim):
     """
@@ -74,9 +135,9 @@ def build_model(vocab_size, embedding_dim, lstm_dim):
         compiled Keras model
     """
     model = Sequential([
-        Embedding(vocab_size+1, embedding_dim, mask_zero=True),
+        Embedding(vocab_size+2, embedding_dim, mask_zero=True),
         LSTM(lstm_dim, return_sequences=True),
-        TimeDistributed(Dense(vocab_size+1, activation='softmax'))
+        TimeDistributed(Dense(vocab_size+2, activation='softmax'))
     ])
     model.compile(
         loss='categorical_crossentropy', optimizer='rmsprop',
@@ -88,12 +149,15 @@ def build_model(vocab_size, embedding_dim, lstm_dim):
 def main():
     args = parser.parse_args()
 
-    X, vocab_size = load_data(args.data_dir)
-    Y = shift_tokens(X)
+    seqs, vocab_size = load_sequences(args.data_dir)
+    X = get_inputs(seqs, vocab_size, args.max_len)
+    Y = get_targets(seqs, vocab_size, args.max_len)
+    print('X shape: ', X.shape)
+    print('Y shape: ', Y.shape)
 
     model = build_model(vocab_size, args.embedding_dim, args.lstm_dim)
     model.fit(
-        X, Y, nb_epoch=args.nb_epoch, batch_size=args.batch_size,
+        X, Y, epochs=args.nb_epoch, batch_size=args.batch_size,
         verbose=1, validation_split=0.25, shuffle=True
     )
 
