@@ -52,7 +52,9 @@ def load_sequences(data_dir):
 
 def get_inputs(seqs, vocab_size, max_len):
     """
-    TODO
+    Build the input array from a list of variable-length sequences. Add new
+    'start' token at beginning of each sequence. Truncate sequences longer than
+    max_len, and pad sequences shorter than max_len.
 
     Parameters
     ----------
@@ -70,24 +72,21 @@ def get_inputs(seqs, vocab_size, max_len):
         data set; contains n sequences, each of length m
 
     """
-    # record nb samples
-    n = len(seqs)
     # if max_len is not specified, set it to equal the maximum sequence length
     if max_len is None:
         max_len = max([len(s) for s in seqs])
-    # create the data matrix
-    X = np.zeros((n, max_len+1), dtype='int32')
-    X[:,1:] = pad_sequences(seqs, max_len, padding='post', truncating='post')
     # add 'start' token to beginning of each sequence
-    X[:,0] = (vocab_size+1)*np.ones(n, dtype='int32')
+    seqs = [[vocab_size+1]+s for s in seqs]
+    # create the data matrix
+    X = pad_sequences(seqs, max_len+1, padding='post', truncating='post')
 
     return X
 
 def get_targets(seqs, vocab_size, max_len):
     """
-    TODO.
-    Shift all tokens ahead by one time-step, thereby creating the prediction
-    targets
+    Build the target array from a list of variable-length sequences. Add new
+    'end' token at end of each sequence. Truncate sequences longer than
+    max_len, and pad sequences shorter than max_len.
 
     Parameters
     ----------
