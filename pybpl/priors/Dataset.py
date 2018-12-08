@@ -26,8 +26,7 @@ class Dataset(object):
         '''
 
         self.names = names
-        self.timing = timing
-        
+
         im_0 = images[0][0][0][0][0][0]
         assert im_0.shape==(105,105)
         self.flip_img = not self.check_black_is_true(im_0)
@@ -71,13 +70,18 @@ class Dataset(object):
                     for s in range(num_strokes):
                         
                         stroke = rendition_drawing[s][0]
-                        timesteps = len(stroke)
+                        discrete_steps = len(stroke)
+                        times = timing[a][0][c][0][r][0][s][0][0]
                         
-                        self.drawings[a][c][r][s] = np.zeros((timesteps,2))
+                        self.drawings[a][c][r][s] = np.zeros((discrete_steps,3))
                 
-                        for t in range(timesteps):
-                            self.drawings[a][c][r][s][t] = stroke[t]
-
+                        for discrete_step in range(discrete_steps):
+                            assert len(stroke)==len(times)
+                            x,y = stroke[discrete_step]
+                            t = times[discrete_step]
+                            self.drawings[a][c][r][s][discrete_step] = [x,y,t]
+                            
+     
     def check_black_is_true(self,I):
         '''
         NOTE: ASK BRENDEN ABOUT THIS
@@ -101,8 +105,11 @@ class Dataset(object):
                 n_rend = len(char)
                 for r in range(n_rend):
                     rendition = char[r]
-                    first_stroke = rendition[0]
-                    first_stroke_start = first_stroke[0]
+                    stroke=0
+                    first_stroke = rendition[stroke]
+                    discrete_step = 0
+                    x,y,t = first_stroke[discrete_step]
+                    first_stroke_start = [x,y]
                     first_strokes.append(first_stroke_start)
 
         first_strokes = np.vstack(first_strokes)
