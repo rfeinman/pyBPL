@@ -25,33 +25,3 @@ for s in range(num_strokes):
     for discrete_step in range(num_discrete_steps):
         x,y,t = stroke[discrete_step]
         print("     ","x:",x,"y:",y,"time:",t)
-
-    # Unif Time
-    stroke = Dataset.unif_time(stroke)
-    num_discrete_steps = len(stroke)
-    for discrete_step in range(num_discrete_steps):
-        x,y,t = stroke[discrete_step]
-        print("(unif)     ","x:",x,"y:",y,"time:",t)
-
-    # Substroke
-
-    ''' # Not done
-    stroke = Dataset.partition_strokes(stroke)
-    num_discrete_steps = len(stroke)
-    for discrete_step in range(num_discrete_steps):
-        x,y,t = stroke[discrete_step]
-        print("(unif)     ","x:",x,"y:",y,"time:",t)
-    '''
-
-    # Unif Space
-    ''' # Almost done
-    stroke = Dataset.unif_space(stroke)
-    num_substrokes = len(stroke)
-    for idx,substroke in enumerate(num_substrokes):
-        print("substroke #:",idx)
-        num_discrete_steps = len(substroke)
-        for discrete_step in range(num_discrete_steps):
-            print("x:",x,"y:",y,"time:",t)
-    '''
-
-

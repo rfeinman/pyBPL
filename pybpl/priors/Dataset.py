@@ -29,6 +29,8 @@ class Dataset(object):
 
         self.names = names
 
+        self.substroke_dict = None # need to call self.make_substroke_dict()
+
         im_0 = images[0][0][0][0][0][0]
         assert im_0.shape==(105,105)
         self.flip_img = not self.check_black_is_true(im_0)
@@ -82,8 +84,10 @@ class Dataset(object):
                             x,y = stroke[discrete_step]
                             t = times[discrete_step]
                             self.drawings[a][c][r][s][discrete_step] = [x,y,t]
-                            
-     
+
+        print("Done building D.drawings.")
+        print("D.drawings[alphabet][character][rendition][stroke][step] is an (x,y,time) tuple")
+
     def check_black_is_true(self,I):
         '''
         NOTE: ASK BRENDEN ABOUT THIS
@@ -116,6 +120,42 @@ class Dataset(object):
 
         first_strokes = np.vstack(first_strokes)
         return first_strokes
+
+
+
+    def make_substroke_dict(self):
+
+        print("Making substroke dictionary")
+        print("This may take a while... (roughly 3 minutes)")
+    
+        self.substroke_dict = {}
+
+        n_alpha = len(self.drawings)
+        for a in range(n_alpha):
+            self.substroke_dict[a] = {}
+            alphabet = self.drawings[a]
+            n_char = len(alphabet)
+            for c in range(n_char):
+                self.substroke_dict[a][c] = {}
+                char = alphabet[c]
+                n_rend = len(char)
+                for r in range(n_rend):
+                    self.substroke_dict[a][c][r] = {}
+                    rendition = char[r]
+                    n_stroke = len(rendition)
+                    for s in range(n_stroke):
+                        self.substroke_dict[a][c][r][s] = {}
+                        stroke = self.drawings[a][c][r][s]
+                        unif_stroke,unif_stroke_times = unif_time(stroke)
+                        substrokes,modified_input,breaks = partition_stroke(unif_stroke)
+                        n_substroke = len(substrokes)
+                        for ss in range(n_substroke):
+                            substroke = substrokes[ss]
+                            unif_space_substroke = unif_space(substroke)
+                            self.substroke_dict[a][c][r][s][ss] = unif_space_substroke
+
+        print("Done making substroke dictionary")
+        print("D.substroke_dict[alphabet][character][rendition][stroke][substroke][step] is an (x,y) pair")
 
 
 def unif_time(stroke,time_int=50.0):
@@ -186,13 +226,24 @@ def unif_time(stroke,time_int=50.0):
     return unif_stroke,unif_times
 
 
-def partition_stroke(stroke,dthresh=1,max_seq=np.infty):
-    '''
-    NOTE: NOT YET FINISHED
-    '''
-    return {},stroke,True # PSEUDO OUTPUT FOR NOW
+
+# NOTE: assumes dt is always 1
+# because vector 1:n is given
+# for times in original code
+def get_deriv(X):
+    steps,dim = X.shape
+
+    dxdt = np.zeros(X.shape)
     
-    
+    for i in range(2,steps):
+        prev = X[i-1,:]
+        _next = X[i,:]
+        dxdt[i,:] = _next-prev
+        # dt is always 1
+    return dxdt
+
+def partition_stroke(stroke,dthresh=1,max_sequence=np.infty):
+
     '''
     Translated from https://github.com/brendenlake/BPL/blob/master/data/partition_strokes.m
     
@@ -211,24 +262,27 @@ def partition_stroke(stroke,dthresh=1,max_seq=np.infty):
         - input stroke with pause sequences shorted to a single point (called unif_stk)
         - breaks: where pauses occured
     '''
-    
+
     # compute derivatives
+    modified_input_stroke = np.copy(stroke)
     n = len(stroke)
-    dxdt = get_deriv(stroke,1:n)
+    dxdt = get_deriv(stroke)
 
     # Special case
-    if n==1:
-        substrokes = {0:stroke}
+    if n<=2: # MARK: changed from 1 to 2, one seq of length 2 was breaking things...
+        substrokes = {}
+        substrokes[0] = stroke
         return substrokes,stroke,True
+    
     
     # compute norm of derivs
     norm_dxdt = np.zeros((n,1))
     for i in range(n):
         norm_dxdt[i] = np.linalg.norm(dxdt[i])
 
-    # compute candidate stop poitns
+    # compute candidate stop points
     stop_pt = norm_dxdt < dthresh
-    for i in range(2,n):
+    for i in range(1,n):
         if stop_pt[i]:
             stop_pt[i-1] = True 
     stop_pt[0] = True
@@ -241,115 +295,105 @@ def partition_stroke(stroke,dthresh=1,max_seq=np.infty):
     2s, etc.. Until the pen is moving fast enough again
     '''
    
-    '''
-
-    stop_sequence = zeros(n,1);
-    stop_count = 1;
-    for i=1:n        
-        if stop_pt(i) % current point is a stop, it's the same stop
-            stop_sequence(i) = stop_count;
-        elseif stop_pt(i-1) && stop_pt(i+1) % points surround it are a stop... its the same stop
-            stop_sequence(i) = stop_count;
-        elseif stop_pt(i-1)
-            stop_count = stop_count + 1; % we just finishsed a stop
-        end
-    end
+    stop_sequence = np.zeros((n,1))
+    stop_count = 1
     
-    % Special case where the entire stroke is a stop sequence
-    if stop_count == 1
-        stop_sequence = zeros(n,1);
-        stop_sequence(1) = 1;
-        stop_sequence(end) = 2;
-        stop_count = 2;
-    end    
-    
-    % Make sure the stop sequences aren't too long. If they are,
-    % we place a sub-stroke break at the beginning and end.
-    i = 1;
-    while i <= stop_count
-        sel = find(stop_sequence==i);
-        nsel = length(sel);
-        if nsel>max_sequence
-            stop_sequence(sel(2:end)) = 0;
-            stop_sequence(stop_sequence>i) = stop_sequence(stop_sequence>i) + 1;
-            stop_sequence(sel(end)) = i+1;
-            stop_count = stop_count + 1;
-        end
-        i = i + 1;
-    end    
-    
-    % Breaks are the average of the stop sequences
-    mybreaks = zeros(n,1);
-    for i=1:stop_count
-        sel = stop_sequence==i; % select the stop sequence
+    for i in range(n-1):
+        if stop_pt[i]: #current point is a stop, it's the same stop
+            stop_sequence[i] = stop_count
+        elif stop_pt[i-1] and stop_pt[i+1]: 
+            # points surround it are a stop... its the same stop
+            stop_sequence[i] = stop_count
+        elif stop_pt[i-1]:
+            stop_count += 1 # just finished a stop
         
-        if i==1 % beginning of stroke
-            mybreaks(i) = find(sel,1,'first');
-        elseif i==stop_count % end of stroke
-            mybreaks(i) = find(sel,1,'last');
-        else % all other positions
-            mybreaks(i) = round(mean(find(sel))); % find the mean element
-        end
+
+    # Special case where the entire stroke is a stop sequence
+    if stop_count == 1:
+        stop_sequence = np.zeros((n,1))
+        stop_sequence[0] = 1
+        stop_sequence[-1] = 2
+        stop_count = 2
+         
+
+    # Make sure the stop sequences aren't too long. If they are,
+    # we place a sub-stroke break at the beginning and end.
+    i = 0
+    while i < stop_count:
+        
+        sel = [idx for idx,b in enumerate(stop_sequence == i) if b==True]
+        nsel = len(sel)
+        if nsel>max_sequence:
+            stop_sequence[sel[1:-1]] = 0
+            idxs = [idx for idx,b in enumerate(stop_sequence > i) if b==True]    
+            stop_sequence[idxs] = stop_sequence[idxs] + 1
+            stop_sequence[sel[-1]] = i+1+1 #to make up for matlab index
+            stop_count = stop_count + 1
+        i = i+1
+    
+
+
+    # breaks are the average of the stop sequences
+    mybreaks = np.zeros((n,1))
+    for i in range(stop_count):
+
+        sel = stop_sequence == i # select the stop sequence
+        sel=sel.flatten()    
+
+        if i==0: # begin of stroke
+            idxs = [idx for idx,b in enumerate(sel != 0) if b==True]
+            mybreaks[i] = int(idxs[0]) # matlab find(sel,1,'first')
             
-        % Set the mean element to the mean of the sequence
-        unif_stk(mybreaks(i),:) = mean(unif_stk(sel,:),1);
+        elif i == stop_count-1: # end of stroke
+            idxs = [idx for idx,b in enumerate(sel != 0) if b==True]
+            mybreaks[i] = int(idxs[-1]) # matlab find(sel,1,'last')
+
+        else: # all other positions            
+            idxs = [idx for idx,b in enumerate(sel != 0) if b==True]
+            mybreaks[i] = int(round(np.mean(idxs))) # find mean element
+            
+        mybreaks = mybreaks.astype(int)
+                
+        # set mean element to mean of sequence
+        modified_input_stroke[mybreaks[i],:] = np.mean(modified_input_stroke[sel,:])
         
-        % mark to keep
-        stop_sequence(mybreaks(i)) = -1;
-    end
-    
-    % Remove all other stop sequence elements, 
-    % except for the marked mean
-    unif_stk(stop_sequence>0,:) = [];
-    stop_sequence(stop_sequence>0) = [];
-    breaks = stop_sequence<0;
-    
-    % Convert to cell array
-    fbreaks = find(breaks);
-    nb = length(fbreaks);
-    ns = max(1,nb-1);
-    substrokes = cell(ns,1);
-    if nb==1 % if this stroke was just a single stop sequence
-        assert(size(unif_stk,1)==1);
-        substrokes{1} = unif_stk;
-    else
-        for s=1:ns
-            substrokes{s} = unif_stk(fbreaks(s):fbreaks(s+1),:);
-        end
-    end
-    
-    new_start = substrokes{1}(1,:);
-    new_end = substrokes{end}(end,:);
-    assert( aeq(new_start,unif_stk(1,:)) );
-    assert( aeq(new_end,unif_stk(end,:)) );
-end
+        # mark to keep
+        stop_sequence[mybreaks[i]] = -1
+        
+    # Remove all other stop sequence elements, 
+    # except for the marked mean
+    idxs = [idx for idx,b in enumerate(stop_sequence > 0) if b==True]
+    np.delete(modified_input_stroke,idxs,0)
+    np.delete(stop_sequence,idxs,0)
+    breaks = stop_sequence<0
 
-% Compute dx/dt partial derivatives
-% for each column (variable) of X
-% 
-% Input
-%  X: [T x dim]
-%  t: [T x 1] time points
-% 
-% Output
-%  dxdt: [T-1 x 1] derivatives
-function dxdt = get_deriv(X,t)
+    breaks[0]=True # MARK: THIS FIXES THINGS BUT WHY DO I NEED TO DO IT!!!!!!!!
 
-    [T,dim] = size(X);
-    assert(isvector(t));
-    assert(numel(t)==T);
-    dxdt = zeros(size(X));
     
-    for i=2:T
-        prev = X(i-1,:);
-        next = X(i,:);
-        dt = t(i)-t(i-1);
-        dxdt(i,:) = (next-prev)./dt;
-    end
-    
-end
+    fbreaks = [idx for idx,b in enumerate(breaks != 0) if b==True]
 
-    '''
+    nb = len(fbreaks)
+    ns = max(1,nb-1)
+    
+    substrokes = {}
+    if nb==1: # if this stroke was just a single stop sequence
+        assert(len(modified_input_stroke)==1)
+    else:
+        for s in range(ns):
+            if s < ns-1:
+                ss = modified_input_stroke[fbreaks[s]:fbreaks[s+1],:]
+            else:
+                ss = modified_input_stroke[fbreaks[s]:,:]
+            substrokes[s] = ss
+
+
+    new_start = substrokes[0][0,:]
+    new_end = substrokes[len(substrokes)-1][-1,:]
+
+    assert np.array_equal(new_start,modified_input_stroke[0,:])
+    assert np.array_equal(new_end,modified_input_stroke[-1,:])
+    
+    return substrokes,modified_input_stroke,breaks
 
 def unif_space(stroke,dist_int=1.0):
 
