@@ -18,6 +18,8 @@ print("Character:",character)
 print("Rendition:",rendition)
 
 
+# D.drawings[alphabet][character][rendition][stroke][step] is an (x,y,time) tuple
+
 for s in range(num_strokes):
     print("Stroke:",s)
     stroke = some_drawing[s]
