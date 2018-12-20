@@ -5,6 +5,7 @@ http://vision.ucsd.edu/~kbranson/research/bsplines/bsplines.pdf
 """
 from __future__ import division, print_function
 import warnings
+import numpy as np
 import torch
 
 def bspline_eval(sval, cpts):
@@ -47,16 +48,38 @@ def bspline_eval(sval, cpts):
 
 def bspline_fit(sval, X, L):
     """
-    Fit a bspline using least-squares
+    Fit a bspline using least-squares.
+    TODO: update this to remain in PyTorch. Right now we convert to numpy
 
-    :param sval: [(N,) array] time points
-    :param X: [(N,2) array] data points
+    :param sval: [(N,) tensor] time points
+    :param X: [(N,2) tensor] data points
     :param L: [int] number of control points to fit
     :return:
-        P: [(L,2) array] optimal control points
+        P: [(L,2) tensor] optimal control points
     """
-    raise NotImplementedError
-    P = None
+    # Convert PyTorch -> Numpy
+    if isinstance(sval, torch.Tensor):
+        sval = sval.numpy()
+    if isinstance(X, torch.Tensor):
+        X = X.numpy()
+
+    ns = len(sval)
+    assert X.shape == (ns, 2)
+
+    S = np.repeat(sval[:,np.newaxis], L, axis=1)
+    I = np.repeat(np.arange(L)[np.newaxis,:], ns, axis=0)
+    A = vectorized_bspline_coeff(
+        torch.tensor(I, dtype=torch.float),
+        torch.tensor(S, dtype=torch.float)
+    )
+    A = A.numpy()
+
+    sumA = np.sum(A, axis=1)
+    Cof = A / np.repeat(sumA[:,np.newaxis], L, axis=1)
+    P, _, _, _ = np.linalg.lstsq(np.matmul(Cof.T, Cof), np.matmul(Cof.T, X))
+
+    # Convert Numpy -> PyTorch
+    P = torch.tensor(P, dtype=torch.float)
 
     return P
 
@@ -88,13 +111,14 @@ def fit_bspline_to_traj(stk, nland):
     """
     Fit a b-spline to 'stk' with 'nland' landmarks
 
-    :param stk: TODO
-    :param nland: TODO
+    :param stk: [(N,2) tensor] substroke trajectory
+    :param nland: [int] number of landmarks
     :return:
-        P: TODO
+        P: [(nland,2) tensor] spline control points
     """
-    raise NotImplementedError
-    P = None
+    neval = len(stk)
+    s, _, _ = bspline_gen_s(nland, neval)
+    P = bspline_fit(s, stk, nland)
 
     return P
 
