@@ -2,7 +2,7 @@ import numpy as np
 import torch
 import torch.distributions as dist
 
-from ..library import Library
+from pybpl.library import Library
 
 class Classifier(object):
     def __init__(self, lib_dir='../../lib_data/'):
