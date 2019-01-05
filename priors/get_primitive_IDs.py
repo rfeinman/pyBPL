@@ -34,7 +34,7 @@ class Classifier(object):
         self.N = N
 
     def score(self, x, subid):
-        assert x.shape == torch.Size([6, 2])
+        assert x.shape == torch.Size([6,2])
         assert x[-1,0] == x[-1,1]
         scale = x[-1,0]
         cpts = x[:5].view(-1)
@@ -59,6 +59,11 @@ def get_IDs(X):
 
     Returns
     -------
+    prim_ids : (N,) ndarray
+        TODO
 
     """
-    return
+    clf = Classifier()
+    prim_ids = np.asarray([clf.predict(x) for x in X], dtype=np.int16)
+
+    return prim_ids
