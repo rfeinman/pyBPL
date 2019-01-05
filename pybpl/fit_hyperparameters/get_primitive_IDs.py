@@ -4,11 +4,9 @@ import torch.distributions as dist
 
 from pybpl.library import Library
 
+
 class Classifier(object):
     def __init__(self, lib_dir='../../lib_data/'):
-        # number of clusters
-        N = 1212
-
         # library
         lib = Library(lib_dir)
 
@@ -18,37 +16,21 @@ class Classifier(object):
 
         # scales params
         scales_theta = lib.scale['theta']
-        scales_con = scales_theta[:, 0]  # gamma concentration
-        scales_rate = 1 / scales_theta[:, 1]  # gamma rate
+        scales_con = scales_theta[:,0]  # gamma concentration
+        scales_rate = 1 / scales_theta[:,1]  # gamma rate
 
         # get distributions for each subid
-        mvns = []
-        gammas = []
-        for subid in range(N):
-            mvn = dist.MultivariateNormal(shapes_mu[subid], shapes_cov[subid])
-            gamma = dist.Gamma(scales_con[subid], scales_rate[subid])
-            mvns.append(mvn)
-            gammas.append(gamma)
-        self.mvns = mvns
-        self.gammas = gammas
-        self.N = N
-
-    def score(self, x, subid):
-        assert x.shape == torch.Size([6,2])
-        assert x[-1,0] == x[-1,1]
-        scale = x[-1,0]
-        cpts = x[:5].view(-1)
-        log_prob = self.mvns[subid].log_prob(cpts) + \
-                   self.gammas[subid].log_prob(1./scale)
-
-        return log_prob
+        self.mvn = dist.MultivariateNormal(shapes_mu, shapes_cov)
+        self.gamma = dist.Gamma(scales_con, scales_rate)
 
     def predict(self, x):
-        scores = np.zeros(self.N, dtype=np.float32)
-        for i in range(self.N):
-            scores[i] = self.score(x, subid=i)
+        assert x.shape == torch.Size([6, 2])
+        scale = x[-1, 0]
+        cpts = x[:5].view(-1)
+        log_probs = self.mvn.log_prob(cpts) + self.gamma.log_prob(1./scale)
+        _, prim_ID = log_probs.max(0)
 
-        return np.argmax(scores)
+        return prim_ID.item()
 
 def get_IDs(X):
     """
@@ -59,11 +41,11 @@ def get_IDs(X):
 
     Returns
     -------
-    prim_ids : (N,) ndarray
+    prim_IDs : (N,) ndarray
         TODO
 
     """
     clf = Classifier()
-    prim_ids = np.asarray([clf.predict(x) for x in X], dtype=np.int16)
+    prim_IDs = np.asarray([clf.predict(x) for x in X], dtype=np.int16)
 
-    return prim_ids
+    return prim_IDs
