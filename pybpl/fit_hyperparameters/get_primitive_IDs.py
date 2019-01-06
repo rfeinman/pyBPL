@@ -4,8 +4,17 @@ import torch.distributions as dist
 from pybpl.library import Library
 
 
-class PrimitiveClassifier(object):
-    def __init__(self, lib_dir='../../lib_data/'):
+class PrimitiveClassifierBatch(object):
+    """
+    Classifier for predicting a batch of splines. Input X will have shape
+    (n,6,2), where 'n' is the number of splines.
+
+    Parameters
+    ----------
+    lib_dir : str
+        path to library data folder
+    """
+    def __init__(self, lib_dir):
         # library
         lib = Library(lib_dir)
 
@@ -34,12 +43,12 @@ class PrimitiveClassifier(object):
         """
         Parameters
         ----------
-        X
-        subid
+        X : (n,6,2) ndarray
+        subid : int
 
         Returns
         -------
-
+        log_prob : (n,) ndarray
         """
         n,m,d = X.shape
         assert (m,d) == (6,2)
@@ -71,3 +80,41 @@ class PrimitiveClassifier(object):
         prim_IDs = np.argmax(scores, axis=0).astype(np.int16)
 
         return prim_IDs
+
+
+class PrimitiveClassifierSingle(object):
+    """
+    Classifier for predicting a single spline. Input x will have shape (6,2).
+
+    Parameters
+    ----------
+    lib_dir : str
+        path to library data folder
+    """
+    def __init__(self, lib_dir):
+        # library
+        lib = Library(lib_dir)
+
+        # shapes params
+        shapes_mu = lib.shape['mu']
+        shapes_cov = lib.shape['Sigma']
+
+        # scales params
+        scales_theta = lib.scale['theta']
+        scales_con = scales_theta[:,0]  # gamma concentration
+        scales_rate = 1 / scales_theta[:,1]  # gamma rate
+
+        # get distributions for each subid
+        self.mvn = dist.MultivariateNormal(shapes_mu, shapes_cov)
+        self.gamma = dist.Gamma(scales_con, scales_rate)
+
+    def predict(self, x):
+        m,d = x.shape
+        assert (m,d) == (6,2)
+        scale = x[-1, 0]
+        cpts = x[:5].view(-1)
+        log_probs = self.mvn.log_prob(cpts) + self.gamma.log_prob(1./scale)
+        _, prim_ID = log_probs.max(0)
+        prim_ID = prim_ID.item()
+
+        return prim_ID
