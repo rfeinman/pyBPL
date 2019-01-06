@@ -1,11 +1,10 @@
 import numpy as np
-import torch
 import torch.distributions as dist
 
 from pybpl.library import Library
 
 
-class Classifier(object):
+class PrimitiveClassifier(object):
     def __init__(self, lib_dir='../../lib_data/'):
         # library
         lib = Library(lib_dir)
@@ -20,32 +19,45 @@ class Classifier(object):
         scales_rate = 1 / scales_theta[:,1]  # gamma rate
 
         # get distributions for each subid
-        self.mvn = dist.MultivariateNormal(shapes_mu, shapes_cov)
-        self.gamma = dist.Gamma(scales_con, scales_rate)
+        mvns = []
+        gammas = []
+        for subid in range(lib.N):
+            mvn = dist.MultivariateNormal(shapes_mu[subid], shapes_cov[subid])
+            gamma = dist.Gamma(scales_con[subid], scales_rate[subid])
+            mvns.append(mvn)
+            gammas.append(gamma)
+        self.mvns = mvns
+        self.gammas = gammas
+        self.N = lib.N
 
-    def predict(self, x):
-        assert x.shape == torch.Size([6, 2])
-        scale = x[-1, 0]
-        cpts = x[:5].view(-1)
-        log_probs = self.mvn.log_prob(cpts) + self.gamma.log_prob(1./scale)
-        _, prim_ID = log_probs.max(0)
+    def score(self, X, subid):
+        n,m,d = X.shape
+        assert (m,d) == (6,2)
+        scale = X[:,-1,0]
+        cpts = X[:,:5].view(-1,10)
+        log_prob = self.mvns[subid].log_prob(cpts) + \
+                   self.gammas[subid].log_prob(1./scale)
+        log_prob = log_prob.numpy()
 
-        return prim_ID.item()
+        return log_prob
 
-def get_IDs(X):
-    """
-    Parameters
-    ----------
-    X : (N,6,2) ndarray
-        TODO
+    def predict(self, X):
+        """
+        Parameters
+        ----------
+        X : (n,6,2) ndarray
+            splines to classify
 
-    Returns
-    -------
-    prim_IDs : (N,) ndarray
-        TODO
+        Returns
+        -------
+        prim_IDs : (n,) ndarray
+            primitive ID labels, one per spline
+        """
+        n = X.shape[0]
+        scores = np.zeros((self.N, n), dtype=np.float32)
+        for i in range(self.N):
+            scores[i] = self.score(X, subid=i)
 
-    """
-    clf = Classifier()
-    prim_IDs = np.asarray([clf.predict(x) for x in X], dtype=np.int16)
+        prim_IDs = np.argmax(scores, axis=0).astype(np.int16)
 
-    return prim_IDs
+        return prim_IDs
