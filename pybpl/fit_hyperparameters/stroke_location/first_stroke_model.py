@@ -1,19 +1,8 @@
-import copy
-import math
-import sys
-
-import numpy as np
 from scipy.io import loadmat
 from matplotlib import pyplot as plt
 
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import torch.optim as optim
-import torch.utils.data
-
-from Dataset import *
-import flows
+from ..dataset import Dataset
+from . import flows
 
 print("Loading Data")
 data = loadmat('data_background',variable_names=['drawings','images','names','timing'])
