@@ -29,7 +29,7 @@ class PrimitiveClassifierBatch(object):
         # scales params
         scales_theta = lib.scale['theta']
         scales_con = scales_theta[:,0]  # gamma concentration
-        scales_rate = 1 / scales_theta[:,1]  # gamma rate
+        scales_rate = 1. / scales_theta[:,1]  # gamma rate
 
         # get distributions for each subid
         mvns = []
@@ -61,8 +61,9 @@ class PrimitiveClassifierBatch(object):
         assert (m,d) == (6,2)
         scale = X[:,-1,0]
         cpts = X[:,:5].view(-1,10)
-        log_prob = self.mvns[subid].log_prob(cpts) + \
-                   self.gammas[subid].log_prob(1./scale)
+        mvn_lp = self.mvns[subid].log_prob(cpts)
+        gamma_lp = self.gammas[subid].log_prob(1./scale)
+        log_prob = mvn_lp + gamma_lp
         log_prob = log_prob.numpy()
 
         return log_prob
@@ -112,7 +113,7 @@ class PrimitiveClassifierSingle(object):
         # scales params
         scales_theta = lib.scale['theta']
         scales_con = scales_theta[:,0]  # gamma concentration
-        scales_rate = 1 / scales_theta[:,1]  # gamma rate
+        scales_rate = 1. / scales_theta[:,1]  # gamma rate
 
         # get distributions for each subid
         self.mvn = dist.MultivariateNormal(
@@ -137,7 +138,9 @@ class PrimitiveClassifierSingle(object):
         assert (m,d) == (6,2)
         scale = x[-1, 0]
         cpts = x[:5].view(-1)
-        log_probs = self.mvn.log_prob(cpts) + self.gamma.log_prob(1./scale)
+        mvn_lp = self.mvn.log_prob(cpts)
+        gamma_lp = self.gamma.log_prob(1./scale)
+        log_probs = mvn_lp + gamma_lp
         _, prim_ID = log_probs.max(0)
         prim_ID = prim_ID.item()
 
