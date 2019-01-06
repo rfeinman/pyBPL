@@ -1,10 +1,9 @@
-import numpy as np
 from scipy.io import loadmat
-import Dataset
+from .dataset import Dataset
 
 print("Loading Data...")
 data = loadmat('data_background',variable_names=['drawings','images','names','timing'])
-D = Dataset.Dataset(data['drawings'],data['images'],data['names'],data['timing'])
+D = Dataset(data['drawings'],data['images'],data['names'],data['timing'])
 print("Data Loaded")
 
 alphabet=0
