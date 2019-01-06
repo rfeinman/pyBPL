@@ -9,7 +9,7 @@ import scipy.io as sio
 import torch
 
 from .. import splines
-from .Dataset import Dataset
+from .dataset import Dataset
 from .get_primitive_IDs import PrimitiveClassifierSingle
 
 
