@@ -31,6 +31,16 @@ class PrimitiveClassifier(object):
         self.N = lib.N
 
     def score(self, X, subid):
+        """
+        Parameters
+        ----------
+        X
+        subid
+
+        Returns
+        -------
+
+        """
         n,m,d = X.shape
         assert (m,d) == (6,2)
         scale = X[:,-1,0]
