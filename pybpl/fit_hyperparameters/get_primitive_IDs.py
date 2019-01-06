@@ -109,6 +109,17 @@ class PrimitiveClassifierSingle(object):
         self.gamma = dist.Gamma(scales_con, scales_rate)
 
     def predict(self, x):
+        """
+        Parameters
+        ----------
+        x : (6,2) ndarray
+            spline to classify
+
+        Returns
+        -------
+        prim_IDs : int
+            primitive ID label
+        """
         m,d = x.shape
         assert (m,d) == (6,2)
         scale = x[-1, 0]
