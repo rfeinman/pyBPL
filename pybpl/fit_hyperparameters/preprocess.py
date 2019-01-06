@@ -10,7 +10,7 @@ import torch
 
 from .. import splines
 from .dataset import Dataset
-from .get_primitive_IDs import PrimitiveClassifierSingle
+from .primitive_classifier import PrimitiveClassifierSingle
 
 
 def make_data_pickles():
