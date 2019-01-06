@@ -49,6 +49,7 @@ def make_spline_dict():
         print('Spline dictionary already exists.')
         return
 
+    assert os.path.isfile('substroke_dict.p')
     with open('substroke_dict.p', 'rb') as fp:
         ss_dict = pickle.load(fp)
 
@@ -93,6 +94,8 @@ def make_subid_dict():
         print('SubID dictionary already exists.')
         return
 
+    assert os.path.isfile('substroke_dict.p')
+    assert os.path.isfile('spline_dict.p')
     with open('substroke_dict.p', 'rb') as fp:
         ss_dict = pickle.load(fp)
     with open('spline_dict.p', 'rb') as fp:
