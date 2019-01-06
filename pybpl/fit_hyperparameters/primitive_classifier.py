@@ -14,7 +14,7 @@ class PrimitiveClassifierBatch(object):
     lib_dir : str
         path to library data folder
     """
-    def __init__(self, lib_dir):
+    def __init__(self, lib_dir=None):
         # library
         lib = Library(lib_dir)
 
@@ -91,7 +91,7 @@ class PrimitiveClassifierSingle(object):
     lib_dir : str
         path to library data folder
     """
-    def __init__(self, lib_dir):
+    def __init__(self, lib_dir=None):
         # library
         lib = Library(lib_dir)
 
