@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 import torch.distributions as dist
 
 from pybpl.library import Library
@@ -13,14 +14,17 @@ class PrimitiveClassifierBatch(object):
     ----------
     lib_dir : str
         path to library data folder
+    regcov : float
+        covariance regularization parameter
     """
-    def __init__(self, lib_dir=None):
+    def __init__(self, lib_dir=None, regcov=9.):
         # library
         lib = Library(lib_dir)
 
         # shapes params
         shapes_mu = lib.shape['mu']
         shapes_cov = lib.shape['Sigma']
+        N, dim = shapes_mu.shape
 
         # scales params
         scales_theta = lib.scale['theta']
@@ -31,13 +35,16 @@ class PrimitiveClassifierBatch(object):
         mvns = []
         gammas = []
         for subid in range(lib.N):
-            mvn = dist.MultivariateNormal(shapes_mu[subid], shapes_cov[subid])
+            mvn = dist.MultivariateNormal(
+                shapes_mu[subid],
+                shapes_cov[subid] + regcov*torch.eye(dim)
+            )
             gamma = dist.Gamma(scales_con[subid], scales_rate[subid])
             mvns.append(mvn)
             gammas.append(gamma)
         self.mvns = mvns
         self.gammas = gammas
-        self.N = lib.N
+        self.N = N
 
     def score(self, X, subid):
         """
@@ -90,14 +97,17 @@ class PrimitiveClassifierSingle(object):
     ----------
     lib_dir : str
         path to library data folder
+    regcov : float
+        covariance regularization parameter
     """
-    def __init__(self, lib_dir=None):
+    def __init__(self, lib_dir=None, regcov=9.):
         # library
         lib = Library(lib_dir)
 
         # shapes params
         shapes_mu = lib.shape['mu']
         shapes_cov = lib.shape['Sigma']
+        N, dim = shapes_mu.shape
 
         # scales params
         scales_theta = lib.scale['theta']
@@ -105,7 +115,10 @@ class PrimitiveClassifierSingle(object):
         scales_rate = 1 / scales_theta[:,1]  # gamma rate
 
         # get distributions for each subid
-        self.mvn = dist.MultivariateNormal(shapes_mu, shapes_cov)
+        self.mvn = dist.MultivariateNormal(
+            shapes_mu,
+            shapes_cov + regcov*torch.eye(dim)
+        )
         self.gamma = dist.Gamma(scales_con, scales_rate)
 
     def predict(self, x):
