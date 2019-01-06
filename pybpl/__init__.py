@@ -8,3 +8,9 @@ and it is included here as the preliminary use case (see Lake et al. 2015
 "Human-level concept learning through probabilistic program induction").
 """
 __version__ = "0.1"
+import os
+
+LIB_DATA_PATH = os.path.join(
+    os.path.dirname(os.path.dirname(__file__)),
+    'lib_data'
+)

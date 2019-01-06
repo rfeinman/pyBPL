@@ -4,6 +4,7 @@ import scipy.io as io
 import numpy as np
 import torch
 
+from .. import LIB_DATA_PATH
 from .spatial import SpatialModel
 from ..util import aeq
 
@@ -12,12 +13,14 @@ class Library(object):
     """
     LIBRARY: hyper-parameters for the BPL model
     """
-    def __init__(self, lib_dir):
+    def __init__(self, lib_dir=None):
         """
         Constructor
 
         :param lib_dir: [string] path to the library files
         """
+        if lib_dir is None:
+            lib_dir = LIB_DATA_PATH
         # get contents of dir
         contents = os.listdir(lib_dir)
         # save lists of structs and single elements

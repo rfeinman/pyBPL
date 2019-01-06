@@ -1,6 +1,5 @@
 from __future__ import division, print_function
 import unittest
-import os
 import torch
 
 from ..library import Library
@@ -9,11 +8,7 @@ from .. import rendering
 class TestRendering(unittest.TestCase):
 
     def setUp(self):
-        dir_path = os.path.dirname(os.path.abspath(__file__)) # tests subfolder
-        dir_path = os.path.dirname(dir_path) # pybpl subfolder
-        dir_path = os.path.dirname(dir_path) # main repository folder
-        lib_dir = os.path.join(dir_path, 'lib_data')
-        self.lib = Library(lib_dir)
+        self.lib = Library()
 
     def testVanillaToMotor(self):
         ncpt = 5
