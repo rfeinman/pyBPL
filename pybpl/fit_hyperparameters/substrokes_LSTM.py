@@ -3,6 +3,7 @@ Train an LSTM to predict the next sub-stroke given the previous ones
 """
 
 from __future__ import division, print_function
+import os
 import argparse
 try:
     import pickle # python 3.x
@@ -18,9 +19,11 @@ from keras.layers.core import Dense
 from keras.layers.recurrent import LSTM
 from keras.layers.embeddings import Embedding
 from keras.preprocessing.sequence import pad_sequences
+from keras.callbacks import ModelCheckpoint
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--data_dir', default='subid_sequences.p', type=str)
+parser.add_argument('--save_file', default='lstm.h5', type=str)
 parser.add_argument('--max_len', default=None, type=int)
 parser.add_argument('--nb_epoch', default=100, type=int)
 parser.add_argument('--batch_size', default=64, type=int)
@@ -161,9 +164,17 @@ def main():
     print('Y shape: ', Y.shape)
 
     model = build_model(vocab_size, args.embedding_dim, args.lstm_dim)
+    if os.path.isfile(args.save_file):
+        os.remove(args.save_file)
+    checkpoint = ModelCheckpoint(
+        args.save_file,
+        monitor='val_loss',
+        save_best_only=True
+    )
     model.fit(
         X, Y, epochs=args.nb_epoch, batch_size=args.batch_size,
-        verbose=1, validation_split=0.25, shuffle=True
+        verbose=1, validation_split=0.25, shuffle=True,
+        callbacks=[checkpoint]
     )
 
 if __name__ == "__main__":
