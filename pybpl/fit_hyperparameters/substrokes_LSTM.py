@@ -141,7 +141,7 @@ def build_model(vocab_size, embedding_dim, lstm_dim):
     """
     model = Sequential([
         Embedding(vocab_size+2, embedding_dim, mask_zero=True),
-        LSTM(lstm_dim, return_sequences=True),
+        LSTM(lstm_dim, dropout=0.3, return_sequences=True),
         TimeDistributed(Dense(vocab_size+2, activation='softmax'))
     ])
     model.compile(
