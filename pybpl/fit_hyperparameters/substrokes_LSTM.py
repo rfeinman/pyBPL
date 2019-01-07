@@ -52,8 +52,14 @@ def load_sequences(data_dir):
     vocab_size = 1212
     with open(data_dir, 'rb') as fp:
         seqs = pickle.load(fp)
+    seqs1 = []
+    for seq in seqs:
+        seq1 = []
+        for elt in seq:
+            seq1.append(elt + 1)
+        seqs1.append(seq1)
 
-    return seqs, vocab_size
+    return seqs1, vocab_size
 
 def get_inputs(seqs, vocab_size, max_len):
     """
