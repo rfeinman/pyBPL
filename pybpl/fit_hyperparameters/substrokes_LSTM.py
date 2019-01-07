@@ -49,7 +49,6 @@ def load_sequences(data_dir):
     vocab_size : int
         size of the token vocabulary
     """
-    # generate random data set for now
     vocab_size = 1212
     with open(data_dir, 'rb') as fp:
         seqs = pickle.load(fp)
