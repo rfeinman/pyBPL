@@ -153,7 +153,9 @@ def build_model(vocab_size, embedding_dim, lstm_dim):
 
 def main():
     args = parser.parse_args()
-    config = tf.ConfigProto(device_count={'GPU':0})
+    #config = tf.ConfigProto(device_count={'GPU':0})
+    gpu_options = tf.GPUOptions(allow_growth=True, visible_device_list='0')
+    config = tf.ConfigProto(gpu_options=gpu_options)
     sess = tf.Session(config=config)
     K.set_session(sess)
 
