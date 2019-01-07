@@ -14,10 +14,8 @@ import tensorflow as tf
 import keras.backend as K
 from keras import utils
 from keras.models import Sequential
-from keras.layers import TimeDistributed
-from keras.layers.core import Dense, Dropout
-from keras.layers.recurrent import LSTM
-from keras.layers.embeddings import Embedding
+from keras.layers import Dense, Dropout
+from keras.layers import Masking, Embedding, TimeDistributed, LSTM
 from keras.preprocessing.sequence import pad_sequences
 from keras.callbacks import ModelCheckpoint
 
@@ -29,7 +27,20 @@ parser.add_argument('--nb_epoch', default=100, type=int)
 parser.add_argument('--batch_size', default=64, type=int)
 parser.add_argument('--embedding_dim', default=50, type=int)
 parser.add_argument('--lstm_dim', default=50, type=int)
+parser.add_argument('--no-embedding', dest='embedding', action='store_false')
+parser.set_defaults(embedding=True)
+args = parser.parse_args()
 
+
+def to_categorical(X, num_classes, mask_value=0):
+    n, max_len = X.shape
+    X1 = np.zeros((n, max_len, num_classes), dtype=np.float32)
+    for i in range(n):
+        for j in range(max_len):
+            if X[i, j] != mask_value:
+                X1[i, j, X[i,j]] = 1.
+
+    return X1
 
 def load_sequences(data_dir):
     """
@@ -89,7 +100,9 @@ def get_inputs(seqs, vocab_size, max_len):
     # add 'start' token to beginning of each sequence
     seqs = [[vocab_size+1]+s for s in seqs]
     # create the data matrix
-    X = pad_sequences(seqs, max_len+1, padding='post', truncating='post')
+    X = pad_sequences(seqs, max_len, padding='post', truncating='post')
+    if not args.embedding:
+        X = to_categorical(X, num_classes=vocab_size+2)
 
     return X
 
@@ -120,13 +133,13 @@ def get_targets(seqs, vocab_size, max_len):
     # add 'end' token to end of each sequence
     seqs = [s+[vocab_size+1] for s in seqs]
     # create the data matrix
-    Y = pad_sequences(seqs, max_len+1, padding='post', truncating='post')
+    Y = pad_sequences(seqs, max_len, padding='post', truncating='post')
     # one-hot-encode the categories
     Y = utils.to_categorical(Y, num_classes=vocab_size+2)
 
     return Y
 
-def build_model(vocab_size, embedding_dim, lstm_dim, dropout=0.4):
+def build_model(vocab_size, embedding_dim, lstm_dim, dropout=0.3):
     """
     Build the LSTM model for next-token prediction
 
@@ -138,30 +151,31 @@ def build_model(vocab_size, embedding_dim, lstm_dim, dropout=0.4):
         dimensionality of the token embeddings
     lstm_dim : int
         dimensionality of the lstm layer
+    dropout : float
+        dropout probability
 
     Returns
     -------
     model : Sequential
         compiled Keras model
     """
-    model = Sequential([
-        Embedding(vocab_size+2, embedding_dim, mask_zero=True),
-        Dropout(dropout),
-        LSTM(
-            lstm_dim, dropout=dropout, recurrent_dropout=0.1,
-            return_sequences=True
-        ),
-        TimeDistributed(Dense(vocab_size+2, activation='softmax'))
-    ])
+    model = Sequential()
+    if args.embedding:
+        model.add(Embedding(vocab_size+2, embedding_dim, mask_zero=True))
+    else:
+        model.add(Masking(mask_value=0., input_shape=(args.max_len+1, vocab_size+2)))
+    model.add(Dropout(dropout))
+    model.add(LSTM(lstm_dim, dropout=dropout, recurrent_dropout=0.1, return_sequences=True))
+    model.add(TimeDistributed(Dense(vocab_size+2, activation='softmax')))
     model.compile(
-        loss='categorical_crossentropy', optimizer='rmsprop',
+        loss='categorical_crossentropy',
+        optimizer='rmsprop',
         metrics=['accuracy']
     )
 
     return model
 
 def main():
-    args = parser.parse_args()
     #config = tf.ConfigProto(device_count={'GPU':0})
     config = tf.ConfigProto(
         gpu_options=tf.GPUOptions(allow_growth=True, visible_device_list='0')
