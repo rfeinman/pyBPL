@@ -9,6 +9,8 @@ try:
 except ImportError:
     import cPickle as pickle # python 2.x
 import numpy as np
+import tensorflow as tf
+import keras.backend as K
 from keras import utils
 from keras.models import Sequential
 from keras.layers import TimeDistributed
@@ -148,6 +150,9 @@ def build_model(vocab_size, embedding_dim, lstm_dim):
 
 def main():
     args = parser.parse_args()
+    config = tf.ConfigProto(device_count={'GPU':0})
+    sess = tf.Session(config=config)
+    K.set_session(sess)
 
     seqs, vocab_size = load_sequences(args.data_dir)
     X = get_inputs(seqs, vocab_size, args.max_len)
