@@ -4,6 +4,10 @@ Train an LSTM to predict the next sub-stroke given the previous ones
 
 from __future__ import division, print_function
 import argparse
+try:
+    import pickle # python 3.x
+except ImportError:
+    import cPickle as pickle # python 2.x
 import numpy as np
 from keras import utils
 from keras.models import Sequential
@@ -14,7 +18,7 @@ from keras.layers.embeddings import Embedding
 from keras.preprocessing.sequence import pad_sequences
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--data_dir', required=True, type=str)
+parser.add_argument('--data_dir', default='subid_sequences.p', type=str)
 parser.add_argument('--max_len', default=None, type=int)
 parser.add_argument('--nb_epoch', default=100, type=int)
 parser.add_argument('--batch_size', default=64, type=int)
@@ -24,7 +28,7 @@ parser.add_argument('--lstm_dim', default=50, type=int)
 
 def load_sequences(data_dir):
     """
-    Load the data set of sequences. TODO: update this to load from data file
+    Load the data set of sequences.
 
     Parameters
     ----------
@@ -41,12 +45,9 @@ def load_sequences(data_dir):
         size of the token vocabulary
     """
     # generate random data set for now
-    vocab_size = 10
-    seqs = []
-    for i in range(1000):
-        seq_len = np.random.randint(1,11)
-        seq = np.random.choice(range(1,vocab_size+1), seq_len)
-        seqs.append(list(seq))
+    vocab_size = 1212
+    with open(data_dir, 'rb') as fp:
+        seqs = pickle.load(fp)
 
     return seqs, vocab_size
 
