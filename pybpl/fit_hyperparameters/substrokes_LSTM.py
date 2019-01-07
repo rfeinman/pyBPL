@@ -15,7 +15,7 @@ import keras.backend as K
 from keras import utils
 from keras.models import Sequential
 from keras.layers import TimeDistributed
-from keras.layers.core import Dense
+from keras.layers.core import Dense, Dropout
 from keras.layers.recurrent import LSTM
 from keras.layers.embeddings import Embedding
 from keras.preprocessing.sequence import pad_sequences
@@ -121,7 +121,7 @@ def get_targets(seqs, vocab_size, max_len):
 
     return Y
 
-def build_model(vocab_size, embedding_dim, lstm_dim):
+def build_model(vocab_size, embedding_dim, lstm_dim, dropout=0.4):
     """
     Build the LSTM model for next-token prediction
 
@@ -141,7 +141,11 @@ def build_model(vocab_size, embedding_dim, lstm_dim):
     """
     model = Sequential([
         Embedding(vocab_size+2, embedding_dim, mask_zero=True),
-        LSTM(lstm_dim, dropout=0.3, return_sequences=True),
+        Dropout(dropout),
+        LSTM(
+            lstm_dim, dropout=dropout, recurrent_dropout=0.1,
+            return_sequences=True
+        ),
         TimeDistributed(Dense(vocab_size+2, activation='softmax'))
     ])
     model.compile(
@@ -154,8 +158,9 @@ def build_model(vocab_size, embedding_dim, lstm_dim):
 def main():
     args = parser.parse_args()
     #config = tf.ConfigProto(device_count={'GPU':0})
-    gpu_options = tf.GPUOptions(allow_growth=True, visible_device_list='0')
-    config = tf.ConfigProto(gpu_options=gpu_options)
+    config = tf.ConfigProto(
+        gpu_options=tf.GPUOptions(allow_growth=True, visible_device_list='0')
+    )
     sess = tf.Session(config=config)
     K.set_session(sess)
 
