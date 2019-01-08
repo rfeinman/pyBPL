@@ -13,12 +13,12 @@ from .dataset import Dataset
 from ..primitives.primitive_classifier import PrimitiveClassifierSingle
 
 
-def make_data_pickles(drawings, images, names, timing):
+def make_substroke_dict(drawings, images, names, timing):
     D = Dataset(drawings, images, names, timing)
     print("Making substroke data...")
     D.make_substroke_dict()
 
-    return D.drawings, D.substroke_dict
+    return D.substroke_dict
 
 
 def norm_substk(substroke, newscale=105):
@@ -84,7 +84,6 @@ def make_subid_dict(ss_dict, spline_dict):
                 rendition = char[r]
                 n_stroke = len(rendition)
                 for s in range(n_stroke):
-
                     ids = []
                     stroke = rendition[s]
                     n_substrokes = len(stroke)
@@ -104,14 +103,13 @@ def make_subid_dict(ss_dict, spline_dict):
 
 def preprocess_omniglot(save_dir):
     data_path = os.path.join(save_dir, 'data_background.mat')
-    dd_path = os.path.join(save_dir, 'drawings_dict.p')
     ssd_path = os.path.join(save_dir, 'substroke_dict.p')
     sd_path = os.path.join(save_dir, 'spline_dict.p')
     sid_path = os.path.join(save_dir, 'subid_dict.p')
 
     # create drawing and substroke dictionaries
-    if os.path.isfile(dd_path) and os.path.isfile(ssd_path):
-        print('Data pickles already exist.')
+    if os.path.isfile(ssd_path):
+        print('Sub-stroke dictionary already exists.')
     else:
         assert os.path.isfile(data_path)
         print("Loading Data...")
@@ -119,11 +117,9 @@ def preprocess_omniglot(save_dir):
             data_path,
             variable_names=['drawings', 'images', 'names', 'timing']
         )
-        drawings, substroke_dict = make_data_pickles(
+        substroke_dict = make_substroke_dict(
             data['drawings'], data['images'], data['names'], data['timing']
         )
-        with open(dd_path, 'wb') as fp:
-            pickle.dump(drawings, fp, protocol=pickle.HIGHEST_PROTOCOL)
         with open(ssd_path, 'wb') as fp:
             pickle.dump(substroke_dict, fp, protocol=pickle.HIGHEST_PROTOCOL)
 
