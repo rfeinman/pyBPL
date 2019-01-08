@@ -1,8 +1,37 @@
+from __future__ import division, print_function
+try:
+    import pickle # python 3.x
+except ImportError:
+    import cPickle as pickle # python 2.x
+import os
+import scipy.io as sio
 import numpy as np
 import torch
 
 from ..primitives.primitive_classifier import PrimitiveClassifierSingle
 from ..primitives.primitive_classifier import PrimitiveClassifierBatch
+
+
+def generate_preprocessed_dataset(save_dir):
+    data_path = os.path.join(save_dir, 'data_background_splines.mat')
+    sid_path = os.path.join(save_dir, 'subid_dict.p')
+
+    assert os.path.isfile(data_path)
+    print('Loading data...')
+    D = sio.loadmat(data_path)
+    dataset = PreprocessedDataset(
+        splines=D['bspline_substks'],
+        drawings=D['pdrawings_norm'],
+        scales=D['pdrawings_scales']
+    )
+
+    if os.path.isfile(sid_path):
+        print('SubID dictionary already exists.')
+    else:
+        dataset.make_subid_dict()
+        with open(sid_path, 'wb') as fp:
+            pickle.dump(dataset.subids, fp, protocol=pickle.HIGHEST_PROTOCOL)
+
 
 class PreprocessedDataset(object):
     def __init__(self, splines, drawings, scales):
