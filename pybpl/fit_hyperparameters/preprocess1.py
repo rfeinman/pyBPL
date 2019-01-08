@@ -10,6 +10,7 @@ import torch
 
 from .dataset import PreprocessedDataset
 from .primitive_classifier import PrimitiveClassifierSingle
+from .primitive_classifier import PrimitiveClassifierBatch
 
 
 def make_subid_dict(save_dir):
@@ -55,6 +56,51 @@ def make_subid_dict(save_dir):
     with open(sid_path, 'wb') as fp:
         pickle.dump(subid_dict, fp, protocol=pickle.HIGHEST_PROTOCOL)
 
-
 def preprocess_omniglot(save_dir):
     make_subid_dict(save_dir)
+
+def mat2list(X, counts):
+    i = 0
+    x = []
+    for c in counts:
+        x.append(list(X[i:i + c]))
+        i += c
+
+    return x
+
+def make_subid_dataset(spline_dict, scales_dict):
+    clf = PrimitiveClassifierBatch()
+    counts = []
+    X = []
+    for a in spline_dict.keys():
+        for c in spline_dict[a].keys():
+            for r in spline_dict[a][c].keys():
+                for s in spline_dict[a][c][r].keys():
+                    n_substrokes = len(spline_dict[a][c][r][s].keys())
+                    counts.append(n_substrokes)
+                    for ss in spline_dict[a][c][r][s].keys():
+                        spline = spline_dict[a][c][r][s][ss]
+                        scales = scales_dict[a][c][r][s][ss]
+                        X.append(np.vstack([spline, scales]))
+    X = torch.tensor(X, dtype=torch.float32)
+    prim_IDs = clf.predict(X)
+    prim_IDs_list = mat2list(prim_IDs, counts)
+
+    return prim_IDs_list
+
+def make_cpt_dataset(spline_dict, scales_dict):
+    X = []
+    for a in spline_dict.keys():
+        for c in spline_dict[a].keys():
+            for r in spline_dict[a][c].keys():
+                for s in spline_dict[a][c][r].keys():
+                    x = []
+                    for i, ss in enumerate(spline_dict[a][c][r][s].keys()):
+                        spline = spline_dict[a][c][r][s][ss].reshape(-1)
+                        scales = scales_dict[a][c][r][s][ss]
+                        spline = np.append(spline, scales[0])
+                        x.append(spline)
+                        #x.append(np.vstack([spline, scales]))
+                    x = np.asarray(x, dtype=np.float32)
+                    X.append(x)
+    return X
