@@ -15,6 +15,8 @@ from ..primitives import PrimitiveClassifierSingle
 
 def generate_dataset(save_dir):
     data_path = os.path.join(save_dir, 'data_background.mat')
+    drawings_path = os.path.join(save_dir, 'drawings_dict.p')
+    images_path = os.path.join(save_dir, 'images_dict.p')
     ssd_path = os.path.join(save_dir, 'substroke_dict.p')
     sd_path = os.path.join(save_dir, 'spline_dict.p')
     sid_path = os.path.join(save_dir, 'subid_dict.p')
@@ -28,7 +30,13 @@ def generate_dataset(save_dir):
     )
     D = Dataset(data['drawings'],data['images'],data['names'],data['timing'])
 
-    # create drawing and substroke dictionaries
+    # save drawings and images dictionaries
+    with open(drawings_path, 'wb') as fp:
+        pickle.dump(D.drawings, fp, protocol=pickle.HIGHEST_PROTOCOL)
+    with open(images_path, 'wb') as fp:
+        pickle.dump(D.images, fp, protocol=pickle.HIGHEST_PROTOCOL)
+
+    # create substroke dictionary
     if os.path.isfile(ssd_path):
         print('Sub-stroke dictionary already exists.')
     else:
