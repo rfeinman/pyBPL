@@ -8,34 +8,17 @@ import numpy as np
 import scipy.io as sio
 import torch
 
-from .. import splines
+from ... import splines
 from .dataset import Dataset
-from .primitive_classifier import PrimitiveClassifierSingle
+from ..primitives.primitive_classifier import PrimitiveClassifierSingle
 
 
-def make_data_pickles(save_dir):
-    data_path = os.path.join(save_dir, 'data_background.mat')
-    dd_path = os.path.join(save_dir, 'drawings_dict.p')
-    ssd_path = os.path.join(save_dir, 'substroke_dict.p')
-
-    if os.path.isfile(dd_path) and os.path.isfile(ssd_path):
-        print('Data pickles already exist.')
-        return
-
-    assert os.path.isfile(data_path)
-    print("Loading Data...")
-    data = sio.loadmat(
-        data_path,
-        variable_names=['drawings','images','names','timing']
-    )
-    D = Dataset(data['drawings'],data['images'],data['names'],data['timing'])
-
+def make_data_pickles(drawings, images, names, timing):
+    D = Dataset(drawings, images, names, timing)
     print("Making substroke data...")
     D.make_substroke_dict()
-    with open(dd_path,'wb') as fp:
-        pickle.dump(D.drawings, fp, protocol=pickle.HIGHEST_PROTOCOL)
-    with open(ssd_path, 'wb') as fp:
-        pickle.dump(D.substroke_dict, fp, protocol=pickle.HIGHEST_PROTOCOL)
+
+    return D.drawings, D.substroke_dict
 
 
 def norm_substk(substroke, newscale=105):
@@ -48,18 +31,7 @@ def norm_substk(substroke, newscale=105):
     return substroke, mu, scale
 
 
-def make_spline_dict(save_dir):
-    ssd_path = os.path.join(save_dir, 'substroke_dict.p')
-    sd_path = os.path.join(save_dir, 'spline_dict.p')
-
-    if os.path.isfile(sd_path):
-        print('Spline dictionary already exists.')
-        return
-
-    assert os.path.isfile(ssd_path)
-    with open(ssd_path, 'rb') as fp:
-        ss_dict = pickle.load(fp)
-
+def make_spline_dict(ss_dict):
     print("Converting sub-strokes to splines...")
     spline_dict = {}
     n_alpha = len(ss_dict)
@@ -92,26 +64,10 @@ def make_spline_dict(save_dir):
                             spline = np.append(spline,[[scale,scale]],axis=0)
                             spline_dict[a][c][r][s][ss] = spline
 
-    with open(sd_path, 'wb') as fp:
-        pickle.dump(spline_dict, fp, protocol=pickle.HIGHEST_PROTOCOL)
+    return spline_dict
 
 
-def make_subid_dict(save_dir):
-    ssd_path = os.path.join(save_dir, 'substroke_dict.p')
-    sd_path = os.path.join(save_dir, 'spline_dict.p')
-    sid_path = os.path.join(save_dir, 'subid_dict.p')
-
-    if os.path.isfile(sid_path):
-        print('SubID dictionary already exists.')
-        return
-
-    assert os.path.isfile(ssd_path)
-    assert os.path.isfile(sd_path)
-    with open(ssd_path, 'rb') as fp:
-        ss_dict = pickle.load(fp)
-    with open(sd_path, 'rb') as fp:
-        spline_dict = pickle.load(fp)
-
+def make_subid_dict(ss_dict, spline_dict):
     clf = PrimitiveClassifierSingle()
     subid_dict = {}
     n_alpha = len(ss_dict)
@@ -143,11 +99,54 @@ def make_subid_dict(save_dir):
                             ids.append(prim_ID)
                     subid_dict[a][c][r][s] = ids
 
-    with open(sid_path, 'wb') as fp:
-        pickle.dump(subid_dict, fp, protocol=pickle.HIGHEST_PROTOCOL)
+    return subid_dict
 
 
 def preprocess_omniglot(save_dir):
-    make_data_pickles(save_dir)
-    make_spline_dict(save_dir)
-    make_subid_dict(save_dir)
+    data_path = os.path.join(save_dir, 'data_background.mat')
+    dd_path = os.path.join(save_dir, 'drawings_dict.p')
+    ssd_path = os.path.join(save_dir, 'substroke_dict.p')
+    sd_path = os.path.join(save_dir, 'spline_dict.p')
+    sid_path = os.path.join(save_dir, 'subid_dict.p')
+
+    # create drawing and substroke dictionaries
+    if os.path.isfile(dd_path) and os.path.isfile(ssd_path):
+        print('Data pickles already exist.')
+    else:
+        assert os.path.isfile(data_path)
+        print("Loading Data...")
+        data = sio.loadmat(
+            data_path,
+            variable_names=['drawings', 'images', 'names', 'timing']
+        )
+        drawings, substroke_dict = make_data_pickles(
+            data['drawings'], data['images'], data['names'], data['timing']
+        )
+        with open(dd_path, 'wb') as fp:
+            pickle.dump(drawings, fp, protocol=pickle.HIGHEST_PROTOCOL)
+        with open(ssd_path, 'wb') as fp:
+            pickle.dump(substroke_dict, fp, protocol=pickle.HIGHEST_PROTOCOL)
+
+    # create spline dictionary
+    if os.path.isfile(sd_path):
+        print('Spline dictionary already exists.')
+    else:
+        assert os.path.isfile(ssd_path)
+        with open(ssd_path, 'rb') as fp:
+            ss_dict = pickle.load(fp)
+        spline_dict = make_spline_dict(ss_dict)
+        with open(sd_path, 'wb') as fp:
+            pickle.dump(spline_dict, fp, protocol=pickle.HIGHEST_PROTOCOL)
+
+    # create subID dictionary
+    if os.path.isfile(sid_path):
+        print('SubID dictionary already exists.')
+    else:
+        assert os.path.isfile(ssd_path) and os.path.isfile(sd_path)
+        with open(ssd_path, 'rb') as fp:
+            ss_dict = pickle.load(fp)
+        with open(sd_path, 'rb') as fp:
+            spline_dict = pickle.load(fp)
+        subid_dict = make_subid_dict(ss_dict, spline_dict)
+        with open(sid_path, 'wb') as fp:
+            pickle.dump(subid_dict, fp, protocol=pickle.HIGHEST_PROTOCOL)
