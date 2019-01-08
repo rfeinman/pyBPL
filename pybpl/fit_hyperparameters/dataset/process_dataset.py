@@ -67,35 +67,24 @@ def make_spline_dict(ss_dict):
     return spline_dict
 
 
-def make_subid_dict(ss_dict, spline_dict):
+def make_subid_dict(spline_dict):
     clf = PrimitiveClassifierSingle()
     subid_dict = {}
-    n_alpha = len(ss_dict)
-    for a in range(n_alpha):
+    for a in spline_dict.keys():
         subid_dict[a] = {}
-        alphabet = ss_dict[a]
-        n_char = len(alphabet)
-        for c in range(n_char):
+        for c in spline_dict[a].keys():
             subid_dict[a][c] = {}
-            char = alphabet[c]
-            n_rend = len(char)
-            for r in range(n_rend):
+            for r in spline_dict[a][c].keys():
                 subid_dict[a][c][r] = {}
-                rendition = char[r]
-                n_stroke = len(rendition)
-                for s in range(n_stroke):
+                for s in spline_dict[a][c][r].keys():
                     ids = []
-                    stroke = rendition[s]
-                    n_substrokes = len(stroke)
-                    for ss in range(n_substrokes):
-                        num_steps = len(stroke[ss])
-                        if num_steps >= 10:
-                            spline = torch.tensor(
-                                spline_dict[a][c][r][s][ss],
-                                dtype=torch.float32
-                            )
-                            prim_ID = clf.predict(spline)
-                            ids.append(prim_ID)
+                    for ss in spline_dict[a][c][r][s].keys():
+                        spline = torch.tensor(
+                            spline_dict[a][c][r][s][ss],
+                            dtype=torch.float32
+                        )
+                        prim_ID = clf.predict(spline)
+                        ids.append(prim_ID)
                     subid_dict[a][c][r][s] = ids
 
     return subid_dict
@@ -138,11 +127,9 @@ def preprocess_omniglot(save_dir):
     if os.path.isfile(sid_path):
         print('SubID dictionary already exists.')
     else:
-        assert os.path.isfile(ssd_path) and os.path.isfile(sd_path)
-        with open(ssd_path, 'rb') as fp:
-            ss_dict = pickle.load(fp)
+        assert os.path.isfile(sd_path)
         with open(sd_path, 'rb') as fp:
             spline_dict = pickle.load(fp)
-        subid_dict = make_subid_dict(ss_dict, spline_dict)
+        subid_dict = make_subid_dict(spline_dict)
         with open(sid_path, 'wb') as fp:
             pickle.dump(subid_dict, fp, protocol=pickle.HIGHEST_PROTOCOL)
