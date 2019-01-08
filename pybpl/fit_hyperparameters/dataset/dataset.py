@@ -10,7 +10,7 @@ from scipy.interpolate import interp1d
 import torch
 
 from ... import splines
-from ..primitives.primitive_classifier import PrimitiveClassifierSingle
+from ..primitives import PrimitiveClassifierSingle
 
 
 def generate_dataset(save_dir):

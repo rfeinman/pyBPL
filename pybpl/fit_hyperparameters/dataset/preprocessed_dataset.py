@@ -8,8 +8,8 @@ import scipy.io as sio
 import numpy as np
 import torch
 
-from ..primitives.primitive_classifier import PrimitiveClassifierSingle
-from ..primitives.primitive_classifier import PrimitiveClassifierBatch
+from ..primitives import PrimitiveClassifierSingle
+from ..primitives import PrimitiveClassifierBatch
 
 
 def generate_preprocessed_dataset(save_dir):
