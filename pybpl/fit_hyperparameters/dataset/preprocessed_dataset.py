@@ -1,3 +1,9 @@
+import numpy as np
+import torch
+
+from ..primitives.primitive_classifier import PrimitiveClassifierSingle
+from ..primitives.primitive_classifier import PrimitiveClassifierBatch
+
 class PreprocessedDataset(object):
     def __init__(self, splines, drawings, scales):
         '''
@@ -6,7 +12,7 @@ class PreprocessedDataset(object):
         import numpy as np
         from scipy.io import loadmat
         data = loadmat(
-            'data_background_splines',
+            'data_background_splines.mat',
             variable_names=['bspline_substks','pdrawings_norm','pdrawings_scales']
         )
         D = PreprocessedDataset(
@@ -58,3 +64,77 @@ class PreprocessedDataset(object):
                             self.splines[a][c][r][s][ss] = stroke_sp[ss, 0]
                             self.drawings[a][c][r][s][ss] = stroke_d[ss, 0]
                             self.scales[a][c][r][s][ss] = stroke_s[ss, 0]
+
+    def make_subid_dict(self):
+        clf = PrimitiveClassifierSingle()
+        subid_dict = {}
+        for a in self.splines.keys():
+            subid_dict[a] = {}
+            for c in self.splines[a].keys():
+                subid_dict[a][c] = {}
+                for r in self.splines[a][c].keys():
+                    subid_dict[a][c][r] = {}
+                    for s in self.splines[a][c][r].keys():
+                        ids = []
+                        for ss in self.splines[a][c][r][s].keys():
+                            spline = self.splines[a][c][r][s][ss]
+                            scales = self.scales[a][c][r][s][ss]
+                            x = torch.tensor(
+                                np.vstack([spline, scales]),
+                                dtype=torch.float32
+                            )
+                            prim_ID = clf.predict(x)
+                            ids.append(prim_ID)
+                        subid_dict[a][c][r][s] = ids
+        self.subids = subid_dict
+
+    def make_subid_dataset(self):
+        spline_dict = self.splines
+        scales_dict = self.scales
+        clf = PrimitiveClassifierBatch()
+        counts = []
+        X = []
+        for a in spline_dict.keys():
+            for c in spline_dict[a].keys():
+                for r in spline_dict[a][c].keys():
+                    for s in spline_dict[a][c][r].keys():
+                        n_substrokes = len(spline_dict[a][c][r][s].keys())
+                        counts.append(n_substrokes)
+                        for ss in spline_dict[a][c][r][s].keys():
+                            spline = spline_dict[a][c][r][s][ss]
+                            scales = scales_dict[a][c][r][s][ss]
+                            X.append(np.vstack([spline, scales]))
+        X = torch.tensor(X, dtype=torch.float32)
+        prim_IDs = clf.predict(X)
+        prim_IDs = mat2list(prim_IDs, counts)
+
+        return prim_IDs
+
+    def make_cpt_dataset(self):
+        spline_dict = self.splines
+        scales_dict = self.scales
+        prim_cpts = []
+        for a in spline_dict.keys():
+            for c in spline_dict[a].keys():
+                for r in spline_dict[a][c].keys():
+                    for s in spline_dict[a][c][r].keys():
+                        x = []
+                        for i, ss in enumerate(spline_dict[a][c][r][s].keys()):
+                            spline = spline_dict[a][c][r][s][ss].reshape(-1)
+                            scales = scales_dict[a][c][r][s][ss]
+                            spline = np.append(spline, scales[0])
+                            x.append(spline)
+                            # x.append(np.vstack([spline, scales]))
+                        x = np.asarray(x, dtype=np.float32)
+                        prim_cpts.append(x)
+
+        return prim_cpts
+
+def mat2list(X, counts):
+    i = 0
+    x = []
+    for c in counts:
+        x.append(list(X[i:i+c]))
+        i += c
+
+    return x
