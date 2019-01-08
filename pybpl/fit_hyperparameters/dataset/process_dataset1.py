@@ -63,7 +63,7 @@ def mat2list(X, counts):
     i = 0
     x = []
     for c in counts:
-        x.append(list(X[i:i + c]))
+        x.append(list(X[i:i+c]))
         i += c
 
     return x
