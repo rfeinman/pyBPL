@@ -13,8 +13,17 @@ from ... import splines
 from ..primitives import PrimitiveClassifierSingle
 
 
-def generate_dataset(save_dir):
-    data_path = os.path.join(save_dir, 'data_background.mat')
+def generate_dataset(data_file, save_dir):
+    """
+    Parameters
+    ----------
+    data_file : str
+        path to 'data_[type].mat' where type is either 'background'
+        or 'evaluation'
+    save_dir : str
+        name of the folder where the resulting dataset dictionaries should
+        be saved
+    """
     drawings_path = os.path.join(save_dir, 'drawings_dict.p')
     images_path = os.path.join(save_dir, 'images_dict.p')
     ssd_path = os.path.join(save_dir, 'substroke_dict.p')
@@ -22,10 +31,10 @@ def generate_dataset(save_dir):
     sid_path = os.path.join(save_dir, 'subid_dict.p')
 
     # create the dataset
-    assert os.path.isfile(data_path)
+    assert os.path.isfile(data_file)
     print("Loading Data...")
     data = sio.loadmat(
-        data_path,
+        data_file,
         variable_names=['drawings', 'images', 'names', 'timing']
     )
     D = Dataset(data['drawings'],data['images'],data['names'],data['timing'])

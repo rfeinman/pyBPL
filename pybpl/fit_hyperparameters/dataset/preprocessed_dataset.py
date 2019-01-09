@@ -12,13 +12,22 @@ from ..primitives import PrimitiveClassifierSingle
 from ..primitives import PrimitiveClassifierBatch
 
 
-def generate_preprocessed_dataset(save_dir):
-    data_path = os.path.join(save_dir, 'data_background_splines.mat')
+def generate_preprocessed_dataset(data_file, save_dir):
+    """
+    Parameters
+    ----------
+    data_file : str
+        path to 'data_[type]_splines.mat' where type is either 'background'
+        or 'evaluation'
+    save_dir : str
+        name of the folder where the resulting dataset dictionaries should
+        be saved
+    """
     sid_path = os.path.join(save_dir, 'subid_dict.p')
 
-    assert os.path.isfile(data_path)
+    assert os.path.isfile(data_file)
     print('Loading data...')
-    D = sio.loadmat(data_path)
+    D = sio.loadmat(data_file)
     dataset = PreprocessedDataset(
         splines=D['bspline_substks'],
         drawings=D['pdrawings_norm'],
