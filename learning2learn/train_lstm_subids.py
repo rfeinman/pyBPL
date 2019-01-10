@@ -16,11 +16,11 @@ import tensorflow as tf
 import keras.backend as K
 from keras.models import Sequential
 from keras.layers import Dense, TimeDistributed, Embedding
-from keras.layers import LSTM, GRU, SpatialDropout1D
+from keras.layers import LSTM, SpatialDropout1D
 from keras.callbacks import ModelCheckpoint
-from keras.optimizers import RMSprop, Adam
+from keras.optimizers import Adam
 
-DATA_FILE = './subid_sequences.p'
+DATA_FILE = './subid_sequences_background.p'
 MAX_LEN = 10 # truncate sequences longer than 10
 VOCAB_SIZE = 1212 # 1212 primitive IDs
 EPOCHS = 30
