@@ -10,7 +10,7 @@ First, you'll need to create the pre-processed omniglot dataset. You can do this
 
 2. Create sub-stroke ID data set
 
-Next, run the Python script `make_subid_sequences.py` to build the dataset of sub-stroke ID sequences, with one sequence per stroke in the Omniglot background set.
+Next, run the Python script `make_subid_sequences.py` to build the dataset of sub-stroke ID sequences, with one sequence per stroke in the Omniglot background set. This will create a data file called `subid_sequences_background.p`.
 
 3. Train sub-stroke ID LSTM
 
