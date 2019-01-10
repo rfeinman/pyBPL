@@ -14,4 +14,4 @@ Next, run the Python script `make_subid_sequences.py` to build the dataset of su
 
 3. Train sub-stroke ID LSTM
 
-Finally, run the script `train_lstm_subids.py`. This will train an LSTM to model sub-stroke ID sequences. 
+Finally, run the script `train_lstm_subids.py`. This will train an LSTM to model sub-stroke ID sequences. The model will be saved to a file called `lstm_subids.h5`
