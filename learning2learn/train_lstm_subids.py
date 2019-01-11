@@ -90,12 +90,13 @@ def main():
     for i in range(3):
         print('\t', sequences[i])
 
-    print('Building training data arrays...')
     # get input and target arrays
+    print('Building training data arrays...')
     X, Y = preprocess_sequences(sequences, VOCAB_SIZE, ARGS.max_len)
     print('X shape: ', X.shape)
     print('Y shape: ', Y.shape)
 
+    # initialize the network
     print('Initializing neural network...')
     model = build_model(VOCAB_SIZE, ARGS.dropout)
     checkpoint = ModelCheckpoint(
@@ -103,12 +104,16 @@ def main():
         monitor='val_loss',
         save_best_only=True
     )
+
+    # train the network
     print('Training the network...')
     hist = model.fit(
         X, Y, epochs=ARGS.nb_epochs, batch_size=ARGS.batch_size,
         validation_split=0.2, shuffle=True,
         callbacks=[checkpoint]
     )
+
+    # report best results
     best_ix = np.argmin(hist.history['val_loss'])
     train_loss = hist.history['loss'][best_ix]
     valid_loss = hist.history['val_loss'][best_ix]
