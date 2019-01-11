@@ -74,6 +74,7 @@ def build_model(vocab_size, dropout=0.5):
 
 def main():
     # set TF session
+    print('Initializing TF session...')
     if ARGS.gpu:
         gpu_count = 1
     else:
