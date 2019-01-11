@@ -11,6 +11,7 @@ try:
     import pickle # python 3.x
 except ImportError:
     import cPickle as pickle # python 2.x
+import argparse
 import numpy as np
 import tensorflow as tf
 import keras.backend as K
@@ -20,16 +21,18 @@ from keras.layers import LSTM, SpatialDropout1D
 from keras.callbacks import ModelCheckpoint
 from keras.optimizers import Adam
 
-DATA_FILE = './subid_sequences_background.p'
-MAX_LEN = 10 # truncate sequences longer than 10
-VOCAB_SIZE = 1212 # 1212 primitive IDs
-EPOCHS = 30
-BATCH_SIZE = 64
 
-config = tf.ConfigProto(gpu_options=tf.GPUOptions(visible_device_list='0'))
-#config = tf.ConfigProto(device_count={'GPU':0})
-sess = tf.Session(config=config)
-K.set_session(sess)
+parser = argparse.ArgumentParser()
+parser.add_argument('--data_file', default='./subid_sequences_background.p', type=str)
+parser.add_argument('--save_file', default='./lstm_subids.h5', type=str)
+parser.add_argument('--max_len', default=10, type=int)
+parser.add_argument('--dropout', default=0.5, type=float)
+parser.add_argument('--nb_epochs', default=30, type=int)
+parser.add_argument('--batch_size', default=64, type=int)
+parser.add_argument('--gpu', default=False, action='store_true', type=bool)
+ARGS = parser.parse_args()
+VOCAB_SIZE = 1212 # 1212 primitive IDs
+
 
 
 def preprocess_sequences(sequences, vocab_size, max_len):
@@ -70,9 +73,17 @@ def build_model(vocab_size, dropout=0.5):
     return model
 
 def main():
+    # set TF session
+    if ARGS.gpu:
+        gpu_count = 1
+    else:
+        gpu_count = 0
+    sess = tf.Session(config=tf.ConfigProto(device_count={'GPU':gpu_count}))
+    K.set_session(sess)
+
     # load sequences. This is a list of lists
     print('Loading subid sequences...')
-    with open(DATA_FILE, 'rb') as fp:
+    with open(ARGS.data_file, 'rb') as fp:
         sequences = pickle.load(fp)
     print('Example sequences:')
     for i in range(3):
@@ -80,20 +91,20 @@ def main():
 
     print('Building training data arrays...')
     # get input and target arrays
-    X, Y = preprocess_sequences(sequences, VOCAB_SIZE, MAX_LEN)
+    X, Y = preprocess_sequences(sequences, VOCAB_SIZE, ARGS.max_len)
     print('X shape: ', X.shape)
     print('Y shape: ', Y.shape)
 
     print('Initializing neural network...')
-    model = build_model(VOCAB_SIZE)
+    model = build_model(VOCAB_SIZE, ARGS.dropout)
     checkpoint = ModelCheckpoint(
-        'lstm_subids.h5',
+        ARGS.save_file,
         monitor='val_loss',
         save_best_only=True
     )
     print('Training the network...')
     hist = model.fit(
-        X, Y, epochs=EPOCHS, batch_size=BATCH_SIZE,
+        X, Y, epochs=ARGS.nb_epochs, batch_size=ARGS.batch_size,
         validation_split=0.2, shuffle=True,
         callbacks=[checkpoint]
     )
