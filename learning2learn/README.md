@@ -1,7 +1,7 @@
 ## Learning hyper-parameters for pyBPL code
 To begin, make sure that pyBPL is in your `PYTHONPATH`.
 
-### Learning sub-stroke sequence LSTM
+### Learning sub-stroke sequence RNN
 In this section you will train an RNN to model sequences of sub-stroke IDs. 
 
 1. Create spline data set
