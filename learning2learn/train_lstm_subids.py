@@ -17,7 +17,7 @@ import tensorflow as tf
 import keras.backend as K
 from keras.models import Sequential
 from keras.layers import Dense, TimeDistributed, Embedding
-from keras.layers import LSTM, SpatialDropout1D
+from keras.layers import SpatialDropout1D, GRU
 from keras.callbacks import ModelCheckpoint
 from keras.optimizers import Adam
 
@@ -53,7 +53,7 @@ def preprocess_sequences(sequences, vocab_size, max_len):
 
     return X, Y
 
-def build_model(vocab_size, dropout=0.5):
+def build_model(vocab_size, dropout):
     """
     Build the LSTM model for sequence prediction. This model is trained
     to predict the next subid given the previous ones.
@@ -61,7 +61,7 @@ def build_model(vocab_size, dropout=0.5):
     model = Sequential()
     model.add(Embedding(vocab_size+2, 128, mask_zero=True))
     model.add(SpatialDropout1D(dropout))
-    model.add(LSTM(128, dropout=dropout, recurrent_dropout=dropout,
+    model.add(GRU(128, dropout=dropout, recurrent_dropout=dropout,
                    return_sequences=True))
     model.add(TimeDistributed(Dense(vocab_size+1, activation='softmax')))
     model.compile(
