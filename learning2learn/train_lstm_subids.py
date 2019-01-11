@@ -29,7 +29,7 @@ parser.add_argument('--max_len', default=10, type=int)
 parser.add_argument('--dropout', default=0.5, type=float)
 parser.add_argument('--nb_epochs', default=30, type=int)
 parser.add_argument('--batch_size', default=64, type=int)
-parser.add_argument('--gpu', default=False, action='store_true', type=bool)
+parser.add_argument('--gpu', default=False, action='store_true')
 ARGS = parser.parse_args()
 VOCAB_SIZE = 1212 # 1212 primitive IDs
 
