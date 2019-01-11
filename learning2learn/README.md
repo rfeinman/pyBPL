@@ -15,7 +15,7 @@ This will create a file called `data_background_splines.mat`.
 
 2. Create sub-stroke ID data set
 
-Next, run the Python script `make_subid_sequences.py` to build the dataset of sub-stroke ID sequences, with one sequence per stroke in the Omniglot background set. 
+Next, run the Python script `make_subid_sequences.py --mode=train` to build the dataset of sub-stroke ID sequences, with one sequence per stroke in the Omniglot background set. 
 This will create a data file called `subid_sequences_background.p`.
 
 3. Train sub-stroke ID LSTM
@@ -23,3 +23,17 @@ This will create a data file called `subid_sequences_background.p`.
 Finally, run the script `train_rnn_subids.py`. 
 This will train an RNN to model sub-stroke ID sequences. 
 The model will be saved to a file called `rnn_subids.h5`
+
+### Evaluating sub-stroke RNN against the HMM
+Now you will evaluate the performance of the RNN on the omniglot evaluation set and compare it to the performance of the bigram HMM.
+
+1. Create spline dataset
+
+The process mirrors 1. from above.
+Make sure you have the Omniglot evaluation set file in this folder, called `data_evaluation.mat`.
+Call the Matlab function `omniglot_extract_splines.m` with parameter "test".
+Then, run the Python function `make_subid_sequences.py --mode=test`.
+
+2. Run the evaluation script
+
+Run the Python script `compare_hmm_rnn.py` to compare the performance of the RNN vs the HMM on the evaluation set. Results will be printed.
