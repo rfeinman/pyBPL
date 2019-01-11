@@ -27,9 +27,9 @@ The model will be saved to a file called `rnn_subids.h5`
 ### Evaluating sub-stroke RNN against the HMM
 Now you will evaluate the performance of the RNN on the omniglot evaluation set and compare it to the performance of the bigram HMM.
 
-1. Create spline dataset
+1. Create dataset
 
-The process mirrors 1. from above.
+The process mirrors 1-2. from above.
 Make sure you have the Omniglot evaluation set file in this folder, called `data_evaluation.mat`.
 Call the Matlab function `omniglot_extract_splines.m` with parameter "test".
 Then, run the Python function `make_subid_sequences.py --mode=test`.
