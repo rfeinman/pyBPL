@@ -97,8 +97,11 @@ def main():
         validation_split=0.2, shuffle=True,
         callbacks=[checkpoint]
     )
-    best_loss = np.min(hist.history['val_loss'])
-    print('best validation loss: %0.4f' % best_loss)
+    best_ix = np.argmin(hist.history['val_loss'])
+    train_loss = hist.history['loss'][best_ix]
+    valid_loss = hist.history['val_loss'][best_ix]
+    print('Best result - train_loss: %0.4f   valid_loss: %0.4f' %
+          (train_loss, valid_loss))
 
 if __name__ == "__main__":
     main()
