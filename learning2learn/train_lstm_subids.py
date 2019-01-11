@@ -24,7 +24,7 @@ from keras.optimizers import Adam
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--data_file', default='./subid_sequences_background.p', type=str)
-parser.add_argument('--save_file', default='./lstm_subids.h5', type=str)
+parser.add_argument('--save_file', default='./rnn_subids.h5', type=str)
 parser.add_argument('--max_len', default=10, type=int)
 parser.add_argument('--dropout', default=0.5, type=float)
 parser.add_argument('--nb_epochs', default=30, type=int)
