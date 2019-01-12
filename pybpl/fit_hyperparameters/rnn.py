@@ -71,7 +71,12 @@ def train_epoch(sess, x, y, loss, train_op, X, Y, batch_size):
 def train(sess, model, X, Y, loss_fn, epochs, validation_split=0.2,
           batch_size=32, save_file=None):
     x = tf.placeholder(dtype=tf.int32, shape=(None,)+X.shape[1:])
-    y = tf.placeholder(dtype=tf.float32, shape=(None,)+Y.shape[1:])
+    if Y.dtype.kind == 'i':
+        y = tf.placeholder(dtype=tf.int32, shape=(None,)+Y.shape[1:])
+    elif Y.dtype.kind == 'f':
+        y = tf.placeholder(dtype=tf.float32, shape=(None,)+Y.shape[1:])
+    else:
+        raise Exception
     y_pred = model(x)
     loss = loss_fn(x, y, y_pred)
 

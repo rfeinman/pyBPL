@@ -18,9 +18,8 @@ import keras.backend as K
 from keras.models import Sequential
 from keras.layers import Dense, TimeDistributed, Embedding
 from keras.layers import SpatialDropout1D, GRU
-from keras.callbacks import ModelCheckpoint
-from keras.optimizers import Adam
 
+from pybpl.fit_hyperparameters.rnn import preprocess_sequences, train
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--data_file', default='./subid_sequences_background.p', type=str)
@@ -35,23 +34,6 @@ VOCAB_SIZE = 1212 # 1212 primitive IDs
 
 
 
-def preprocess_sequences(sequences, vocab_size, max_len):
-    N = len(sequences)
-    # add 'start' token to head of each sequence
-    seqs_input = [[vocab_size]+s[:-1] for s in sequences]
-    # create the input and target arrays.
-    X = np.zeros((N, max_len), dtype=np.int16)
-    Y = np.zeros((N, max_len, vocab_size), dtype=np.float32)
-    for i in range(N):
-        timesteps = min(max_len, len(sequences[i]))
-        seq_input = np.asarray(seqs_input[i], dtype=np.int16) + 1
-        seq_target = np.asarray(sequences[i], dtype=np.int16)
-        for t in range(timesteps):
-            X[i,t] = seq_input[t]
-            Y[i,t,seq_target[t]] = 1.
-
-    return X, Y
-
 def build_model(vocab_size, dropout):
     """
     Build the LSTM model for sequence prediction. This model is trained
@@ -63,15 +45,21 @@ def build_model(vocab_size, dropout):
     model.add(GRU(128, dropout=dropout, recurrent_dropout=dropout,
                    return_sequences=True))
     model.add(TimeDistributed(Dense(vocab_size, activation='softmax')))
-    model.compile(
-        loss='categorical_crossentropy',
-        optimizer=Adam(clipnorm=1.),
-        metrics=['accuracy']
-    )
 
     return model
 
+def loss_fn(x, y, y_pred):
+    loss = K.categorical_crossentropy(y, y_pred)
+    loss = tf.where(x > 0, loss, tf.zeros_like(loss))
+    loss = tf.reduce_sum(loss, axis=1)
+    lengths = tf.reduce_sum(tf.cast(x > 0, dtype=tf.float32), axis=1)
+    loss = tf.divide(loss, lengths)
+    loss = tf.reduce_mean(loss, axis=0)
+
+    return loss
+
 def main():
+    np.random.seed(0)
     # set TF session
     print('Initializing TF session...')
     if ARGS.gpu:
@@ -98,26 +86,16 @@ def main():
     # initialize the network
     print('Initializing neural network...')
     model = build_model(VOCAB_SIZE, ARGS.dropout)
-    checkpoint = ModelCheckpoint(
-        ARGS.save_file,
-        monitor='val_loss',
-        save_best_only=True
+    model, train_losses, valid_losses = train(
+        sess=sess, model=model, X=X, Y=Y,
+        loss_fn=loss_fn, epochs=ARGS.nb_epochs,
+        validation_split=0.2,
+        batch_size=ARGS.batch_size,
+        save_file=ARGS.save_file
     )
-
-    # train the network
-    print('Training the network...')
-    hist = model.fit(
-        X, Y, epochs=ARGS.nb_epochs, batch_size=ARGS.batch_size,
-        validation_split=0.2, shuffle=True,
-        callbacks=[checkpoint]
-    )
-
-    # report best results
-    best_ix = np.argmin(hist.history['val_loss'])
-    train_loss = hist.history['loss'][best_ix]
-    valid_loss = hist.history['val_loss'][best_ix]
-    print('Best result - train_loss: %0.4f   valid_loss: %0.4f' %
-          (train_loss, valid_loss))
+    best_ix = np.argmin(valid_losses)
+    print('Best result.  train_loss: %0.4f - valid_loss: %0.4f' %
+          (train_losses[best_ix], valid_losses[best_ix]))
 
 if __name__ == "__main__":
     main()
