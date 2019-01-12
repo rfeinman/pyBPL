@@ -41,11 +41,11 @@ def preprocess_sequences(sequences, vocab_size, max_len):
     seqs_input = [[vocab_size]+s[:-1] for s in sequences]
     # create the input and target arrays.
     X = np.zeros((N, max_len), dtype=np.int16)
-    Y = np.zeros((N, max_len, vocab_size+1), dtype=np.float32)
+    Y = np.zeros((N, max_len, vocab_size), dtype=np.float32)
     for i in range(N):
         timesteps = min(max_len, len(sequences[i]))
         seq_input = np.asarray(seqs_input[i], dtype=np.int16) + 1
-        seq_target = np.asarray(sequences[i], dtype=np.int16) + 1
+        seq_target = np.asarray(sequences[i], dtype=np.int16)
         for t in range(timesteps):
             X[i,t] = seq_input[t]
             Y[i,t,seq_target[t]] = 1.
@@ -62,7 +62,7 @@ def build_model(vocab_size, dropout):
     model.add(SpatialDropout1D(dropout))
     model.add(GRU(128, dropout=dropout, recurrent_dropout=dropout,
                    return_sequences=True))
-    model.add(TimeDistributed(Dense(vocab_size+1, activation='softmax')))
+    model.add(TimeDistributed(Dense(vocab_size, activation='softmax')))
     model.compile(
         loss='categorical_crossentropy',
         optimizer=Adam(clipnorm=1.),
