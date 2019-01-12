@@ -37,18 +37,18 @@ VOCAB_SIZE = 1212 # 1212 primitive IDs
 
 def preprocess_sequences(sequences, vocab_size, max_len):
     N = len(sequences)
+    # add 'start' token to head of each sequence
+    seqs_input = [[vocab_size]+s[:-1] for s in sequences]
     # create the input and target arrays.
     X = np.zeros((N, max_len), dtype=np.int16)
     Y = np.zeros((N, max_len, vocab_size+1), dtype=np.float32)
     for i in range(N):
         timesteps = min(max_len, len(sequences[i]))
-        seq = np.asarray(sequences[i], dtype=np.int16) + 1
-        # add 'start' token to head of each sequence
-        X[i,0] = vocab_size+1
+        seq_input = np.asarray(seqs_input[i], dtype=np.int16) + 1
+        seq_target = np.asarray(sequences[i], dtype=np.int16) + 1
         for t in range(timesteps):
-            if t < max_len-2:
-                X[i,t+1] = seq[t]
-            Y[i,t,seq[t]] = 1.
+            X[i,t] = seq_input[t]
+            Y[i,t,seq_target[t]] = 1.
 
     return X, Y
 
