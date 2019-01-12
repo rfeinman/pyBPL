@@ -51,10 +51,8 @@ def build_model(vocab_size, dropout):
 def loss_fn(x, y, y_pred):
     loss = K.categorical_crossentropy(y, y_pred)
     loss = tf.where(x > 0, loss, tf.zeros_like(loss))
-    loss = tf.reduce_sum(loss, axis=1)
-    lengths = tf.reduce_sum(tf.cast(x > 0, dtype=tf.float32), axis=1)
-    loss = tf.divide(loss, lengths)
-    loss = tf.reduce_mean(loss, axis=0)
+    loss = tf.reduce_sum(loss, axis=1) # sum over timesteps
+    loss = tf.reduce_mean(loss, axis=0) # average over batch
 
     return loss
 
