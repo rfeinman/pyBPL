@@ -89,18 +89,22 @@ def train(sess, model, X, Y, loss_fn, epochs, validation_split=0.2,
     # train the model
     train_losses = []
     valid_losses = []
+    ix = np.arange(X_train.shape[0]) # training indices. These will be shuffled
     with sess.as_default() as sess:
         sess.run(tf.global_variables_initializer())
         for epoch in range(epochs):
+            # shuffle training indices
+            np.random.shuffle(ix)
+            X_train, Y_train = X_train[ix], Y_train[ix]
             print('Epoch # %i/%i' % (epoch+1, epochs))
             time.sleep(0.2)
             train_loss = train_epoch(sess, x, y, loss, train_op, X_train, Y_train, batch_size)
             time.sleep(0.2)
             valid_loss = validate_epoch(sess, x, y, loss, X_valid, Y_valid, batch_size)
             print('train_loss: %0.4f - valid_loss: %0.4f\n' % (train_loss, valid_loss))
-            if valid_loss < np.min(valid_losses):
-                model.save(save_file)
             train_losses.append(train_loss)
             valid_losses.append(valid_loss)
+            if valid_loss <= np.min(valid_losses):
+                model.save(save_file)
 
     return model, train_losses, valid_losses
