@@ -564,8 +564,7 @@ def unif_space(stroke,dist_int=1.0):
     dist = np.zeros((num_steps,1))
     to_remove = np.zeros((num_steps,1),dtype=bool) # array of false
 
-    for i in range(2,num_steps):
-        
+    for i in range(1,num_steps):
         xy_1 = stroke[i]
         xy_2 = stroke[i-1]
         diff = xy_1 - xy_2
