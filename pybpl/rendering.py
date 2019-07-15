@@ -189,17 +189,16 @@ def space_motor_to_img(pt):
 
     Parameters
     ----------
-    pt : (nsub,neval,2) tensor
+    pt : (...,neval,2) tensor
         spline point sequence for each sub-stroke
 
     Returns
     -------
-    new_pt : (nsub,neval,2) tensor
+    new_pt : (...,neval,2) tensor
         image point sequence for each sub-stroke
     """
     assert isinstance(pt, torch.Tensor)
-    assert len(pt.shape) == 3
-    new_pt = torch.cat([-pt[:,:,1:], pt[:,:,:1]], dim=2)
+    new_pt = torch.cat([-pt[...,1:], pt[...,:1]], dim=-1)
 
     return new_pt
 
@@ -209,7 +208,7 @@ def render_image(cell_traj, epsilon, blur_sigma, parameters):
 
     Parameters
     ----------
-    cell_traj : (nsub_total,neval,2) tensor
+    cell_traj : (nsub_total,neval,2) tensor, or list of (neval,2) tensor
         TODO
     epsilon : float
         TODO
@@ -227,7 +226,7 @@ def render_image(cell_traj, epsilon, blur_sigma, parameters):
     """
     # convert to image space
     # Note: traj_img is still shape (nsub_total,neval,2)
-    traj_img = space_motor_to_img(cell_traj)
+    traj_img = [space_motor_to_img(traj) for traj in cell_traj]
 
     # get relevant parameters
     imsize = parameters.imsize
@@ -236,7 +235,7 @@ def render_image(cell_traj, epsilon, blur_sigma, parameters):
 
     # draw the trajectories on the image
     pimg = torch.zeros(imsize, dtype=torch.float)
-    nsub_total = traj_img.shape[0]
+    nsub_total = len(traj_img)
     ink_off_page = False
     for i in range(nsub_total):
         # get trajectory for current sub-stroke
