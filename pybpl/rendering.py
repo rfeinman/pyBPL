@@ -164,6 +164,9 @@ def seqadd(D, lind_x, lind_y, inkval):
     lind_x = lind_x[~out].long()
     lind_y = lind_y[~out].long()
     inkval = inkval[~out]
+    # return D if all adding points are out of bounds
+    if len(lind_x) == 0:
+        return D
     # store the original shape of the image and then flatten it from 2D to 1D
     shape = D.shape
     D = D.view(-1)
