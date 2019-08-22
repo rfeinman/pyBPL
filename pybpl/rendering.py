@@ -201,7 +201,7 @@ def space_motor_to_img(pt):
         image point sequence for each sub-stroke
     """
     assert isinstance(pt, torch.Tensor)
-    new_pt = torch.cat([-pt[...,1:], pt[...,:1]], dim=-1)
+    new_pt = torch.stack([-pt[...,1], pt[...,0]], dim=-1)
 
     return new_pt
 
