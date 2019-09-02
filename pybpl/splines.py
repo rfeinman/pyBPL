@@ -56,6 +56,7 @@ def bspline_fit(sval, X, L):
     :param L: [int] number of control points to fit
     :return:
         P: [(L,2) tensor] optimal control points
+        is_singular: [bool] whether the least-squares problem was singular
     """
     # Convert PyTorch -> Numpy
     if isinstance(sval, torch.Tensor):
@@ -76,12 +77,13 @@ def bspline_fit(sval, X, L):
 
     sumA = np.sum(A, axis=1)
     Cof = A / np.repeat(sumA[:,np.newaxis], L, axis=1)
-    P, _, _, _ = np.linalg.lstsq(np.matmul(Cof.T, Cof), np.matmul(Cof.T, X))
+    P, _, rank, _ = np.linalg.lstsq(Cof.T @ Cof, Cof.T @ X, rcond=None)
+    is_singular = rank < Cof.shape[1]
 
     # Convert Numpy -> PyTorch
     P = torch.tensor(P, dtype=torch.float)
 
-    return P
+    return P, is_singular
 
 def bspline_gen_s(nland, neval=200):
     """
