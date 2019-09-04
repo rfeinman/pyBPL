@@ -9,6 +9,36 @@ import torch
 # MATLAB functions
 # ----
 
+def least_squares(a, b, rcond=1e-15):
+    """
+    A PyTorch implementation of NumPy's "linalg.lstsq" function
+
+    Parameters
+    ----------
+    a : (m,n) tensor
+        "Coefficient" matrix
+    b : (m,) or (m,k) tensor
+        Ordinate or "dependent variable" values
+    rcond : float
+        Cutt-off ratio for small singular values of a
+
+    Returns
+    -------
+    x : (n,) or (n,k) tensor
+        Least-squares solution
+    rank : int
+        Rank of matrix a
+    s : (min(m,n),) tensor
+        Singular values of matrix a
+
+    """
+    U, s, V = torch.svd(a)
+    rank = torch.sum(s > rcond*s[0]).item()
+    s_inv = torch.where(s > rcond*s[0], s.reciprocal(), torch.zeros_like(s))
+    x = V @ torch.diag(s_inv) @ U.transpose(0,1) @ b
+
+    return x, rank, s
+
 def ind2sub(shape, index):
     """
     A PyTorch implementation of MATLAB's "ind2sub" function

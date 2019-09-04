@@ -5,8 +5,9 @@ http://vision.ucsd.edu/~kbranson/research/bsplines/bsplines.pdf
 """
 from __future__ import division, print_function
 import warnings
-import numpy as np
 import torch
+
+from .util import least_squares
 
 def bspline_eval(sval, cpts):
     """
@@ -49,7 +50,6 @@ def bspline_eval(sval, cpts):
 def bspline_fit(sval, X, nland):
     """
     Fit a bspline using least-squares.
-    TODO: update this to remain in PyTorch. Right now we convert to numpy
 
     :param sval: [(ntraj,) tensor] time points
     :param X: [(ntraj,2) tensor] data points
@@ -69,8 +69,7 @@ def bspline_fit(sval, X, nland):
     # solve least squares problem
     a = Cof.transpose(0,1) @ Cof # (nland, nland)
     b = Cof.transpose(0,1) @ X # (nland, 2)
-    P, _, rank, _ = np.linalg.lstsq(a.numpy(), b.numpy(), rcond=None) # (nland, 2)
-    P = torch.tensor(P, dtype=torch.float)
+    P, rank, _ = least_squares(a, b) # (nland, 2)
 
     # check singularity of least squares problem
     is_singular = rank < Cof.shape[1]
