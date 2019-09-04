@@ -55,7 +55,7 @@ def bspline_fit(sval, X, nland):
     :param X: [(ntraj,2) tensor] data points
     :param nland: [int] number of control points to fit
     :return:
-        P: [(L,2) tensor] optimal control points
+        P: [(nland,2) tensor] optimal control points
         is_singular: [bool] whether the least-squares problem was singular
     """
     ntraj = sval.size(0)
