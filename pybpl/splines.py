@@ -46,38 +46,33 @@ def bspline_eval(sval, cpts):
 
     return y, Cof
 
-def bspline_fit(sval, X, L):
+def bspline_fit(sval, X, nland):
     """
     Fit a bspline using least-squares.
     TODO: update this to remain in PyTorch. Right now we convert to numpy
 
-    :param sval: [(N,) tensor] time points
-    :param X: [(N,2) tensor] data points
-    :param L: [int] number of control points to fit
+    :param sval: [(ntraj,) tensor] time points
+    :param X: [(ntraj,2) tensor] data points
+    :param nland: [int] number of control points to fit
     :return:
         P: [(L,2) tensor] optimal control points
         is_singular: [bool] whether the least-squares problem was singular
     """
+    ntraj = sval.size(0)
+    assert X.shape == (ntraj, 2)
+
+    S = sval.unsqueeze(1).repeat(1,nland) # (ntraj, nland)
+    I = torch.arange(nland).unsqueeze(0).repeat(ntraj, 1) # (ntraj, nland)
+    A = vectorized_bspline_coeff(I, S) # (ntraj, nland)
+    Cof = A / torch.sum(A, dim=1, keepdim=True) # (ntraj, nland)
+
     # Convert PyTorch -> Numpy
-    if isinstance(sval, torch.Tensor):
-        sval = sval.numpy()
-    if isinstance(X, torch.Tensor):
-        X = X.numpy()
-
-    ns = len(sval)
-    assert X.shape == (ns, 2)
-
-    S = np.repeat(sval[:,np.newaxis], L, axis=1)
-    I = np.repeat(np.arange(L)[np.newaxis,:], ns, axis=0)
-    A = vectorized_bspline_coeff(
-        torch.tensor(I, dtype=torch.float),
-        torch.tensor(S, dtype=torch.float)
-    )
-    A = A.numpy()
-
-    sumA = np.sum(A, axis=1)
-    Cof = A / np.repeat(sumA[:,np.newaxis], L, axis=1)
-    P, _, rank, _ = np.linalg.lstsq(Cof.T @ Cof, Cof.T @ X, rcond=None)
+    X = X.numpy()
+    Cof = Cof.numpy()
+    # solve least squares problem
+    a = Cof.T @ Cof # (nland, nland)
+    b = Cof.T @ X # (nland, 2)
+    P, _, rank, _ = np.linalg.lstsq(a, b, rcond=None) # (nland, 2)
     is_singular = rank < Cof.shape[1]
 
     # Convert Numpy -> PyTorch
