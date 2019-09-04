@@ -66,17 +66,14 @@ def bspline_fit(sval, X, nland):
     A = vectorized_bspline_coeff(I, S) # (ntraj, nland)
     Cof = A / torch.sum(A, dim=1, keepdim=True) # (ntraj, nland)
 
-    # Convert PyTorch -> Numpy
-    X = X.numpy()
-    Cof = Cof.numpy()
     # solve least squares problem
-    a = Cof.T @ Cof # (nland, nland)
-    b = Cof.T @ X # (nland, 2)
-    P, _, rank, _ = np.linalg.lstsq(a, b, rcond=None) # (nland, 2)
-    is_singular = rank < Cof.shape[1]
-
-    # Convert Numpy -> PyTorch
+    a = Cof.transpose(0,1) @ Cof # (nland, nland)
+    b = Cof.transpose(0,1) @ X # (nland, 2)
+    P, _, rank, _ = np.linalg.lstsq(a.numpy(), b.numpy(), rcond=None) # (nland, 2)
     P = torch.tensor(P, dtype=torch.float)
+
+    # check singularity of least squares problem
+    is_singular = rank < Cof.shape[1]
 
     return P, is_singular
 
