@@ -62,7 +62,7 @@ def bspline_fit(sval, X, nland):
     assert X.shape == (ntraj, 2)
 
     S = sval.unsqueeze(1).repeat(1,nland) # (ntraj, nland)
-    I = torch.arange(nland).unsqueeze(0).repeat(ntraj, 1) # (ntraj, nland)
+    I = torch.arange(nland).unsqueeze(0).repeat(ntraj, 1).float() # (ntraj, nland)
     A = vectorized_bspline_coeff(I, S) # (ntraj, nland)
     Cof = A / torch.sum(A, dim=1, keepdim=True) # (ntraj, nland)
 
