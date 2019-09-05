@@ -9,7 +9,7 @@ import torch
 # MATLAB functions
 # ----
 
-def least_squares(a, b, rcond=1e-15):
+def least_squares(a, b, rcond=None):
     """
     A PyTorch implementation of NumPy's "linalg.lstsq" function
 
@@ -20,7 +20,11 @@ def least_squares(a, b, rcond=1e-15):
     b : (m,) or (m,k) tensor
         Ordinate or "dependent variable" values
     rcond : float
-        Cutt-off ratio for small singular values of a
+        Cutt-off ratio for small singular values of a. For the
+        purposes of rank determination, singular values are treated
+        as zero if they are smaller than rcond times the largest
+        singular value of a. If `None`, the default will use the
+        machine precision times max(m, n)
 
     Returns
     -------
@@ -32,6 +36,8 @@ def least_squares(a, b, rcond=1e-15):
         Singular values of matrix a
 
     """
+    if rcond is None:
+        rcond = max(a.shape)*torch.finfo(a.dtype).eps
     U, s, V = torch.svd(a)
     rank = torch.sum(s > rcond*s[0]).item()
     s_inv = torch.where(s > rcond*s[0], s.reciprocal(), torch.zeros_like(s))
