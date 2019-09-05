@@ -254,7 +254,7 @@ class Dataset(object):
                                 spline_dict[a][c][r][s][ss] = np.zeros((5, 2))
                                 substk = stroke[ss]
                                 substk, _, scale = norm_substk(substk)
-                                spline, _ = splines.fit_bspline_to_traj(substk,
+                                spline = splines.fit_bspline_to_traj(substk,
                                                                      nland=5)
                                 # PyTorch -> Numpy
                                 spline = spline.numpy()

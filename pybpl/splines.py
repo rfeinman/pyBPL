@@ -47,16 +47,17 @@ def bspline_eval(sval, cpts):
 
     return y, Cof
 
-def bspline_fit(sval, X, nland):
+def bspline_fit(sval, X, nland, include_resid=False):
     """
     Fit a bspline using least-squares.
 
     :param sval: [(ntraj,) tensor] time points
     :param X: [(ntraj,2) tensor] data points
     :param nland: [int] number of control points to fit
+    :param include_resid: [bool] whether to return lstsq residuals
     :return:
         P: [(nland,2) tensor] optimal control points
-        is_singular: [bool] whether the least-squares problem was singular
+        residuals: [(2,) tensor] residuals of lstsq problem
     """
     ntraj = sval.size(0)
     assert X.shape == (ntraj, 2)
@@ -67,12 +68,12 @@ def bspline_fit(sval, X, nland):
     Cof = A / torch.sum(A, dim=1, keepdim=True) # (ntraj, nland)
 
     # solve least squares problem
-    P, _, rank, _ = least_squares(Cof, X) # (nland, 2)
+    P, residuals, _, _ = least_squares(Cof, X) # (nland, 2)
 
-    # check singularity of least squares problem
-    is_singular = rank < Cof.shape[1]
-
-    return P, is_singular
+    if include_resid:
+        return P, residuals
+    else:
+        return P
 
 def bspline_gen_s(nland, neval=200):
     """
@@ -90,7 +91,6 @@ def bspline_gen_s(nland, neval=200):
     """
     lb = torch.tensor(2, dtype=torch.float)
     ub = torch.tensor(nland+1, dtype=torch.float)
-    assert ub > lb
     if neval == 1:
         s = torch.tensor([lb], dtype=torch.float)
     else:
@@ -98,20 +98,25 @@ def bspline_gen_s(nland, neval=200):
 
     return s, lb, ub
 
-def fit_bspline_to_traj(stk, nland):
+def fit_bspline_to_traj(stk, nland, include_resid=False):
     """
     Fit a b-spline to 'stk' with 'nland' landmarks
 
     :param stk: [(N,2) tensor] substroke trajectory
     :param nland: [int] number of landmarks
+    :param include_resid: [bool] whether to return lstsq residuals
     :return:
         P: [(nland,2) tensor] spline control points
+        residuals: [(2,) tensor] residuals of lstsq problem
     """
     neval = len(stk)
     s, _, _ = bspline_gen_s(nland, neval)
-    P = bspline_fit(s, stk, nland)
-
-    return P
+    if include_resid:
+        P, residuals = bspline_fit(s, stk, nland, include_resid=True)
+        return P, residuals
+    else:
+        P = bspline_fit(s, stk, nland, include_resid=False)
+        return P
 
 def get_stk_from_bspline(P, neval=None):
     """
