@@ -30,20 +30,30 @@ def least_squares(a, b, rcond=None):
     -------
     x : (n,) or (n,k) tensor
         Least-squares solution
+    residuals: (1,) or (k,) or (0,) tensor
+        Sums of residuals; squared Euclidean 2-norm for each column
+        in b - a*x. If rank(a) < n or m <= n, this is an empty
+        array. If b is 1-dimensional, this is a (1,) shape array.
+        Otherwise the shape is (k,)
     rank : int
         Rank of matrix a
     s : (min(m,n),) tensor
         Singular values of matrix a
 
     """
+    m,n = a.shape
     if rcond is None:
         rcond = max(a.shape)*torch.finfo(a.dtype).eps
     U, s, V = torch.svd(a)
     rank = torch.sum(s > rcond*s[0]).item()
     s_inv = torch.where(s > rcond*s[0], s.reciprocal(), torch.zeros_like(s))
     x = V @ torch.diag(s_inv) @ U.transpose(0,1) @ b
+    if rank < n or m <= n:
+        residuals = torch.tensor([])
+    else:
+        residuals = torch.sum((a@x - b)**2, 0, keepdim=len(b.shape)==1)
 
-    return x, rank, s
+    return x, residuals, rank, s
 
 def ind2sub(shape, index):
     """
