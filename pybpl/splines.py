@@ -69,7 +69,8 @@ def bspline_fit(sval, X, nland):
     # solve least squares problem
     a = Cof.transpose(0,1) @ Cof # (nland, nland)
     b = Cof.transpose(0,1) @ X # (nland, 2)
-    P, rank, _ = least_squares(a, b) # (nland, 2)
+    P, rank, _ = least_squares(a.double(), b.double()) # (nland, 2)
+    P = P.float()
 
     # check singularity of least squares problem
     is_singular = rank < Cof.shape[1]
