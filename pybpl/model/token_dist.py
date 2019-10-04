@@ -190,9 +190,10 @@ class CharacterTokenDist(ConceptTokenDist):
             scalar; image blur quantity
         """
         # set rendering parameters to minimum noise for now
-        lb = self.default_ps.min_blur_sigma
-        ub = self.default_ps.max_blur_sigma
-        blur_sigma = dist.Uniform(lb, ub).sample()
+        #lb = self.default_ps.min_blur_sigma
+        #ub = self.default_ps.max_blur_sigma
+        #blur_sigma = dist.Uniform(lb, ub).sample()
+        blur_sigma = self.default_ps.min_blur_sigma
 
         return blur_sigma
 
