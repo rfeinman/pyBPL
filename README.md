@@ -17,9 +17,7 @@ the repository into a folder of your choice:
 ```
 git clone https://github.com/rfeinman/pyBPL.git
 ```
-On UNIX machines, after cloning this repository, it is recommended that you
-add the repository path to your `PYTHONPATH` environment variable to
-enable imports from any folder:
+On UNIX machines, add the repository path to your `PYTHONPATH` environment variable after cloning to enable imports from any folder:
 ```
 export PYTHONPATH="/path/to/pyPBL:$PYTHONPATH"
 ```
