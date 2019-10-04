@@ -26,7 +26,7 @@ export PYTHONPATH="/path/to/pyPBL:$PYTHONPATH"
 
 ## Documentation
 In order to generate the documentation site for the pyBPL library, execute the
-following demands from the root folder:
+following commands from the root folder:
 ```
 cd docs/
 make html
