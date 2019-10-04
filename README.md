@@ -7,8 +7,6 @@ manifestation of the BPL framework, and it is included here as the preliminary
 use case (see Lake et al. 2015 "Human-level concept learning through
 probabilistic program induction" and the [original BPL repository](https://github.com/brendenlake/BPL)).
 
-*NOTE:* This is a work in progress. Not yet fully operational.
-
 
 
 ## Setup
