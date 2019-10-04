@@ -8,8 +8,8 @@ import torch
 import matplotlib.pyplot as plt
 
 from pybpl.library import Library
-from pybpl.ctd import CharacterTypeDist
-from pybpl.concept import Character
+from pybpl.model import CharacterModel
+from pybpl.concept import CharacterType
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -44,7 +44,7 @@ def get_optimizable_variables(c, eps):
 
     Parameters
     ----------
-    c : Character
+    c : CharacterType
         character type to optimize
     eps : float
         tol. for constrained optimization
@@ -63,7 +63,7 @@ def get_optimizable_variables(c, eps):
     parameters = []
     lbs = []
     ubs = []
-    for p in c.P:
+    for p in c.part_types:
         # shape
         p.shapes.requires_grad_()
         parameters.append(p.shapes)
@@ -79,7 +79,7 @@ def get_optimizable_variables(c, eps):
     return parameters, lbs, ubs
 
 def optimize_type(
-        c, type_dist, lr, nb_iter, eps, projected_grad_ascent,
+        model, c, lr, nb_iter, eps, projected_grad_ascent,
         show_examples=True
 ):
     """
@@ -88,25 +88,17 @@ def optimize_type(
 
     Parameters
     ----------
-    c : Character
-        TODO
-    type_dist : CharacterTypeDist
-        TODO
+    model : CharacterModel
+    c : CharacterType
     lr : float
-        TODO
     nb_iter : int
-        TODO
     eps : float
-        TODO
     projected_grad_ascent : bool
-        TODO
     show_examples : bool
-        TODO
 
     Returns
     -------
     score_list : list of float
-        TODO
 
     """
     # get optimizable variables & their bounds
@@ -120,8 +112,8 @@ def optimize_type(
         if idx % 100 == 0 and show_examples:
             print('iteration #%i' % idx)
             for i in range(4):
-                token = c.sample_token()
-                img = token.sample_image()
+                token = model.sample_token(c)
+                img = model.sample_image(token)
                 axes[idx//100, i].imshow(img, cmap='Greys')
                 axes[idx//100, i].tick_params(
                     which='both',
@@ -131,7 +123,7 @@ def optimize_type(
                     labelleft=False
                 )
             axes[idx//100, 0].set_ylabel('%i' % idx)
-        score = type_dist.score_type(c)
+        score = model.score_type(c)
         score.backward(retain_graph=True)
         score_list.append(score)
         with torch.no_grad():
@@ -153,15 +145,15 @@ def optimize_type(
 def main():
     # load the library
     lib = Library(lib_dir='./lib_data')
-    # initialize the character type distribution
-    type_dist = CharacterTypeDist(lib)
-    # sample a character type from the distribution
-    c = type_dist.sample_type(k=args.ns)
+    # create the BPL graphical model
+    model = CharacterModel(lib)
+    # sample a character type
+    c = model.sample_type(k=args.ns)
     print('num strokes: %i' % c.k)
-    print('num sub-strokes: ', [p.nsub.item() for p in c.P])
+    print('num sub-strokes: ', [p.nsub.item() for p in c.part_types])
     # optimize the character type that we sampled
     score_list = optimize_type(
-        c, type_dist, args.lr, args.nb_iter, args.eps, args.proj_grad_ascent
+        model, c, args.lr, args.nb_iter, args.eps, args.proj_grad_ascent
     )
     # plot log-likelihood vs. iteration
     plt.figure()
