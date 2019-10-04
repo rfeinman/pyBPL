@@ -18,8 +18,8 @@ class CharacterModel(object):
         self.token_dist = CharacterTokenDist(lib)
         self.image_dist = CharacterImageDist(lib)
 
-    def sample_type(self):
-        return self.type_dist.sample_type()
+    def sample_type(self, k=None):
+        return self.type_dist.sample_type(k)
 
     def score_type(self, ctype):
         return self.type_dist.score_type(ctype)
