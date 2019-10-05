@@ -79,8 +79,10 @@ class Library(object):
         """
         Get the number of control points
 
-        :return:
-            ncpt: [int] the number of control points
+        Returns
+        -------
+        ncpt : int
+            the number of control points
         """
         dim = self.shape['mu'].shape[1]
         assert dim % 2 == 0 # dimension must be even
@@ -93,8 +95,10 @@ class Library(object):
         """
         Get the number of primitives
 
-        :return:
-            N: [int] the number of primitives
+        Returns
+        -------
+        N: int
+            the number of primitives
         """
         N = self.shape['mu'].shape[0]
 
@@ -128,10 +132,16 @@ class Library(object):
         Get the probability of transitioning to a new state, given your current
         state is "prev_state"
 
-        :param prev_state: [tensor] current state of the model
-        :return:
-            p: [tensor] probability vector; probabilities of transitioning to
-                        each potential new state
+        Parameters
+        ----------
+        prev_state : tensor
+            current state of the model
+
+        Returns
+        -------
+        p : tensor
+            probability vector; probabilities of transitioning to
+            each potential new state
         """
         assert prev_state.shape == torch.Size([])
         logR = self.logT[prev_state]
