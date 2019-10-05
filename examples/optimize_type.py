@@ -26,61 +26,12 @@ parser.add_argument(
     '--nb_iter', help='number of optimization iterations', default=1000,
     type=int
 )
-parser.add_argument(
-    '--proj_grad_ascent', dest='proj_grad_ascent', action='store_true',
-    help='use projected gradient ascent for constrained optimization'
-)
-parser.add_argument(
-    '--no-proj_grad_ascent', dest='proj_grad_ascent', action='store_false'
-)
-parser.set_defaults(proj_grad_ascent=True)
 args = parser.parse_args()
 
 
 
-def get_optimizable_variables(c, eps):
-    """
-    Indicate variables for optimization (requires_grad_)
-
-    Parameters
-    ----------
-    c : CharacterType
-        character type to optimize
-    eps : float
-        tol. for constrained optimization
-
-    Returns
-    -------
-    parameters : list
-        list of optimizable parameters
-    lbs : list
-        list of lower bounds (each elem. is a tensor same size as param;
-        empty list indicates no lb)
-    ubs : list
-        list of upper bounds (each elem. is a tensor; empty list indicates
-        no ub)
-    """
-    parameters = []
-    lbs = []
-    ubs = []
-    for p in c.part_types:
-        # shape
-        p.shapes.requires_grad_()
-        parameters.append(p.shapes)
-        lbs.append([])
-        ubs.append([])
-
-        # scale
-        p.invscales.requires_grad_()
-        parameters.append(p.invscales)
-        lbs.append(torch.full(p.invscales.shape, eps))
-        ubs.append([])
-
-    return parameters, lbs, ubs
-
 def optimize_type(
-        model, c, lr, nb_iter, eps, projected_grad_ascent,
-        show_examples=True
+        model, c, lr, nb_iter, eps, show_examples=True
 ):
     """
     Take a character type and optimize its parameters to maximize the
@@ -93,7 +44,6 @@ def optimize_type(
     lr : float
     nb_iter : int
     eps : float
-    projected_grad_ascent : bool
     show_examples : bool
 
     Returns
@@ -101,16 +51,21 @@ def optimize_type(
     score_list : list of float
 
     """
+    c.train()
     # get optimizable variables & their bounds
-    parameters, lbs, ubs = get_optimizable_variables(c, eps)
+    params = c.parameters()
+    lbs = c.lbs(eps)
+    ubs = c.ubs(eps)
     # optimize the character type
     score_list = []
+    optimizer = torch.optim.Adam(params, lr=lr)
     if show_examples:
         n_plots = nb_iter//100
         fig, axes = plt.subplots(nrows=n_plots, ncols=4, figsize=(4, n_plots))
     for idx in range(nb_iter):
         if idx % 100 == 0 and show_examples:
             print('iteration #%i' % idx)
+            # sample 4 tokens of current type (for visualization)
             for i in range(4):
                 token = model.sample_token(c)
                 img = model.sample_image(token)
@@ -123,22 +78,24 @@ def optimize_type(
                     labelleft=False
                 )
             axes[idx//100, 0].set_ylabel('%i' % idx)
+        # zero optimizer gradients
+        optimizer.zero_grad()
+        # compute log-likelihood of the token
         score = model.score_type(c)
-        score.backward(retain_graph=True)
-        score_list.append(score)
+        score_list.append(score.item())
+        # gradient descent step (minimize loss)
+        loss = -score
+        loss.backward()
+        optimizer.step()
+        # project all parameters into allowable range
         with torch.no_grad():
-            for ip, param in enumerate(parameters):
-                # manual grad. ascent
-                param.add_(lr * param.grad)
-                if projected_grad_ascent:
-                    lb = lbs[ip]
-                    ub = ubs[ip]
-                    if len(lb) > 0:
-                        torch.max(param, lb, out=param)
-                    if len(ub) > 0:
-                        torch.min(param, ub, out=param)
-
-                param.grad.zero_()
+            for ip, param in enumerate(params):
+                lb = lbs[ip]
+                ub = ubs[ip]
+                if lb is not None:
+                    torch.max(param, lb, out=param)
+                if ub is not None:
+                    torch.min(param, ub, out=param)
 
     return score_list
 
@@ -147,14 +104,15 @@ def main():
     lib = Library(lib_dir='./lib_data')
     # create the BPL graphical model
     model = CharacterModel(lib)
+
     # sample a character type
     c = model.sample_type(k=args.ns)
     print('num strokes: %i' % c.k)
     print('num sub-strokes: ', [p.nsub.item() for p in c.part_types])
+
     # optimize the character type that we sampled
-    score_list = optimize_type(
-        model, c, args.lr, args.nb_iter, args.eps, args.proj_grad_ascent
-    )
+    score_list = optimize_type(model, c, args.lr, args.nb_iter, args.eps)
+
     # plot log-likelihood vs. iteration
     plt.figure()
     plt.plot(score_list)
