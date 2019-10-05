@@ -89,9 +89,7 @@ def optimize_type(
         optimizer.step()
         # project all parameters into allowable range
         with torch.no_grad():
-            for ip, param in enumerate(params):
-                lb = lbs[ip]
-                ub = ubs[ip]
+            for param, lb, ub in zip(params, lbs, ubs):
                 if lb is not None:
                     torch.max(param, lb, out=param)
                 if ub is not None:
