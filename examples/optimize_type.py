@@ -11,23 +11,6 @@ from pybpl.library import Library
 from pybpl.model import CharacterModel
 from pybpl.concept import CharacterType
 
-parser = argparse.ArgumentParser()
-parser.add_argument(
-        '--ns', help="number of strokes", required=False, type=int
-)
-parser.add_argument(
-    '--lr', help='learning rate', default=1e-3, type=float
-)
-parser.add_argument(
-    '--eps', help='tolerance for constrained optimization', default=1e-4,
-    type=float
-)
-parser.add_argument(
-    '--nb_iter', help='number of optimization iterations', default=1000,
-    type=int
-)
-args = parser.parse_args()
-
 
 
 def optimize_type(
@@ -98,6 +81,17 @@ def optimize_type(
     return score_list
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--ns', required=False, type=int,
+                        help="number of strokes")
+    parser.add_argument('--lr', default=1e-3, type=float,
+                        help='learning rate')
+    parser.add_argument('--eps', default=1e-4, type=float,
+                        help='tolerance for constrained optimization')
+    parser.add_argument('--nb_iter', default=1000, type=int,
+                        help='number of optimization iterations')
+    args = parser.parse_args()
+
     # load the library
     lib = Library(lib_dir='./lib_data')
     # create the BPL graphical model
