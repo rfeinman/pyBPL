@@ -6,19 +6,25 @@ import torch
 
 from .. import LIB_DATA_PATH
 from .spatial import SpatialModel
+from .spatial_OLD.spatial_model import SpatialModel as SpatialModelOriginal
+from .spatial_OLD.spatial_hist import SpatialHist
 from ..util import aeq
 
 
 class Library(object):
     """
     LIBRARY: hyper-parameters for the BPL model
-    """
-    def __init__(self, lib_dir=None):
-        """
-        Constructor
 
-        :param lib_dir: [string] path to the library files
-        """
+    Parameters
+    ----------
+    lib_dir : string
+        path to the library files
+    use_hist : bool
+        if true, the original BPL spatial histogram model will
+        be used. The default (False) uses a new, differentiable
+        spatial distribution
+    """
+    def __init__(self, lib_dir=None, use_hist=False):
         if lib_dir is None:
             lib_dir = LIB_DATA_PATH
         # get contents of dir
@@ -45,12 +51,25 @@ class Library(object):
         self.diagSigma = self.diagSigma.byte()
 
         # Finally, load SpatialModel
-        clump_ID = 2
-        xlim = torch.tensor([0, 105], dtype=torch.float)
-        ylim = torch.tensor([-105, 0], dtype=torch.float)
-        spatial_model = SpatialModel(xlim, ylim, clump_ID)
-        spatial_model.initialize_unif()
-        self.Spatial = spatial_model
+        if use_hist:
+            # use original BPL spatial histograms
+            spatial_path = os.path.join(lib_dir, 'Spatial')
+            hists = sorted(os.listdir(spatial_path))
+            list_SH = []
+            for hist in hists:
+                SH = load_hist(os.path.join(spatial_path, hist))
+                list_SH.append(SH)
+            SM = SpatialModelOriginal()
+            SM.set_properties(list_SH)
+            self.Spatial = SM
+        else:
+            # use new spatial model that is differentiable
+            clump_ID = 2
+            xlim = torch.tensor([0, 105], dtype=torch.float)
+            ylim = torch.tensor([-105, 0], dtype=torch.float)
+            spatial_model = SpatialModel(xlim, ylim, clump_ID)
+            spatial_model.initialize_unif()
+            self.Spatial = spatial_model
 
         # Check consistency of the library
         self.check_consistent()
@@ -148,6 +167,28 @@ def get_data(item, path):
     out = torch.squeeze(torch.tensor(data, dtype=torch.float))
 
     return out
+
+def load_hist(path):
+    """
+    load spatial histogram
+    """
+    # load all hist properties
+    logpYX = io.loadmat(os.path.join(path, 'logpYX'))['value']
+    xlab = io.loadmat(os.path.join(path, 'xlab'))['value']
+    ylab = io.loadmat(os.path.join(path, 'ylab'))['value']
+    rg_bin = io.loadmat(os.path.join(path, 'rg_bin'))['value']
+    prior_count = io.loadmat(os.path.join(path, 'prior_count'))['value']
+    # fix some of the properties, convert to torch tensors
+    logpYX = torch.tensor(logpYX, dtype=torch.float)
+    xlab = torch.tensor(xlab[0], dtype=torch.float)
+    ylab = torch.tensor(ylab[0], dtype=torch.float)
+    rg_bin = torch.tensor(rg_bin[0], dtype=torch.float)
+    prior_count = prior_count.item()
+    # build the SpatialHist instance
+    H = SpatialHist()
+    H.set_properties(logpYX, xlab, ylab, rg_bin, prior_count)
+
+    return H
 
 def fix_shape_params(shape):
     """
