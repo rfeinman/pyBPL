@@ -5,6 +5,7 @@ likelihood of the type under the prior
 from __future__ import print_function, division
 import argparse
 import torch
+import numpy as np
 import matplotlib.pyplot as plt
 
 from pybpl.library import Library
@@ -34,8 +35,10 @@ def optimize_type(
     score_list : list of float
 
     """
-    c.train()
+    # round nb_iter to nearest 10
+    nb_iter = np.round(nb_iter, -1)
     # get optimizable variables & their bounds
+    c.train()
     params = c.parameters()
     lbs = c.lbs(eps)
     ubs = c.ubs(eps)
@@ -43,24 +46,26 @@ def optimize_type(
     score_list = []
     optimizer = torch.optim.Adam(params, lr=lr)
     if show_examples:
-        n_plots = nb_iter//100
-        fig, axes = plt.subplots(nrows=n_plots, ncols=4, figsize=(4, n_plots))
+        fig, axes = plt.subplots(10, 4, figsize=(4, 10))
+    interval = int(nb_iter / 10)
     for idx in range(nb_iter):
-        if idx % 100 == 0 and show_examples:
+        if idx % interval == 0:
+            # print optimization progress
             print('iteration #%i' % idx)
-            # sample 4 tokens of current type (for visualization)
-            for i in range(4):
-                token = model.sample_token(c)
-                img = model.sample_image(token)
-                axes[idx//100, i].imshow(img, cmap='Greys')
-                axes[idx//100, i].tick_params(
-                    which='both',
-                    bottom=False,
-                    left=False,
-                    labelbottom=False,
-                    labelleft=False
-                )
-            axes[idx//100, 0].set_ylabel('%i' % idx)
+            if show_examples:
+                # sample 4 tokens of current type (for visualization)
+                for i in range(4):
+                    token = model.sample_token(c)
+                    img = model.sample_image(token)
+                    axes[idx//interval, i].imshow(img, cmap='Greys')
+                    axes[idx//interval, i].tick_params(
+                        which='both',
+                        bottom=False,
+                        left=False,
+                        labelbottom=False,
+                        labelleft=False
+                    )
+                axes[idx//interval, 0].set_ylabel('%i' % idx)
         # zero optimizer gradients
         optimizer.zero_grad()
         # compute log-likelihood of the token
