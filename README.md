@@ -22,7 +22,13 @@ On UNIX machines, add the repository path to your `PYTHONPATH` environment varia
 export PYTHONPATH="/path/to/pyPBL:$PYTHONPATH"
 ```
 
-
+To use inference compilation install pyprob
+```
+cd dir/for/pyprob
+git clone --branch=tuananh-dev https://github.com/pyprob/pyprob.git
+cd pyprob/
+pip install .
+```
 
 ## Documentation
 In order to generate the documentation site for the pyBPL library, execute the

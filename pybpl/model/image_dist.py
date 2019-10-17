@@ -5,6 +5,7 @@ import torch.distributions as dist
 
 from .. import rendering
 from ..parameters import defaultps
+import pyprob
 
 
 class ConceptImageDist(object):
@@ -36,6 +37,11 @@ class CharacterImageDist(ConceptImageDist):
         )
 
         return pimg
+
+    # PYPROB
+    def image_dist(self, ctoken):
+        pimg = self.get_pimg(ctoken)
+        return pyprob.distributions.Bernoulli(pimg)
 
     def sample_image(self, ctoken):
         """

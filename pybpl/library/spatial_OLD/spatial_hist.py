@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import torch
 from torch.distributions.uniform import Uniform
 from torch.distributions.categorical import Categorical
+import pyprob
 
 from ...util import aeq, ind2sub, logsumexp_t
 
@@ -122,7 +123,14 @@ class SpatialHist(object):
         logpvec = logpvec.contiguous().view(-1)
         pvec = torch.exp(logpvec)
         pvec = pvec / torch.sum(pvec)
-        lin = Categorical(probs=pvec).sample(torch.Size([nsamp]))
+        # Categorical p(J_i)
+        # PYPROB
+        lin = torch.zeros(nsamp)
+        for i in range(nsamp):
+            lin[i] = pyprob.sample(pyprob.distributions.Categorical(probs=pvec), address='lin_i')
+        lin = lin.long()
+        # ORIGINAL
+        # lin = Categorical(probs=pvec).sample(torch.Size([nsamp]))
 
         # Retrieve the [x, y] indices of these bins
         xi, yi = ind2sub(self.logpYX.shape, lin)
@@ -136,8 +144,13 @@ class SpatialHist(object):
         assert len(ymin) == len(ymax)
 
         # Sample from a uniform distribution in each of the bins
-        xsamp = Uniform(low=xmin, high=xmax).sample(torch.Size([1]))
-        ysamp = Uniform(low=ymin, high=ymax).sample(torch.Size([1]))
+        # Uniform p(L_i)
+        # PYPROB
+        xsamp = pyprob.sample(pyprob.distributions.Uniform(xmin, xmax), address='xsamp').unsqueeze(0)
+        ysamp = pyprob.sample(pyprob.distributions.Uniform(ymin, ymax), address='ysamp').unsqueeze(0)
+        # ORIGINAL
+        # xsamp = Uniform(low=xmin, high=xmax).sample(torch.Size([1]))
+        # ysamp = Uniform(low=ymin, high=ymax).sample(torch.Size([1]))
         samples = torch.transpose(torch.cat([xsamp, ysamp], 0), 0, 1)
 
         return samples, yi, xi

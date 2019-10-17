@@ -14,6 +14,7 @@ from ..relation import (RelationType, RelationIndependent, RelationAttach,
 from ..part import StrokeType
 from ..concept import ConceptType, CharacterType
 from ..splines import bspline_gen_s
+import pyprob
 
 # list of acceptable dtypes for 'k' parameter
 int_types = [torch.uint8, torch.int8, torch.int16, torch.int32, torch.int64]
@@ -143,7 +144,11 @@ class CharacterTypeDist(ConceptTypeDist):
         self.pdist = StrokeTypeDist(lib)
         # distribution of 'k' (number of strokes)
         assert len(lib.pkappa.shape) == 1
-        self.kappa = dist.Categorical(probs=lib.pkappa)
+        # PYPROB
+        self.kappa = pyprob.distributions.Categorical(probs=lib.pkappa)
+
+        # ORIGINAL
+        # self.kappa = dist.Categorical(probs=lib.pkappa)
         # part distribution
 
 
@@ -158,7 +163,12 @@ class CharacterTypeDist(ConceptTypeDist):
         """
         # sample from kappa
         # NOTE: add 1 to 0-indexed samples
-        k = self.kappa.sample() + 1
+        # Categorical p(kappa)
+        # PYPROB
+        k = int(pyprob.sample(self.kappa, address='kappa')) + 1
+
+        # ORIGINAL
+        # k = self.kappa.sample() + 1
 
         return k
 
@@ -264,7 +274,14 @@ class StrokeTypeDist(PartTypeDist):
         # make sure pvec is a vector
         assert len(pvec.shape) == 1
         # sample from the categorical distribution. Add 1 to 0-indexed sample
-        nsub = dist.Categorical(probs=pvec).sample() + 1
+
+        # Categorical p(n_i | i)
+        # PYPROB
+        nsub_minus_one = pyprob.sample(pyprob.distributions.Categorical(probs=pvec), address='nsub_minus_one')
+        nsub = nsub_minus_one.long() + 1
+
+        # ORIGINAL
+        # nsub = dist.Categorical(probs=pvec).sample() + 1
 
         return nsub
 
@@ -318,7 +335,12 @@ class StrokeTypeDist(PartTypeDist):
         # step through and sample 'nsub' sub-strokes
         for _ in range(nsub):
             # sample the sub-stroke
-            ss = dist.Categorical(probs=pT).sample()
+            # Categorical p(z_ij | z_i(j - 1))
+            # PYPROB
+            ss = pyprob.sample(pyprob.distributions.Categorical(probs=pT), address='ss').long()
+
+            # ORIGINAL
+            # ss = dist.Categorical(probs=pT).sample()
             subid.append(ss)
             # update transition probabilities; condition on previous sub-stroke
             pT = self.pT(ss)
@@ -375,11 +397,27 @@ class StrokeTypeDist(PartTypeDist):
         # record vector length
         nsub = len(subid)
         # create multivariate normal distribution
-        mvn = dist.MultivariateNormal(
-            self.shapes_mu[subid], self.shapes_Cov[subid]
-        )
+        # MVN p(x_ij | z_ij)
+        # PYPROB
+        # TODO implement MVN in pyprob or convert this to indep Normals
+        nsub = len(subid)
+        normals = []
+        shapes = torch.zeros(nsub, self.ncpt * 2)
+        for i in range(nsub):
+            normals.append([])
+            for j in range(self.ncpt * 2):
+                loc = self.shapes_mu[subid[i], j]
+                var = self.shapes_Cov[subid[i], j, j]
+                normals[-1].append(pyprob.distributions.Normal(loc, torch.sqrt(var)))
+                shapes[i, j] = pyprob.sample(normals[-1][-1], address='shape_ij')
+
+        # ORIGINAL
+        # mvn = dist.MultivariateNormal(
+        #     self.shapes_mu[subid], self.shapes_Cov[subid]
+        # )
         # sample points from the multivariate normal distribution
-        shapes = mvn.sample()
+        # shapes = mvn.sample()
+
         # transpose axes (nsub, ncpt*2) -> (ncpt*2, nsub)
         shapes = shapes.transpose(0,1)
         # reshape tensor (ncpt*2, nsub) -> (ncpt, 2, nsub)
@@ -443,9 +481,19 @@ class StrokeTypeDist(PartTypeDist):
         # check that it is a vector
         assert len(subid.shape) == 1
         # create gamma distribution
-        gamma = dist.Gamma(self.scales_con[subid], self.scales_rate[subid])
+        # Gamma p(y_ij | z_ij)
+        # PYPROB
+        # TODO: improve gamma proposal in pyprob
+        nsub = len(subid)
+        invscales = torch.zeros(nsub)
+        for i in range(nsub):
+            gamma = pyprob.distributions.Gamma(self.scales_con[subid[i]], self.scales_rate[subid[i]])
+            invscales[i] = pyprob.sample(gamma, address='invscales_i')
+
+        # ORIGINAL
+        # gamma = dist.Gamma(self.scales_con[subid], self.scales_rate[subid])
         # sample from the gamma distribution
-        invscales = gamma.sample()
+        # invscales = gamma.sample()
 
         return invscales
 
@@ -538,7 +586,11 @@ class RelationTypeDist(object):
         self.ncpt = lib.ncpt
         self.Spatial = lib.Spatial
         # distribution of relation categories
-        self.rel_mixdist = dist.Categorical(probs=lib.rel['mixprob'])
+        # PYPROB
+        self.rel_mixdist = pyprob.distributions.Categorical(probs=lib.rel['mixprob'])
+
+        # ORIGINAL
+        # self.rel_mixdist = dist.Categorical(probs=lib.rel['mixprob'])
 
     def sample_relation_type(self, prev_parts):
         """
@@ -563,7 +615,12 @@ class RelationTypeDist(object):
         if nprev == 0:
             category = 'unihist'
         else:
-            indx = self.rel_mixdist.sample()
+            # Categorical
+            # PYPROB
+            indx = pyprob.sample(self.rel_mixdist, address='indx').long()
+
+            # ORIGINAL
+            # indx = self.rel_mixdist.sample()
             category = self.__relation_categories[indx]
 
         # now sample the category-specific type-level parameters
@@ -579,15 +636,32 @@ class RelationTypeDist(object):
             # sample random stroke uniformly from previous strokes. this is the
             # stroke we will attach to
             probs = torch.ones(nprev)
-            attach_ix = dist.Categorical(probs=probs).sample()
+            # Categorical p(u_i | zeta_i)
+            # PYPROB
+            attach_ix = pyprob.sample(pyprob.distributions.Categorical(probs=probs), address='attach_ix').long()
+
+            # ORIGINAL
+            # attach_ix = dist.Categorical(probs=probs).sample()
             if category == 'mid':
                 # sample random sub-stroke uniformly from the selected stroke
                 nsub = prev_parts[attach_ix].nsub
                 probs = torch.ones(nsub)
-                attach_subix = dist.Categorical(probs=probs).sample()
+                # Categorical p(v_i | zeta_i)
+                # PYPROB
+                attach_subix = pyprob.sample(pyprob.distributions.Categorical(probs=probs), address='attach_subix').long()
+
+                # ORIGINAL
+                # attach_subix = dist.Categorical(probs=probs).sample()
+                
                 # sample random type-level spline coordinate
                 _, lb, ub = bspline_gen_s(self.ncpt, 1)
-                eval_spot = dist.Uniform(lb, ub).sample()
+                # Uniform p(tau_i | zeta_i)
+                # PYPROB
+                eval_spot = pyprob.sample(pyprob.distributions.Uniform(lb, ub), address='eval_spot')
+
+                # ORIGINAL
+                # eval_spot = dist.Uniform(lb, ub).sample()
+
                 r = RelationAttachAlong(
                     category, attach_ix, attach_subix, eval_spot, self.ncpt
                 )
