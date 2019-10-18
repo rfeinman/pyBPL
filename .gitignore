@@ -7,3 +7,4 @@ notebooks
 .idea
 docs/_build
 *__pycache__
+.vscode/
