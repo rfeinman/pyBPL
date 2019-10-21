@@ -8,3 +8,4 @@ notebooks
 docs/_build
 *__pycache__
 .vscode/
+*.egg-info
