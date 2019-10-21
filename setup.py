@@ -4,7 +4,7 @@ import os
 import sys
 import setuptools
 
-PACKAGE_NAME = 'pyBPL'
+PACKAGE_NAME = 'pybpl'
 MINIMUM_PYTHON_VERSION = 3, 5
 
 
