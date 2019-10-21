@@ -1,5 +1,3 @@
-import sys
-sys.path.insert(1, '/Users/tuananhle/Documents/research/projects/rfeinman/pyBPL')
 from pybpl.library import Library
 from pyprob import Model
 from pybpl.model import CharacterModel
@@ -9,7 +7,7 @@ import pyprob
 class BPL(Model):
     def __init__(self):
         super().__init__(name="BPL")
-        self.lib = Library(lib_dir='/Users/tuananhle/Documents/research/projects/rfeinman/pyBPL/lib_data', use_hist=True)
+        self.lib = Library(lib_dir='../lib_data', use_hist=True)
         self.model = CharacterModel(self.lib)
 
     def forward(self):

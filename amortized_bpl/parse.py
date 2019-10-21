@@ -1,6 +1,3 @@
-import sys
-sys.path.insert(1, '/Users/tuananhle/Documents/research/projects/amortized-bpl')
-
 import data
 import model
 import pyprob
