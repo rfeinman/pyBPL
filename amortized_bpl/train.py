@@ -1,12 +1,34 @@
 import os
 import model
 import pyprob
+import signal
+import sys
+
+
+def save_bpl_inference_network(bpl):
+    dir_ = 'save'
+    if not os.path.exists(dir_):
+        os.makedirs(dir_)
+    path = os.path.join(dir_, 'bpl_inference_network')
+    bpl.save_inference_network(path)
+    print('Saved to {}'.format(path))
 
 
 def train(args):
     print(args)
 
+    if args.cuda:
+        pyprob.set_device('cuda')
     bpl = model.BPL()
+
+    def signal_handler(sig, frame):
+        print('')
+        print('signal.SIGINT = {}'.format(sig))
+        print('You pressed Ctrl+C!')
+        save_bpl_inference_network(bpl)
+        sys.exit(0)
+
+    signal.signal(signal.SIGINT, signal_handler)
     bpl.learn_inference_network(
         num_traces=args.num_traces,
         batch_size=args.batch_size,
@@ -16,12 +38,7 @@ def train(args):
             'reshape': (1, 105, 105)}},
         inference_network=pyprob.InferenceNetwork.LSTM)
 
-    dir_ = 'save'
-    if not os.path.exists(dir_):
-        os.makedirs(dir_)
-    path = os.path.join(dir_, 'bpl_inference_network')
-    bpl.save_inference_network(path)
-    print('Saved to {}'.format(path))
+    save_bpl_inference_network(bpl)
 
 
 if __name__ == '__main__':
