@@ -1,22 +1,37 @@
+import os
 import model
 import pyprob
 
 
-def main():
-    num_traces = 10
-    batch_size = 1
+def train(args):
+    print(args)
 
     bpl = model.BPL()
     bpl.learn_inference_network(
-        num_traces=num_traces,
-        batch_size=batch_size,
-        observe_embeddings={'image': {'dim': 32,
-                            'embedding': pyprob.ObserveEmbedding.CNN2D5C,
-                            'reshape': (1, 105, 105)}},
+        num_traces=args.num_traces,
+        batch_size=args.batch_size,
+        observe_embeddings={'image': {
+            'dim': 32,
+            'embedding': pyprob.ObserveEmbedding.CNN2D5C,
+            'reshape': (1, 105, 105)}},
         inference_network=pyprob.InferenceNetwork.LSTM)
 
-    bpl.save_inference_network('save/bpl_inference_network')
+    dir_ = 'save'
+    if not os.path.exists(dir_):
+        os.makedirs(dir_)
+    path = os.path.join(dir_, 'bpl_inference_network')
+    bpl.save_inference_network(path)
+    print('Saved to {}'.format(path))
 
 
 if __name__ == '__main__':
-    main()
+    import argparse
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('--batch-size', type=int, default=1,
+                        help=' ')
+    parser.add_argument('--num-traces', type=int, default=10,
+                        help=' ')
+    parser.add_argument('--cuda', action='store_true', help='use cuda')
+    args = parser.parse_args()
+    train(args)
