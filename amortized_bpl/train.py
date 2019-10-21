@@ -29,16 +29,21 @@ def train(args):
         sys.exit(0)
 
     signal.signal(signal.SIGINT, signal_handler)
-    bpl.learn_inference_network(
-        num_traces=args.num_traces,
-        batch_size=args.batch_size,
-        observe_embeddings={'image': {
-            'dim': 32,
-            'embedding': pyprob.ObserveEmbedding.CNN2D5C,
-            'reshape': (1, 105, 105)}},
-        inference_network=pyprob.InferenceNetwork.LSTM)
 
-    save_bpl_inference_network(bpl)
+    total_num_traces = 0
+    while total_num_traces < args.num_traces:
+        num_traces = min(args.save_every,
+                         args.num_traces - total_num_traces)
+        bpl.learn_inference_network(
+            num_traces=num_traces,
+            batch_size=args.batch_size,
+            observe_embeddings={'image': {
+                'dim': 128,
+                'embedding': pyprob.ObserveEmbedding.CNN2D5C,
+                'reshape': (1, 105, 105)}},
+            inference_network=pyprob.InferenceNetwork.LSTM)
+        save_bpl_inference_network(bpl)
+        total_num_traces += num_traces
 
 
 if __name__ == '__main__':
@@ -48,6 +53,8 @@ if __name__ == '__main__':
     parser.add_argument('--batch-size', type=int, default=1,
                         help=' ')
     parser.add_argument('--num-traces', type=int, default=10,
+                        help=' ')
+    parser.add_argument('--save-every', type=int, default=2,
                         help=' ')
     parser.add_argument('--cuda', action='store_true', help='use cuda')
     args = parser.parse_args()
