@@ -48,7 +48,7 @@ def main():
     num_test_images = 9
     test_images = omniglot_test_dataset[0][:num_test_images]
 
-    num_is_samples = 1
+    num_is_samples = 10
     posteriors = []
     for test_image in test_images:
         posterior = bpl.posterior_results(
