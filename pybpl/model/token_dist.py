@@ -100,8 +100,7 @@ class CharacterTokenDist(ConceptTokenDist):
 
         # PYPROB 
         # TODO: implement MVN or do indep normals
-        self.loc_dists = [pyprob.distributions.Normal(0, sigma_x),
-                          pyprob.distributions.Normal(0, sigma_y)]
+        self.loc_dist = pyprob.distributions.Normal(torch.zeros(2), [sigma_x, sigma_y])
         # ORIGINAL
         # self.loc_dist = dist.MultivariateNormal(torch.zeros(2), loc_Cov)
 
@@ -125,10 +124,7 @@ class CharacterTokenDist(ConceptTokenDist):
         assert base.shape == torch.Size([2])
         # MVN p(L_i | R_i, T_1:i-1)
         # PYPROB
-        noise = torch.zeros(2)
-        for i in range(2):
-            noise[i] = pyprob.sample(self.loc_dists[i], address='noise')
-        loc = base + noise
+        loc = base + pyprob.sample(self.loc_dist, address='noise')
         # ORIGINAL
         # loc = base + self.loc_dist.sample()
 
@@ -331,14 +327,10 @@ class StrokeTokenDist(PartTokenDist):
         """
         # Normal p(x_ij^(m) | x_ij)
         # PYPROB
-        # TODO: make independent normal work in pyprob: main problem: dimensions of indep normal can change
-        shapes_type_shape = shapes_type.shape
-        shapes_token = torch.zeros(shapes_type_shape)
-        for i in range(shapes_type_shape[0]):
-            for j in range(shapes_type_shape[1]):
-                for k in range(shapes_type_shape[2]):
-                    shapes_dist = pyprob.distributions.Normal(shapes_type[i, j, k], self.sigma_shape)
-                    shapes_token[i, j, k] = pyprob.sample(shapes_dist, address='shapes_token')
+        # TODO: make normal_normal_mixture proposals deal with independent normals
+        shapes_dist = pyprob.distributions.Normal(shapes_type,
+                                                  self.sigma_shape)
+        shapes_token = pyprob.sample(shapes_dist, address='shapes_token')
 
         # ORIGINAL
         # shapes_dist = dist.normal.Normal(shapes_type, self.sigma_shape)
@@ -385,19 +377,16 @@ class StrokeTokenDist(PartTokenDist):
         """
         # PYPROB
         # TODO: need indep normal with dynamic dimensions
-        nsub = invscales_type.shape[0]
-        scales_dists = []
-        for i in range(nsub):
-            scales_dists.append(pyprob.distributions.Normal(invscales_type[i], self.sigma_invscale))
+        scales_dist = pyprob.distributions.Normal(
+            invscales_type, self.sigma_invscale)
         # ORIGINAL
         # scales_dist = dist.normal.Normal(invscales_type, self.sigma_invscale)
         while True:
             # Normal p(y_ij^(m) | y_ij)
             # PYPROB
-            invscales_token = torch.zeros(nsub)
-            for i in range(nsub):
-                invscales_token[i] = pyprob.sample(scales_dists[i], address='invscales_token')
-            
+            invscales_token = pyprob.sample(scales_dist,
+                                            address='invscales_token')
+
             # ORIGINAL
             # invscales_token = scales_dist.sample()
             ll = self.score_invscales_token(invscales_type, invscales_token)

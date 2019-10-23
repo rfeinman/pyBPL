@@ -401,15 +401,8 @@ class StrokeTypeDist(PartTypeDist):
         # PYPROB
         # TODO implement MVN in pyprob or convert this to indep Normals
         nsub = len(subid)
-        normals = []
-        shapes = torch.zeros(nsub, self.ncpt * 2)
-        for i in range(nsub):
-            normals.append([])
-            for j in range(self.ncpt * 2):
-                loc = self.shapes_mu[subid[i], j]
-                var = self.shapes_Cov[subid[i], j, j]
-                normals[-1].append(pyprob.distributions.Normal(loc, torch.sqrt(var)))
-                shapes[i, j] = pyprob.sample(normals[-1][-1], address='shape_ij')
+        normal = pyprob.distributions.Normal(self.shapes_mu[subid], torch.sqrt(torch.einsum('ijk->ij', self.shapes_Cov[subid])))
+        shapes = pyprob.sample(normal, address='shapes')
 
         # ORIGINAL
         # mvn = dist.MultivariateNormal(
