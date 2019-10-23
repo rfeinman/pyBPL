@@ -57,6 +57,7 @@ def main():
             observe={'image': test_image}
         )
         posteriors.append(posterior)
+        print('Effective sample size = {}'.format(posterior.effective_sample_size.item()))
 
     # Plotting
     fig, axss = plt.subplots(3, 6, figsize=(6 * 2, 3 * 2))
