@@ -26,6 +26,11 @@ def train(args):
     else:
         lib_dir = '../lib_data'
         save_path_suffix = ''
+    if args.obs_emb == 'cnn2d5c':
+        embedding = pyprob.ObserveEmbedding.CNN2D5C
+    else:
+        embedding = pyprob.ObserveEmbedding.ALEXNET
+    save_path_suffix = '{}_{}'.format(save_path_suffix, args.obs_emb)
     bpl = model.BPL(lib_dir=lib_dir)
 
     def signal_handler(sig, frame):
@@ -46,7 +51,7 @@ def train(args):
             batch_size=args.batch_size,
             observe_embeddings={'image': {
                 'dim': 128,
-                'embedding': pyprob.ObserveEmbedding.CNN2D5C,
+                'embedding': embedding,
                 'reshape': (1, 105, 105)}},
             inference_network=pyprob.InferenceNetwork.LSTM)
         save_bpl_inference_network(bpl, save_path_suffix)
@@ -59,6 +64,8 @@ if __name__ == '__main__':
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--batch-size', type=int, default=1,
                         help=' ')
+    parser.add_argument('--obs-emb', default='cnn2d5c',
+                        help='cnn2d5c or alexnet')
     parser.add_argument('--num-traces', type=int, default=10,
                         help=' ')
     parser.add_argument('--save-every', type=int, default=2,

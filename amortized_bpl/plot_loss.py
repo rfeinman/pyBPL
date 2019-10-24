@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import model
+import pyprob.diagnostics
 
 
 def main(args):
@@ -9,6 +10,12 @@ def main(args):
     else:
         lib_dir = '../lib_data'
         save_path_suffix = ''
+
+    if args.obs_emb == 'cnn2d5c':
+        pass
+    else:
+        save_path_suffix = '{}_{}'.format(save_path_suffix, args.obs_emb)
+
     bpl = model.BPL(lib_dir=lib_dir)
     bpl.load_inference_network('save/bpl_inference_network{}'.format(
         save_path_suffix))
@@ -28,11 +35,15 @@ def main(args):
     fig.savefig(filename, bbox_inches='tight')
     print('Saved to {}'.format(filename))
 
+    # pyprob.diagnostics.network(bpl._inference_network, 'plots/inf_net{}'.format(save_path_suffix))
+
 
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('--obs-emb', default='cnn2d5c',
+                        help='cnn2d5c or alexnet')
     parser.add_argument('--small-lib', action='store_true',
                         help='use 250 primitives')
     args = parser.parse_args()

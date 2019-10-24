@@ -46,6 +46,12 @@ def main(args):
     else:
         lib_dir = '../lib_data'
         save_path_suffix = ''
+
+    if args.obs_emb == 'cnn2d5c':
+        pass
+    else:
+        save_path_suffix = '{}_{}'.format(save_path_suffix, args.obs_emb)
+
     bpl = model.BPL(lib_dir=lib_dir)
     bpl.load_inference_network('save/bpl_inference_network{}'.format(
         save_path_suffix))
@@ -54,8 +60,6 @@ def main(args):
 
     num_test_images = 9
     test_images = omniglot_test_dataset[0][:num_test_images]
-
-    num_is_samples = 10
 
     # Plotting
     fig, axss = plt.subplots(3, 6, figsize=(6 * 2, 3 * 2))
@@ -66,7 +70,7 @@ def main(args):
     for test_image, (i, j) in zip(test_images, get_parse_ij()):
         try:
             posterior = bpl.posterior_results(
-                num_traces=num_is_samples,
+                num_traces=args.num_particles,
                 inference_engine=pyprob.InferenceEngine.IMPORTANCE_SAMPLING_WITH_INFERENCE_NETWORK,
                 observe={'image': test_image}
             )
@@ -101,7 +105,11 @@ if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('--obs-emb', default='cnn2d5c',
+                        help='cnn2d5c or alexnet')
     parser.add_argument('--small-lib', action='store_true',
                         help='use 250 primitives')
+    parser.add_argument('--num-particles', type=int, default=10,
+                        help=' ')
     args = parser.parse_args()
     main(args)
