@@ -124,7 +124,7 @@ class CharacterTokenDist(ConceptTokenDist):
         assert base.shape == torch.Size([2])
         # MVN p(L_i | R_i, T_1:i-1)
         # PYPROB
-        loc = base + pyprob.sample(self.loc_dist, address='noise')
+        loc = base.cpu() + pyprob.sample(self.loc_dist, address='noise').cpu()
         # ORIGINAL
         # loc = base + self.loc_dist.sample()
 
@@ -389,7 +389,7 @@ class StrokeTokenDist(PartTokenDist):
 
             # ORIGINAL
             # invscales_token = scales_dist.sample()
-            ll = self.score_invscales_token(invscales_type, invscales_token)
+            ll = self.score_invscales_token(invscales_type, invscales_token.cpu())
             if not torch.any(ll == -float('inf')):
                 break
 

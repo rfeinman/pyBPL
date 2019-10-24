@@ -37,7 +37,9 @@ def vanilla_to_motor(shapes, invscales, first_pos, neval=200):
     ncpt, _, nsub = shapes.shape
     motor = torch.zeros(nsub, neval, 2, dtype=torch.float)
     motor_spline = torch.zeros_like(shapes, dtype=torch.float)
-    previous_pos = first_pos
+    invscales = invscales.cpu()
+    shapes = shapes.cpu()
+    previous_pos = first_pos.cpu()
     for i in range(nsub):
         # re-scale the control points
         shapes_scaled = invscales[i]*shapes[:,:,i]

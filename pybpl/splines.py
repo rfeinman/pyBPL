@@ -19,6 +19,7 @@ def bspline_eval(sval, cpts):
         y: [(neval,2) tensor] the output of spline
         Cof: [(neval,ncpt) tensor] TODO
     """
+    cpts = cpts.cpu()
     if sval.shape == torch.Size([]):
         sval = sval.view(1)
     assert len(sval.shape) == 1
@@ -169,6 +170,7 @@ def vectorized_bspline_coeff(vi, vs):
     """
     assert vi.shape == vs.shape
     assert vi.dtype == vs.dtype
+    vs = vs.cpu()
 
     # step through the conditions
     # NOTE: in the following, * stands in for 'and'

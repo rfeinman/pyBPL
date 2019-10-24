@@ -159,7 +159,7 @@ class SpatialModel(object):
             # if nsel > 0 then sample
             if nsel.byte():
                 samp, _, _ = self.list_SH[sid].sample(nsel.item())
-                samples[sel] = samp.float()
+                samples[sel] = samp.float().cpu()
 
         return samples
 
