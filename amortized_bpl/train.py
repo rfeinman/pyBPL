@@ -20,12 +20,13 @@ def train(args):
 
     if args.cuda:
         pyprob.set_device('cuda')
+        save_path_suffix = '_cuda'
     if args.small_lib:
         lib_dir = '../lib_data250'
-        save_path_suffix = '_250'
+        save_path_suffix = '{}_250'.format(save_path_suffix)
     else:
         lib_dir = '../lib_data'
-        save_path_suffix = ''
+        save_path_suffix = '{}'.format(save_path_suffix)
     if args.obs_emb == 'cnn2d5c':
         embedding = pyprob.ObserveEmbedding.CNN2D5C
     else:
