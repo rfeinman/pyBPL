@@ -5,11 +5,12 @@ import signal
 import sys
 
 
-def save_bpl_inference_network(bpl):
+def save_bpl_inference_network(bpl, save_path_suffix):
     dir_ = 'save'
     if not os.path.exists(dir_):
         os.makedirs(dir_)
-    path = os.path.join(dir_, 'bpl_inference_network')
+    path = os.path.join(dir_, 'bpl_inference_network{}'.format(
+        save_path_suffix))
     bpl.save_inference_network(path)
     print('Saved to {}'.format(path))
 
@@ -19,13 +20,19 @@ def train(args):
 
     if args.cuda:
         pyprob.set_device('cuda')
-    bpl = model.BPL()
+    if args.small_lib:
+        lib_dir = '../lib_data250'
+        save_path_suffix = '_250'
+    else:
+        lib_dir = '../lib_data'
+        save_path_suffix = ''
+    bpl = model.BPL(lib_dir=lib_dir)
 
     def signal_handler(sig, frame):
         print('')
         print('signal.SIGINT = {}'.format(sig))
         print('You pressed Ctrl+C!')
-        save_bpl_inference_network(bpl)
+        save_bpl_inference_network(bpl, save_path_suffix)
         sys.exit(0)
 
     signal.signal(signal.SIGINT, signal_handler)
@@ -42,7 +49,7 @@ def train(args):
                 'embedding': pyprob.ObserveEmbedding.CNN2D5C,
                 'reshape': (1, 105, 105)}},
             inference_network=pyprob.InferenceNetwork.LSTM)
-        save_bpl_inference_network(bpl)
+        save_bpl_inference_network(bpl, save_path_suffix)
         total_num_traces += num_traces
 
 
@@ -57,5 +64,7 @@ if __name__ == '__main__':
     parser.add_argument('--save-every', type=int, default=2,
                         help=' ')
     parser.add_argument('--cuda', action='store_true', help='use cuda')
+    parser.add_argument('--small-lib', action='store_true',
+                        help='use 250 primitives')
     args = parser.parse_args()
     train(args)

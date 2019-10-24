@@ -5,9 +5,9 @@ import pyprob
 
 
 class BPL(Model):
-    def __init__(self):
+    def __init__(self, lib_dir='../lib_data'):
         super().__init__(name="BPL")
-        self.lib = Library(lib_dir='../lib_data', use_hist=True)
+        self.lib = Library(lib_dir=lib_dir, use_hist=True)
         self.model = CharacterModel(self.lib)
 
     def forward(self):

@@ -39,25 +39,23 @@ def get_parse_ij():
             yield i, j + 3
 
 
-def main():
-    bpl = model.BPL()
-    bpl.load_inference_network('save/bpl_inference_network')
-    omniglot_test_dataset = data.OmniglotDataset(data.test_img_dir,
-                                                 data.test_motor_dir)
+def main(args):
+    if args.small_lib:
+        lib_dir = '../lib_data250'
+        save_path_suffix = '_250'
+    else:
+        lib_dir = '../lib_data'
+        save_path_suffix = ''
+    bpl = model.BPL(lib_dir=lib_dir)
+    bpl.load_inference_network('save/bpl_inference_network'.format(
+        save_path_suffix))
+    omniglot_test_dataset = data.OmniglotDataset(data.train_img_dir,
+                                                 data.train_motor_dir)
 
     num_test_images = 9
     test_images = omniglot_test_dataset[0][:num_test_images]
 
     num_is_samples = 10
-    posteriors = []
-    for test_image in test_images:
-        posterior = bpl.posterior_results(
-            num_traces=num_is_samples,
-            inference_engine=pyprob.InferenceEngine.IMPORTANCE_SAMPLING_WITH_INFERENCE_NETWORK,
-            observe={'image': test_image}
-        )
-        posteriors.append(posterior)
-        print('Effective sample size = {}'.format(posterior.effective_sample_size.item()))
 
     # Plotting
     fig, axss = plt.subplots(3, 6, figsize=(6 * 2, 3 * 2))
@@ -65,9 +63,19 @@ def main():
     for test_image, (i, j) in zip(test_images, get_test_image_ij()):
         axss[i, j].imshow(1 - test_image, cmap='gray')
 
-    for posterior, (i, j) in zip(posteriors, get_parse_ij()):
-        char_type_mode, char_token_mode = posterior.mode
-        plot_parse(axss[i, j], char_token_mode)
+    for test_image, (i, j) in zip(test_images, get_parse_ij()):
+        try:
+            posterior = bpl.posterior_results(
+                num_traces=num_is_samples,
+                inference_engine=pyprob.InferenceEngine.IMPORTANCE_SAMPLING_WITH_INFERENCE_NETWORK,
+                observe={'image': test_image}
+            )
+            char_type_mode, char_token_mode = posterior.mode
+            plot_parse(axss[i, j], char_token_mode)
+            print('Effective sample size = {}'.format(
+                posterior.effective_sample_size.item()))
+        except:
+            print('some error')
 
     for axs in axss:
         for ax in axs:
@@ -84,10 +92,16 @@ def main():
                ncol=5, loc=(0.6, -0.01), frameon=False)
     fig.tight_layout(pad=0)
 
-    filename = 'plots/parse.pdf'
+    filename = 'plots/parse{}.pdf'.format(save_path_suffix)
     fig.savefig(filename, bbox_inches='tight')
     print('Saved to {}'.format(filename))
 
 
 if __name__ == '__main__':
-    main()
+    import argparse
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('--small-lib', action='store_true',
+                        help='use 250 primitives')
+    args = parser.parse_args()
+    main(args)
