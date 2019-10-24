@@ -21,6 +21,8 @@ def train(args):
     if args.cuda:
         pyprob.set_device('cuda')
         save_path_suffix = '_cuda'
+    else:
+        save_path_suffix = ''
     if args.small_lib:
         lib_dir = '../lib_data250'
         save_path_suffix = '{}_250'.format(save_path_suffix)
