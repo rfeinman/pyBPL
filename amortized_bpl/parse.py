@@ -47,7 +47,7 @@ def main(args):
         lib_dir = '../lib_data'
         save_path_suffix = ''
     bpl = model.BPL(lib_dir=lib_dir)
-    bpl.load_inference_network('save/bpl_inference_network'.format(
+    bpl.load_inference_network('save/bpl_inference_network{}'.format(
         save_path_suffix))
     omniglot_test_dataset = data.OmniglotDataset(data.train_img_dir,
                                                  data.train_motor_dir)
