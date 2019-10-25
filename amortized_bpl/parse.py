@@ -40,16 +40,17 @@ def get_parse_ij():
 
 
 def main(args):
+    if args.cuda:
+        pyprob.set_device('cuda')
+        save_path_suffix = '_cuda'
+    else:
+        save_path_suffix = ''
     if args.small_lib:
         lib_dir = '../lib_data250'
-        save_path_suffix = '_250'
+        save_path_suffix = '{}_250'.format(save_path_suffix)
     else:
         lib_dir = '../lib_data'
-        save_path_suffix = ''
-
-    if args.obs_emb == 'cnn2d5c':
-        pass
-    else:
+        save_path_suffix = '{}'.format(save_path_suffix)
         save_path_suffix = '{}_{}'.format(save_path_suffix, args.obs_emb)
 
     bpl = model.BPL(lib_dir=lib_dir)
