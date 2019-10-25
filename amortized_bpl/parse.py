@@ -3,6 +3,7 @@ import model
 import pyprob
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
+import torch
 
 
 def get_color(k):
@@ -51,16 +52,17 @@ def main(args):
     else:
         lib_dir = '../lib_data'
         save_path_suffix = '{}'.format(save_path_suffix)
-        save_path_suffix = '{}_{}'.format(save_path_suffix, args.obs_emb)
+    save_path_suffix = '{}_{}'.format(save_path_suffix, args.obs_emb)
 
     bpl = model.BPL(lib_dir=lib_dir)
     bpl.load_inference_network('save/bpl_inference_network{}'.format(
         save_path_suffix))
-    omniglot_test_dataset = data.OmniglotDataset(data.train_img_dir,
-                                                 data.train_motor_dir)
+    # omniglot_test_dataset = data.OmniglotDataset(data.train_img_dir,
+    #                                              data.train_motor_dir)
 
-    num_test_images = 9
-    test_images = omniglot_test_dataset[0][:num_test_images]
+    # num_test_images = 9
+    # test_images = omniglot_test_dataset[0][:num_test_images]
+    test_images = torch.load('test_images.pt')
 
     # Plotting
     fig, axss = plt.subplots(3, 6, figsize=(6 * 2, 3 * 2))
@@ -112,5 +114,6 @@ if __name__ == '__main__':
                         help='use 250 primitives')
     parser.add_argument('--num-particles', type=int, default=10,
                         help=' ')
+    parser.add_argument('--cuda', action='store_true', help='use cuda')
     args = parser.parse_args()
     main(args)
