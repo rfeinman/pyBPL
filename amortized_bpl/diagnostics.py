@@ -4,7 +4,6 @@ import pyprob.diagnostics
 
 def main(args):
     if args.cuda:
-        pyprob.set_device('cuda')
         save_path_suffix = '_cuda'
     else:
         save_path_suffix = ''

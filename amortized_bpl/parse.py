@@ -1,4 +1,3 @@
-import data
 import model
 import pyprob
 import matplotlib.pyplot as plt
@@ -69,12 +68,13 @@ def main(args):
 
     for test_image, (i, j) in zip(test_images, get_test_image_ij()):
         axss[i, j].imshow(1 - test_image, cmap='gray')
-
+    inference_engine = \
+        pyprob.InferenceEngine.IMPORTANCE_SAMPLING_WITH_INFERENCE_NETWORK
     for test_image, (i, j) in zip(test_images, get_parse_ij()):
         try:
             posterior = bpl.posterior_results(
                 num_traces=args.num_particles,
-                inference_engine=pyprob.InferenceEngine.IMPORTANCE_SAMPLING_WITH_INFERENCE_NETWORK,
+                inference_engine=inference_engine,
                 observe={'image': test_image}
             )
             char_type_mode, char_token_mode = posterior.mode
