@@ -38,6 +38,12 @@ def train(args):
     save_path_suffix = '{}_{}'.format(save_path_suffix, args.obs_emb)
 
     bpl = model.BPL(lib_dir=lib_dir)
+    try:
+        bpl.load_inference_network('save/bpl_inference_network{}'.format(
+            save_path_suffix))
+        print('continuing to train')
+    except:
+        print('training from scratch')
 
     def signal_handler(sig, frame):
         print('')
