@@ -9,7 +9,8 @@ import torch
 from torch.distributions.uniform import Uniform
 from torch.distributions.categorical import Categorical
 
-from ...util import aeq, ind2sub, logsumexp_t
+from ...util import aeq, ind2sub
+
 
 class SpatialHist(object):
     """
@@ -71,7 +72,7 @@ class SpatialHist(object):
         logN = torch.log(N)
 
         # Convert to probability distribution
-        logpN = logN - logsumexp_t(logN)
+        logpN = logN - torch.logsumexp(logN, 0)
         assert aeq(torch.sum(torch.exp(logpN)), torch.tensor(1.))
 
         self.logpYX = logpN

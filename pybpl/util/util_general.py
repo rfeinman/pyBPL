@@ -1,13 +1,7 @@
 from __future__ import division, print_function
 import numpy as np
-from scipy.stats import multivariate_normal
-from scipy.special import logsumexp
 import torch
 
-
-# ----
-# MATLAB functions
-# ----
 
 def least_squares(a, b, rcond=None):
     """
@@ -183,10 +177,6 @@ def fspecial(hsize, sigma, ftype='gaussian'):
 
     return kernel
 
-# ----
-# Other functions
-# ----
-
 def aeq(x, y, tol=2.22e-6):
     if isinstance(x, list):
         assert isinstance(y, list)
@@ -210,20 +200,6 @@ def aeq(x, y, tol=2.22e-6):
         r = diff < tol
 
     return r
-
-def logsumexp_t(tensor):
-    """
-    TODO
-
-    :param tensor: [(n,) tensor] TODO
-    :return:
-        tensor1: [(n,) tensor] TODO
-
-    """
-    array = logsumexp(tensor.numpy())
-    tensor1 = torch.tensor(array, dtype=torch.float32)
-
-    return tensor1
 
 def inspect_dir(dir_name):
     raise NotImplementedError

@@ -6,7 +6,7 @@ from torch.distributions.multivariate_normal import MultivariateNormal
 from torch.distributions.uniform import Uniform
 
 from .spatial_hist import SpatialHist
-from ...util import logsumexp_t
+
 
 class TestSpatialHist(unittest.TestCase):
 
@@ -84,9 +84,10 @@ class TestSpatialHist(unittest.TestCase):
         D = torch.cat([x.view(-1, 1), y.view(-1, 1)], 1)
 
         _, ll = self.H.get_id(D)
-        ltot = logsumexp_t(ll.view(-1))
+        ltot = torch.logsumexp(ll.view(-1), 0)
         tsum = torch.exp(ltot)
         tot = (area/nsamp) * tsum
+        tot = tot.item()
 
         print('Average score: %0.3f' % tot)
         self.assertTrue(np.abs(1 - tot) <= 1e-1)
