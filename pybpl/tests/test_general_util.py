@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import torch
 
-from ..util import ind2sub, fspecial, imfilter
+from ..util.general import ind2sub, fspecial, imfilter
 
 
 class TestGeneralUtil(unittest.TestCase):

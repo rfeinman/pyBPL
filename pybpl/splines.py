@@ -7,7 +7,7 @@ from __future__ import division, print_function
 import warnings
 import torch
 
-from .util import least_squares
+from .util.general import least_squares
 
 def bspline_eval(sval, cpts):
     """

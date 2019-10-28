@@ -8,7 +8,7 @@ from .. import LIB_DATA_PATH
 from .spatial import SpatialModel
 from .spatial_OLD.spatial_model import SpatialModel as SpatialModelOriginal
 from .spatial_OLD.spatial_hist import SpatialHist
-from ..util import aeq
+from ..util.general import aeq
 
 
 class Library(object):
