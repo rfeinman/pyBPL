@@ -191,9 +191,9 @@ def get_stk_from_bspline(Y, neval=None):
         )
         neval = 200
 
-    # s has shape (neval,)
+    # generate time points
     s, _, _ = bspline_gen_s(nland, neval)
-    # stk has shape (neval,2)
+    # compute trajectory
     X, _ = bspline_eval(s, Y)
 
     return X
@@ -206,7 +206,7 @@ def fit_bspline_to_traj(X, nland, include_resid=False):
     Parameters
     ----------
     X : (neval,2) tensor
-        trajectory
+        input trajectory
     nland : int
         number of landmarks (control points)
     include_resid : bool
@@ -222,7 +222,9 @@ def fit_bspline_to_traj(X, nland, include_resid=False):
     assert isinstance(X, torch.Tensor)
     assert len(X.shape) == 2 and X.shape[1] == 2
 
+    # generate time points
     s, _, _ = bspline_gen_s(nland, neval=len(X))
+    # compute spline
     if include_resid:
         Y, residuals = bspline_fit(s, X, nland, include_resid=True)
         return Y, residuals
