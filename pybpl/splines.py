@@ -9,15 +9,24 @@ import torch
 
 from .util.general import least_squares
 
+
 def bspline_eval(sval, cpts):
     """
-    Fit a uniform, cubic B-spline
+    Produce a trajectory from a B-spline.
 
-    :param sval: [(neval,) tensor] vector, where 0 <= sval(i) <= n
-    :param cpts: [(ncpt,2) tensor] array of control points
-    :return:
-        y: [(neval,2) tensor] the output of spline
-        Cof: [(neval,ncpt) tensor] TODO
+    Parameters
+    ----------
+    sval : (neval,) tensor
+        time points for spline eval
+    cpts : (nland,2) tensor
+        input spline (control points)
+
+    Returns
+    -------
+    y : (neval,2) tensor
+        output trajectory
+    Cof : (neval, nland) tensor
+        TODO
     """
     if sval.shape == torch.Size([]):
         sval = sval.view(1)
@@ -49,15 +58,25 @@ def bspline_eval(sval, cpts):
 
 def bspline_fit(sval, X, nland, include_resid=False):
     """
-    Fit a bspline using least-squares.
+    Produce a B-spline from a trajectory (via least-squares).
 
-    :param sval: [(ntraj,) tensor] time points
-    :param X: [(ntraj,2) tensor] data points
-    :param nland: [int] number of control points to fit
-    :param include_resid: [bool] whether to return lstsq residuals
-    :return:
-        P: [(nland,2) tensor] optimal control points
-        residuals: [(2,) tensor] residuals of lstsq problem
+    Parameters
+    ----------
+    sval : (ntraj,) tensor
+        time points for spline eval
+    X : (ntraj,2) tensor
+        input trajectory
+    nland : int
+        number of landmarks (control points) for the spline
+    include_resid : bool
+        whether to return the residuals of the least-squares problem
+
+    Returns
+    -------
+    P : (nland,2) tensor
+        output spline
+    residuals : (2,) tensor
+        (optional) residuals of the least-squares problem
     """
     ntraj = sval.size(0)
     assert X.shape == (ntraj, 2)
@@ -78,16 +97,22 @@ def bspline_fit(sval, X, nland, include_resid=False):
 def bspline_gen_s(nland, neval=200):
     """
     Generate time points for evaluating spline.
-
     The convex-combination of the endpoints with five control points are 80
     percent of the last cpt and 20 percent of the control point after that.
 
-    :param nland: [int] number of landmarks
-    :param neval: [int] number of evaluations
-    :return:
-        s: the time points used to evaluate spline
-        lb: TODO
-        ub: TODO
+    Parameters
+    ----------
+    nland : int
+        number of landmarks (control points)
+    neval : int
+        number of eval points
+
+    Returns
+    -------
+    s : (neval,) tensor
+        time points for spline eval
+    lb : TODO
+    ub : TODO
     """
     lb = torch.tensor(2, dtype=torch.float)
     ub = torch.tensor(nland+1, dtype=torch.float)
@@ -100,17 +125,26 @@ def bspline_gen_s(nland, neval=200):
 
 def fit_bspline_to_traj(stk, nland, include_resid=False):
     """
-    Fit a b-spline to 'stk' with 'nland' landmarks
+    Produce a B-spline from a trajectory (via least-squares).
+    NOTE: this is a wrapper for bspline_fit (first produces time points)
 
-    :param stk: [(N,2) tensor] substroke trajectory
-    :param nland: [int] number of landmarks
-    :param include_resid: [bool] whether to return lstsq residuals
-    :return:
-        P: [(nland,2) tensor] spline control points
-        residuals: [(2,) tensor] residuals of lstsq problem
+    Parameters
+    ----------
+    stk : (neval,2) tensor
+        trajectory
+    nland : int
+        number of landmarks (control points)
+    include_resid : bool
+        whether to return the residuals of the least-squares problem
+
+    Returns
+    -------
+    P : (nland,2) tensor
+        output spline
+    residuals : (2,) tensor
+        (optional) residuals of the least-squares problem
     """
-    neval = len(stk)
-    s, _, _ = bspline_gen_s(nland, neval)
+    s, _, _ = bspline_gen_s(nland, neval=len(stk))
     if include_resid:
         P, residuals = bspline_fit(s, stk, nland, include_resid=True)
         return P, residuals
@@ -120,37 +154,34 @@ def fit_bspline_to_traj(stk, nland, include_resid=False):
 
 def get_stk_from_bspline(P, neval=None):
     """
-    Get a motor trajectory from the b-spline control points, using an adaptive
-    method to choose the number of evaluations based on the distance along the
-    trajectory.
+    Produce a trajectory from a B-spline.
+    NOTE: this is a wrapper for bspline_eval (first produces time points)
 
-    :param P: [(ncpt,2) array] control points
-    :param neval: [int] optional; number of evaluations. Otherwise, we choose
-                    this adaptively
-    :return:
-        stk: [(m,2) array] trajectory
+    Parameters
+    ----------
+    P : (nland,2) tensor
+        input spline (control points)
+    neval : int
+        number of eval points
+
+    Returns
+    -------
+    stk : (neval,2) tensor
+        output trajectory
     """
     assert isinstance(P, torch.Tensor)
     assert len(P.shape) == 2
     assert P.shape[1] == 2
     nland = P.shape[0]
 
-    # brenden's code finds number of eval points adaptively.
-    # Can consider doing this if things take too long.
-    # I worry it may mess with gradients by making them more piecewise
+    # In the original BPL repo there is an option to set the number of eval
+    # points adaptively based on the stroke size. Not yet implemented here
     if neval is None:
-        # % set the number of evaluations adaptively,
-        # % based on the size of the stroke
-        # PM = defaultps;
-        # neval = PM.spline_min_neval;
-        # s = bspline_gen_s(nland,neval);
-        # stk = bspline_eval(s,P);
-        # sumdist = sum_pair_dist(stk);
-        # neval = max(neval,ceil(sumdist./PM.spline_grain));
-        # neval = min(neval,PM.spline_max_neval);
         warnings.warn(
             "cannot yet set 'neval' adaptively... using neval=200 for now."
         )
+        neval = 200
+
     # s has shape (neval,)
     s, _, _ = bspline_gen_s(nland, neval)
     # stk has shape (neval,2)
@@ -160,12 +191,18 @@ def get_stk_from_bspline(P, neval=None):
 
 def vectorized_bspline_coeff(vi, vs):
     """
-    TODO
+    TODO: what does this do exactly?
+    see Kristin Branson's "A Practical Review of Uniform B-splines"
 
-    :param vi: [(neval, ncpt) tensor] TODO
-    :param vs: [(neval, ncpt) tensor] TODO
-    :return:
-        C: [(neval, ncpt) tensor] the coefficients
+    Parameters
+    ----------
+    vi : (neval,nland) tensor
+    vs : (neval,nland) tensor
+
+    Returns
+    -------
+    C : (neval,ncpt)
+        coefficients
     """
     assert vi.shape == vs.shape
     assert vi.dtype == vs.dtype
