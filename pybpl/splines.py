@@ -123,42 +123,6 @@ def bspline_eval(s, Y):
 
     return X, Cof
 
-def get_stk_from_bspline(Y, neval=None):
-    """
-    Produce a trajectory from a B-spline.
-    NOTE: this is a wrapper for bspline_eval (first produces time points)
-
-    Parameters
-    ----------
-    Y : (nland,2) tensor
-        input spline (control points)
-    neval : int
-        number of eval points
-
-    Returns
-    -------
-    X : (neval,2) tensor
-        output trajectory
-    """
-    assert isinstance(Y, torch.Tensor)
-    assert len(Y.shape) == 2 and Y.shape[1] == 2
-    nland = Y.shape[0]
-
-    # In the original BPL repo there is an option to set the number of eval
-    # points adaptively based on the stroke size. Not yet implemented here
-    if neval is None:
-        warnings.warn(
-            "cannot yet set 'neval' adaptively... using neval=200 for now."
-        )
-        neval = 200
-
-    # s has shape (neval,)
-    s, _, _ = bspline_gen_s(nland, neval)
-    # stk has shape (neval,2)
-    X, _ = bspline_eval(s, Y)
-
-    return X
-
 def bspline_fit(s, X, nland, include_resid=False):
     """
     Produce a B-spline from a trajectory (via least-squares).
@@ -197,6 +161,42 @@ def bspline_fit(s, X, nland, include_resid=False):
         return Y, residuals
     else:
         return Y
+
+def get_stk_from_bspline(Y, neval=None):
+    """
+    Produce a trajectory from a B-spline.
+    NOTE: this is a wrapper for bspline_eval (first produces time points)
+
+    Parameters
+    ----------
+    Y : (nland,2) tensor
+        input spline (control points)
+    neval : int
+        number of eval points
+
+    Returns
+    -------
+    X : (neval,2) tensor
+        output trajectory
+    """
+    assert isinstance(Y, torch.Tensor)
+    assert len(Y.shape) == 2 and Y.shape[1] == 2
+    nland = Y.shape[0]
+
+    # In the original BPL repo there is an option to set the number of eval
+    # points adaptively based on the stroke size. Not yet implemented here
+    if neval is None:
+        warnings.warn(
+            "cannot yet set 'neval' adaptively... using neval=200 for now."
+        )
+        neval = 200
+
+    # s has shape (neval,)
+    s, _, _ = bspline_gen_s(nland, neval)
+    # stk has shape (neval,2)
+    X, _ = bspline_eval(s, Y)
+
+    return X
 
 def fit_bspline_to_traj(X, nland, include_resid=False):
     """
