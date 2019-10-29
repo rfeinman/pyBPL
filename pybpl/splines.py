@@ -10,6 +10,80 @@ import torch
 from .util.general import least_squares
 
 
+def vectorized_bspline_coeff(vi, vs):
+    """
+    TODO: what does this do exactly?
+    see Kristin Branson's "A Practical Review of Uniform B-splines"
+
+    Parameters
+    ----------
+    vi : (neval,nland) tensor
+    vs : (neval,nland) tensor
+
+    Returns
+    -------
+    C : (neval,ncpt)
+        coefficients
+    """
+    assert vi.shape == vs.shape
+    assert vi.dtype == vs.dtype
+
+    # step through the conditions
+    # NOTE: in the following, * stands in for 'and'
+    C = torch.zeros_like(vi, dtype=torch.float)
+
+    # sel1
+    sel = (vs >= vi)*(vs < vi+1)
+    diff = vs[sel] - vi[sel]
+    val = torch.pow(diff, 3)
+    C[sel] = val/6.
+    # sel2
+    sel = (vs >= vi+1)*(vs < vi+2)
+    diff = vs[sel] - vi[sel] - 1
+    val = -3*torch.pow(diff, 3) + 3*torch.pow(diff, 2) + 3*diff + 1
+    C[sel] = val/6.
+    # sel3
+    sel = (vs >= vi+2)*(vs < vi+3)
+    diff = vs[sel] - vi[sel] - 2
+    val = 3*torch.pow(diff, 3) - 6*torch.pow(diff, 2) + 4
+    C[sel] = val/6.
+    # sel4
+    sel = (vs >= vi+3)*(vs < vi+4)
+    diff = vs[sel] - vi[sel] - 3
+    val = torch.pow(1-diff, 3)
+    C[sel] = val/6.
+
+    return C
+
+def bspline_gen_s(nland, neval=200):
+    """
+    Generate time points for evaluating spline.
+    The convex-combination of the endpoints with five control points are 80
+    percent of the last cpt and 20 percent of the control point after that.
+
+    Parameters
+    ----------
+    nland : int
+        number of landmarks (control points)
+    neval : int
+        number of eval points
+
+    Returns
+    -------
+    s : (neval,) tensor
+        time points for spline eval
+    lb : TODO
+    ub : TODO
+    """
+    lb = torch.tensor(2, dtype=torch.float)
+    ub = torch.tensor(nland+1, dtype=torch.float)
+    if neval == 1:
+        s = torch.tensor([lb], dtype=torch.float)
+    else:
+        s = torch.linspace(lb, ub, neval)
+
+    return s, lb, ub
+
 def bspline_eval(sval, cpts):
     """
     Produce a trajectory from a B-spline.
@@ -56,6 +130,43 @@ def bspline_eval(sval, cpts):
 
     return y, Cof
 
+def get_stk_from_bspline(P, neval=None):
+    """
+    Produce a trajectory from a B-spline.
+    NOTE: this is a wrapper for bspline_eval (first produces time points)
+
+    Parameters
+    ----------
+    P : (nland,2) tensor
+        input spline (control points)
+    neval : int
+        number of eval points
+
+    Returns
+    -------
+    stk : (neval,2) tensor
+        output trajectory
+    """
+    assert isinstance(P, torch.Tensor)
+    assert len(P.shape) == 2
+    assert P.shape[1] == 2
+    nland = P.shape[0]
+
+    # In the original BPL repo there is an option to set the number of eval
+    # points adaptively based on the stroke size. Not yet implemented here
+    if neval is None:
+        warnings.warn(
+            "cannot yet set 'neval' adaptively... using neval=200 for now."
+        )
+        neval = 200
+
+    # s has shape (neval,)
+    s, _, _ = bspline_gen_s(nland, neval)
+    # stk has shape (neval,2)
+    stk, _ = bspline_eval(s, P)
+
+    return stk
+
 def bspline_fit(sval, X, nland, include_resid=False):
     """
     Produce a B-spline from a trajectory (via least-squares).
@@ -94,35 +205,6 @@ def bspline_fit(sval, X, nland, include_resid=False):
     else:
         return P
 
-def bspline_gen_s(nland, neval=200):
-    """
-    Generate time points for evaluating spline.
-    The convex-combination of the endpoints with five control points are 80
-    percent of the last cpt and 20 percent of the control point after that.
-
-    Parameters
-    ----------
-    nland : int
-        number of landmarks (control points)
-    neval : int
-        number of eval points
-
-    Returns
-    -------
-    s : (neval,) tensor
-        time points for spline eval
-    lb : TODO
-    ub : TODO
-    """
-    lb = torch.tensor(2, dtype=torch.float)
-    ub = torch.tensor(nland+1, dtype=torch.float)
-    if neval == 1:
-        s = torch.tensor([lb], dtype=torch.float)
-    else:
-        s = torch.linspace(lb, ub, neval)
-
-    return s, lb, ub
-
 def fit_bspline_to_traj(stk, nland, include_resid=False):
     """
     Produce a B-spline from a trajectory (via least-squares).
@@ -151,85 +233,3 @@ def fit_bspline_to_traj(stk, nland, include_resid=False):
     else:
         P = bspline_fit(s, stk, nland, include_resid=False)
         return P
-
-def get_stk_from_bspline(P, neval=None):
-    """
-    Produce a trajectory from a B-spline.
-    NOTE: this is a wrapper for bspline_eval (first produces time points)
-
-    Parameters
-    ----------
-    P : (nland,2) tensor
-        input spline (control points)
-    neval : int
-        number of eval points
-
-    Returns
-    -------
-    stk : (neval,2) tensor
-        output trajectory
-    """
-    assert isinstance(P, torch.Tensor)
-    assert len(P.shape) == 2
-    assert P.shape[1] == 2
-    nland = P.shape[0]
-
-    # In the original BPL repo there is an option to set the number of eval
-    # points adaptively based on the stroke size. Not yet implemented here
-    if neval is None:
-        warnings.warn(
-            "cannot yet set 'neval' adaptively... using neval=200 for now."
-        )
-        neval = 200
-
-    # s has shape (neval,)
-    s, _, _ = bspline_gen_s(nland, neval)
-    # stk has shape (neval,2)
-    stk, _ = bspline_eval(s, P)
-
-    return stk
-
-def vectorized_bspline_coeff(vi, vs):
-    """
-    TODO: what does this do exactly?
-    see Kristin Branson's "A Practical Review of Uniform B-splines"
-
-    Parameters
-    ----------
-    vi : (neval,nland) tensor
-    vs : (neval,nland) tensor
-
-    Returns
-    -------
-    C : (neval,ncpt)
-        coefficients
-    """
-    assert vi.shape == vs.shape
-    assert vi.dtype == vs.dtype
-
-    # step through the conditions
-    # NOTE: in the following, * stands in for 'and'
-    C = torch.zeros_like(vi, dtype=torch.float)
-
-    # sel1
-    sel = (vs >= vi)*(vs < vi+1)
-    diff = vs[sel] - vi[sel]
-    val = torch.pow(diff, 3)
-    C[sel] = val/6.
-    # sel2
-    sel = (vs >= vi+1)*(vs < vi+2)
-    diff = vs[sel] - vi[sel] - 1
-    val = -3*torch.pow(diff, 3) + 3*torch.pow(diff, 2) + 3*diff + 1
-    C[sel] = val/6.
-    # sel3
-    sel = (vs >= vi+2)*(vs < vi+3)
-    diff = vs[sel] - vi[sel] - 2
-    val = 3*torch.pow(diff, 3) - 6*torch.pow(diff, 2) + 4
-    C[sel] = val/6.
-    # sel4
-    sel = (vs >= vi+3)*(vs < vi+4)
-    diff = vs[sel] - vi[sel] - 3
-    val = torch.pow(1-diff, 3)
-    C[sel] = val/6.
-
-    return C
