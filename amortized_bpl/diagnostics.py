@@ -1,5 +1,6 @@
 import model
 import pyprob.diagnostics
+import pybpl
 
 
 def main(args):
@@ -17,6 +18,10 @@ def main(args):
 
     save_path_suffix = '{}_{}'.format(save_path_suffix, args.obs_emb)
 
+    if args.only_categoricals:
+        pybpl.set_train_non_categoricals(False)
+        save_path_suffix = '{}_cat'.format(save_path_suffix)
+
     bpl = model.BPL(lib_dir=lib_dir)
     bpl.load_inference_network('save/bpl_inference_network{}'.format(
         save_path_suffix))
@@ -33,6 +38,8 @@ if __name__ == '__main__':
                         help='cnn2d5c or alexnet')
     parser.add_argument('--large-lib', action='store_true',
                         help='use 1250 primitives')
+    parser.add_argument('--only-categoricals', action='store_true',
+                        help='train proposals for categoricals only')
     parser.add_argument('--cuda', action='store_true', help='use cuda')
     args = parser.parse_args()
     main(args)

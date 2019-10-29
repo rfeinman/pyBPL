@@ -9,6 +9,7 @@ from ..part import PartType, StrokeType, PartToken, StrokeToken
 from ..relation import RelationToken
 from ..concept import ConceptType, CharacterType, ConceptToken, CharacterToken
 import pyprob
+import pybpl
 
 
 class ConceptTokenDist(object):
@@ -98,7 +99,7 @@ class CharacterTokenDist(ConceptTokenDist):
         sigma_y = lib.rel['sigma_y']
         loc_Cov = torch.diag(torch.stack([sigma_x, sigma_y]))
 
-        # PYPROB 
+        # PYPROB
         # TODO: implement MVN or do indep normals
         self.loc_dist = pyprob.distributions.Normal(torch.zeros(2), [sigma_x, sigma_y])
         # ORIGINAL
@@ -124,7 +125,9 @@ class CharacterTokenDist(ConceptTokenDist):
         assert base.shape == torch.Size([2])
         # MVN p(L_i | R_i, T_1:i-1)
         # PYPROB
-        loc = base.cpu() + pyprob.sample(self.loc_dist, address='noise').cpu()
+        loc = base.cpu() + pyprob.sample(self.loc_dist,
+                                         control=pybpl.TRAIN_NON_CATEGORICALS,
+                                         address='noise').cpu()
         # ORIGINAL
         # loc = base + self.loc_dist.sample()
 
@@ -330,7 +333,9 @@ class StrokeTokenDist(PartTokenDist):
         # TODO: make normal_normal_mixture proposals deal with independent normals
         shapes_dist = pyprob.distributions.Normal(shapes_type,
                                                   self.sigma_shape)
-        shapes_token = pyprob.sample(shapes_dist, address='shapes_token')
+        shapes_token = pyprob.sample(shapes_dist,
+                                     control=pybpl.TRAIN_NON_CATEGORICALS,
+                                     address='shapes_token')
 
         # ORIGINAL
         # shapes_dist = dist.normal.Normal(shapes_type, self.sigma_shape)
@@ -385,6 +390,7 @@ class StrokeTokenDist(PartTokenDist):
             # Normal p(y_ij^(m) | y_ij)
             # PYPROB
             invscales_token = pyprob.sample(scales_dist,
+                                            control=pybpl.TRAIN_NON_CATEGORICALS,
                                             address='invscales_token')
 
             # ORIGINAL
@@ -556,7 +562,9 @@ def sample_eval_spot_token(eval_spot_dist, ncpt):
     while True:
         # Normal p(tau_i^(m) | tau_i)
         # PYPROB
-        eval_spot_token = pyprob.sample(eval_spot_dist, address='eval_spot_token')
+        eval_spot_token = pyprob.sample(eval_spot_dist,
+                                        control=pybpl.TRAIN_NON_CATEGORICALS,
+                                        address='eval_spot_token')
         # ORIGINAL
         # eval_spot_token = eval_spot_dist.sample()
         ll = score_eval_spot_token(eval_spot_token, eval_spot_dist, ncpt)

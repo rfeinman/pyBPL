@@ -3,6 +3,7 @@ import model
 import pyprob
 import signal
 import sys
+import pybpl
 
 
 def save_bpl_inference_network(bpl, save_path_suffix):
@@ -36,6 +37,10 @@ def train(args):
     else:
         embedding = pyprob.ObserveEmbedding.ALEXNET
     save_path_suffix = '{}_{}'.format(save_path_suffix, args.obs_emb)
+
+    if args.only_categoricals:
+        pybpl.set_train_non_categoricals(False)
+        save_path_suffix = '{}_cat'.format(save_path_suffix)
 
     bpl = model.BPL(lib_dir=lib_dir)
     try:
@@ -83,6 +88,8 @@ if __name__ == '__main__':
     parser.add_argument('--save-every', type=int, default=2,
                         help=' ')
     parser.add_argument('--cuda', action='store_true', help='use cuda')
+    parser.add_argument('--only-categoricals', action='store_true',
+                        help='train proposals for categoricals only')
     parser.add_argument('--large-lib', action='store_true',
                         help='use 1250 primitives')
     args = parser.parse_args()

@@ -15,6 +15,7 @@ from ..part import StrokeType
 from ..concept import ConceptType, CharacterType
 from ..splines import bspline_gen_s
 import pyprob
+import pybpl
 
 # list of acceptable dtypes for 'k' parameter
 int_types = [torch.uint8, torch.int8, torch.int16, torch.int32, torch.int64]
@@ -401,8 +402,12 @@ class StrokeTypeDist(PartTypeDist):
         # PYPROB
         # TODO implement MVN in pyprob or convert this to indep Normals
         nsub = len(subid)
-        normal = pyprob.distributions.Normal(self.shapes_mu[subid], torch.sqrt(torch.einsum('ijk->ij', self.shapes_Cov[subid])))
-        shapes = pyprob.sample(normal, address='shapes')
+        normal = pyprob.distributions.Normal(
+            self.shapes_mu[subid],
+            torch.sqrt(torch.einsum('ijk->ij', self.shapes_Cov[subid])))
+        shapes = pyprob.sample(normal,
+                               control=pybpl.TRAIN_NON_CATEGORICALS,
+                               address='shapes')
 
         # ORIGINAL
         # mvn = dist.MultivariateNormal(
@@ -480,8 +485,11 @@ class StrokeTypeDist(PartTypeDist):
         nsub = len(subid)
         invscales = torch.zeros(nsub)
         for i in range(nsub):
-            gamma = pyprob.distributions.Gamma(self.scales_con[subid[i]], self.scales_rate[subid[i]])
-            invscales[i] = pyprob.sample(gamma, address='invscales_i')
+            gamma = pyprob.distributions.Gamma(self.scales_con[subid[i]], 
+                                               self.scales_rate[subid[i]])
+            invscales[i] = pyprob.sample(gamma,
+                                         control=pybpl.TRAIN_NON_CATEGORICALS,
+                                         address='invscales_i')
 
         # ORIGINAL
         # gamma = dist.Gamma(self.scales_con[subid], self.scales_rate[subid])
@@ -650,7 +658,9 @@ class RelationTypeDist(object):
                 _, lb, ub = bspline_gen_s(self.ncpt, 1)
                 # Uniform p(tau_i | zeta_i)
                 # PYPROB
-                eval_spot = pyprob.sample(pyprob.distributions.Uniform(lb, ub), address='eval_spot')
+                eval_spot = pyprob.sample(pyprob.distributions.Uniform(lb, ub),
+                                          control=pybpl.TRAIN_NON_CATEGORICALS,
+                                          address='eval_spot')
 
                 # ORIGINAL
                 # eval_spot = dist.Uniform(lb, ub).sample()

@@ -9,6 +9,7 @@ import torch
 from torch.distributions.uniform import Uniform
 from torch.distributions.categorical import Categorical
 import pyprob
+import pybpl
 
 from ...util import aeq, ind2sub, logsumexp_t
 
@@ -146,8 +147,12 @@ class SpatialHist(object):
         # Sample from a uniform distribution in each of the bins
         # Uniform p(L_i)
         # PYPROB
-        xsamp = pyprob.sample(pyprob.distributions.Uniform(xmin, xmax), address='xsamp').view(1, 1)
-        ysamp = pyprob.sample(pyprob.distributions.Uniform(ymin, ymax), address='ysamp').view(1, 1)
+        xsamp = pyprob.sample(pyprob.distributions.Uniform(xmin, xmax),
+                              control=pybpl.TRAIN_NON_CATEGORICALS,
+                              address='xsamp').view(1, 1)
+        ysamp = pyprob.sample(pyprob.distributions.Uniform(ymin, ymax),
+                              control=pybpl.TRAIN_NON_CATEGORICALS,
+                              address='ysamp').view(1, 1)
         # ORIGINAL
         # xsamp = Uniform(low=xmin, high=xmax).sample(torch.Size([1]))
         # ysamp = Uniform(low=ymin, high=ymax).sample(torch.Size([1]))
