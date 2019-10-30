@@ -115,11 +115,8 @@ def bspline_eval(s, Y):
     A = vectorized_bspline_coeff(I, S) # (neval, nland)
     Cof = A / torch.sum(A, dim=1, keepdim=True) # (neval, nland)
 
-    # construct trajectory
-    X = torch.zeros(neval, 2)
-    # multiply (neval,nland) x (nland,1) = (neval,1)
-    X[:,0] = torch.mm(Cof, Y[:,0].view(-1,1)).view(-1)
-    X[:,1] = torch.mm(Cof, Y[:,1].view(-1,1)).view(-1)
+    # (neval,nland) @ (nland,2) = (neval,2)
+    X = Cof @ Y
 
     return X, Cof
 
