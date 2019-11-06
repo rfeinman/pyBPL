@@ -5,7 +5,7 @@ import torch.distributions as dist
 
 from ..parameters import defaultps
 from ..splines import bspline_gen_s
-from ..part import PartType, StrokeType, PartToken, StrokeToken
+from ..part import StrokeType, PartToken, StrokeToken
 from ..relation import RelationToken
 from ..concept import CharacterType, CharacterToken
 

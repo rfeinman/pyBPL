@@ -1,7 +1,7 @@
 from __future__ import division, print_function
 from abc import ABCMeta, abstractmethod
 
-from .part import PartType, StrokeType, PartToken, StrokeToken
+from .part import StrokeType, PartToken, StrokeToken
 from .relation import RelationType, RelationToken
 
 
@@ -26,7 +26,7 @@ class CharacterType:
         assert len(P) == len(R)
         assert k > 0
         for ptype, rtype in zip(P, R):
-            assert isinstance(ptype, PartType)
+            assert isinstance(ptype, StrokeType)
             assert isinstance(rtype, RelationType)
         self.k = k
         self.part_types = P

@@ -9,60 +9,7 @@ import torch
 from . import rendering
 
 
-class PartType(object):
-    """
-    An abstract base class for parts. Holds all type-level parameters of the
-    part.
-    """
-    __metaclass__ = ABCMeta
-
-    def __init__(self):
-        pass
-
-    @abstractmethod
-    def parameters(self):
-        """
-        return list of parameters
-        """
-        pass
-
-    @abstractmethod
-    def lbs(self, eps=1e-4):
-        """
-        return list of lower bounds for parameters
-        """
-        pass
-
-    @abstractmethod
-    def ubs(self, eps=1e-4):
-        """
-        return list of upper bounds for parameters
-        """
-        pass
-
-    def train(self):
-        """
-        makes params require grad
-        """
-        for param in self.parameters():
-            param.requires_grad_(True)
-
-    def eval(self):
-        """
-        makes params require no grad
-        """
-        for param in self.parameters():
-            param.requires_grad_(False)
-
-    def to(self, device):
-        """
-        moves parameters to device
-        TODO
-        """
-        pass
-
-
-class StrokeType(PartType):
+class StrokeType:
     """
     Holds all type-level parameters of the stroke.
 
@@ -78,7 +25,6 @@ class StrokeType(PartType):
         invscales types
     """
     def __init__(self, nsub, ids, shapes, invscales):
-        super(StrokeType, self).__init__()
         self.nsub = nsub
         self.ids = ids
         self.shapes = shapes
@@ -132,6 +78,27 @@ class StrokeType(PartType):
         ubs = [None, None]
 
         return ubs
+
+    def train(self):
+        """
+        makes params require grad
+        """
+        for param in self.parameters():
+            param.requires_grad_(True)
+
+    def eval(self):
+        """
+        makes params require no grad
+        """
+        for param in self.parameters():
+            param.requires_grad_(False)
+
+    def to(self, device):
+        """
+        moves parameters to device
+        TODO
+        """
+        pass
 
 
 class PartToken(object):
