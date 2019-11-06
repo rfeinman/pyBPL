@@ -1,7 +1,7 @@
 from __future__ import division, print_function
 from abc import ABCMeta, abstractmethod
 
-from .part import StrokeType, PartToken, StrokeToken
+from .part import StrokeType, StrokeToken
 from .relation import RelationType, RelationToken
 
 
@@ -118,7 +118,7 @@ class CharacterType:
 class CharacterToken:
     """
     Character tokens hold all token-level parameters of the character. They
-    consist of a list of PartTokens and a list of RelationTokens.
+    consist of a list of StrokeTokens and a list of RelationTokens.
 
     Parameters
     ----------
@@ -138,7 +138,7 @@ class CharacterToken:
         assert isinstance(R, list)
         assert len(P) == len(R)
         for ptoken, rtoken in zip(P, R):
-            assert isinstance(ptoken, PartToken)
+            assert isinstance(ptoken, StrokeToken)
             assert isinstance(rtoken, RelationToken)
         self.part_tokens = P
         self.relation_tokens = R

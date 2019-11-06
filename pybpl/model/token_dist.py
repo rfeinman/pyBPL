@@ -5,7 +5,7 @@ import torch.distributions as dist
 
 from ..parameters import defaultps
 from ..splines import bspline_gen_s
-from ..part import StrokeType, PartToken, StrokeToken
+from ..part import StrokeType, StrokeToken
 from ..relation import RelationToken
 from ..concept import CharacterType, CharacterToken
 
@@ -32,7 +32,7 @@ class CharacterTokenDist:
 
         Parameters
         ----------
-        prev_parts : list of PartToken
+        prev_parts : list of StrokeToken
             previous part tokens
 
         Returns
@@ -41,7 +41,7 @@ class CharacterTokenDist:
             location; x-y coordinates
         """
         for pt in prev_parts:
-            assert isinstance(pt, PartToken)
+            assert isinstance(pt, StrokeToken)
         base = rtoken.get_attach_point(prev_parts)
         assert base.shape == torch.Size([2])
         loc = base + self.loc_dist.sample()
@@ -56,7 +56,7 @@ class CharacterTokenDist:
         ----------
         loc : (2,) tensor
             location; x-y coordinates
-        prev_parts : list of PartToken
+        prev_parts : list of StrokeToken
             previous part tokens
 
         Returns
@@ -65,7 +65,7 @@ class CharacterTokenDist:
             scalar; log-likelihood of the location
         """
         for pt in prev_parts:
-            assert isinstance(pt, PartToken)
+            assert isinstance(pt, StrokeToken)
         base = rtoken.get_attach_point(prev_parts)
         assert base.shape == torch.Size([2])
         ll = self.loc_dist.log_prob(loc - base)

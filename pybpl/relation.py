@@ -6,7 +6,7 @@ from __future__ import print_function, division
 from abc import ABCMeta, abstractmethod
 import torch
 
-from .part import PartToken
+from .part import StrokeToken
 from .splines import bspline_eval, bspline_gen_s
 
 categories_allowed = ['unihist', 'start', 'end', 'mid']
@@ -39,7 +39,7 @@ class RelationToken(object):
 
         Parameters
         ----------
-        prev_parts : list of PartToken
+        prev_parts : list of StrokeToken
             previous part tokens
 
         Returns

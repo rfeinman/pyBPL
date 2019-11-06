@@ -3,7 +3,6 @@ Parts for sampling part tokens. Parts, together with relations between parts,
 make up concepts.
 """
 from __future__ import division, print_function
-from abc import ABCMeta, abstractmethod
 import torch
 
 from . import rendering
@@ -101,60 +100,7 @@ class StrokeType:
         pass
 
 
-class PartToken(object):
-    """
-    An abstract base class for part tokens. Holds all token-level parameters
-    of the part.
-    """
-    __metaclass__ = ABCMeta
-
-    def __init__(self):
-        pass
-
-    @abstractmethod
-    def parameters(self):
-        """
-        return list of parameters
-        """
-        pass
-
-    @abstractmethod
-    def lbs(self, eps=1e-4):
-        """
-        return list of lower bounds for parameters
-        """
-        pass
-
-    @abstractmethod
-    def ubs(self, eps=1e-4):
-        """
-        return list of upper bounds for parameters
-        """
-        pass
-
-    def train(self):
-        """
-        makes params require grad
-        """
-        for param in self.parameters():
-            param.requires_grad_(True)
-
-    def eval(self):
-        """
-        makes params require no grad
-        """
-        for param in self.parameters():
-            param.requires_grad_(False)
-
-    def to(self, device):
-        """
-        moves parameters to device
-        TODO
-        """
-        pass
-
-
-class StrokeToken(PartToken):
+class StrokeToken:
     """
     Stroke tokens hold all token-level parameters of the stroke.
 
@@ -254,4 +200,23 @@ class StrokeToken(PartToken):
 
         return ubs
 
+    def train(self):
+        """
+        makes params require grad
+        """
+        for param in self.parameters():
+            param.requires_grad_(True)
 
+    def eval(self):
+        """
+        makes params require no grad
+        """
+        for param in self.parameters():
+            param.requires_grad_(False)
+
+    def to(self, device):
+        """
+        moves parameters to device
+        TODO
+        """
+        pass
