@@ -15,7 +15,7 @@ class CharacterTokenDist:
     Defines the distribution P(Token | Type) for characters
     """
     def __init__(self, lib):
-        self.pdist = PartTokenDist(lib)
+        self.pdist = StrokeTokenDist(lib)
         self.rdist = RelationTokenDist(lib)
 
         self.pdist = StrokeTokenDist(lib)
@@ -229,23 +229,8 @@ class CharacterTokenDist:
         return ll
 
 
-class PartTokenDist(object):
-    __metaclass__ = ABCMeta
+class StrokeTokenDist:
     def __init__(self, lib):
-        pass
-
-    @abstractmethod
-    def sample_part_token(self, ptype):
-        pass
-
-    @abstractmethod
-    def score_part_token(self, ptype, ptoken):
-        pass
-
-
-class StrokeTokenDist(PartTokenDist):
-    def __init__(self, lib):
-        super(StrokeTokenDist, self).__init__(lib)
         # shapes distribution params
         self.sigma_shape = lib.tokenvar['sigma_shape']
         # invscale distribution params
