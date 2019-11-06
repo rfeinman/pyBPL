@@ -12,121 +12,14 @@ from ..library import Library
 from ..relation import (RelationType, RelationIndependent, RelationAttach,
                        RelationAttachAlong)
 from ..part import StrokeType
-from ..concept import ConceptType, CharacterType
+from ..concept import CharacterType
 from ..splines import bspline_gen_s
 
 # list of acceptable dtypes for 'k' parameter
 int_types = [torch.uint8, torch.int8, torch.int16, torch.int32, torch.int64]
 
 
-class ConceptTypeDist(object):
-    """
-    Abstract base class for concept type distributions. Defines the prior
-    distribution P(Type) for concept types
-    """
-    __metaclass__ = ABCMeta
-
-    def __init__(self, lib):
-        self.pdist = PartTypeDist(lib)
-        self.rdist = RelationTypeDist(lib)
-
-    @abstractmethod
-    def sample_k(self):
-        pass
-
-    @abstractmethod
-    def score_k(self, k):
-        pass
-
-    @abstractmethod
-    def sample_part_type(self, k):
-        pass
-
-    @abstractmethod
-    def score_part_type(self, p, k):
-        pass
-
-    @abstractmethod
-    def sample_relation_type(self, prev_parts):
-        pass
-
-    @abstractmethod
-    def score_relation_type(self, r, prev_parts):
-        pass
-
-    @abstractmethod
-    def sample_type(self, k=None):
-        """
-        Sample a concept type from the prior
-
-        Parameters
-        ----------
-        k : int or tensor
-            scalar; the number of parts to use
-
-        Returns
-        -------
-        ctype : ConceptType
-            concept type sample
-        """
-        if k is None:
-            # sample the number of parts 'k'
-            k = self.sample_k()
-        elif isinstance(k, int):
-            k = torch.tensor(k)
-        else:
-            assert isinstance(k, torch.Tensor)
-            assert k.shape == torch.Size([])
-            assert k.dtype in int_types
-
-        # initialize part and relation type lists
-        P = []
-        R = []
-        # for each part, sample part parameters
-        for _ in range(k):
-            # sample the part type
-            p = self.pdist.sample_part_type(k)
-            # sample the relation type
-            r = self.rdist.sample_relation_type(P)
-            # append to the lists
-            P.append(p)
-            R.append(r)
-        # create the concept type, i.e. a motor program for sampling
-        # concept tokens
-        ctype = ConceptType(k, P, R)
-
-        return ctype
-
-    def score_type(self, ctype):
-        """
-        Compute the log-probability of a concept type under the prior
-        $P(type) = P(k)*\prod_{i=1}^k [P(S_i)P(R_i|S_{0:i-1})]$
-
-        Parameters
-        ----------
-        ctype : ConceptType
-            concept type to score
-
-        Returns
-        -------
-        ll : tensor
-            scalar; log-probability of the concept type
-        """
-        assert isinstance(ctype, ConceptType)
-        # score the number of parts
-        ll = 0.
-        ll = ll + self.score_k(ctype.k)
-        # step through and score each part
-        for i in range(ctype.k):
-            ll = ll + self.pdist.score_part_type(ctype.k, ctype.part_types[i])
-            ll = ll + self.rdist.score_relation_type(
-                ctype.part_types[:i], ctype.relation_types[i]
-            )
-
-        return ll
-
-
-class CharacterTypeDist(ConceptTypeDist):
+class CharacterTypeDist:
     """
     Defines the prior distribution P(Type) for character types
 
@@ -138,7 +31,8 @@ class CharacterTypeDist(ConceptTypeDist):
 
     def __init__(self, lib):
         assert isinstance(lib, Library)
-        super(CharacterTypeDist, self).__init__(lib)
+        self.pdist = PartTypeDist(lib)
+        self.rdist = RelationTypeDist(lib)
         # override part type dist
         self.pdist = StrokeTypeDist(lib)
         # distribution of 'k' (number of strokes)
@@ -202,10 +96,61 @@ class CharacterTypeDist(ConceptTypeDist):
             character type
 
         """
-        c = super(CharacterTypeDist, self).sample_type(k)
-        ctype = CharacterType(c.k, c.part_types, c.relation_types)
+        if k is None:
+            # sample the number of parts 'k'
+            k = self.sample_k()
+        elif isinstance(k, int):
+            k = torch.tensor(k)
+        else:
+            assert isinstance(k, torch.Tensor)
+            assert k.shape == torch.Size([])
+            assert k.dtype in int_types
+
+        # initialize part and relation type lists
+        P = []
+        R = []
+        # for each part, sample part parameters
+        for _ in range(k):
+            # sample the part type
+            p = self.pdist.sample_part_type(k)
+            # sample the relation type
+            r = self.rdist.sample_relation_type(P)
+            # append to the lists
+            P.append(p)
+            R.append(r)
+        # create the concept type, i.e. a motor program for sampling
+        # concept tokens
+        ctype = CharacterType(k, P, R)
 
         return ctype
+
+    def score_type(self, ctype):
+        """
+        Compute the log-probability of a concept type under the prior
+        $P(type) = P(k)*\prod_{i=1}^k [P(S_i)P(R_i|S_{0:i-1})]$
+
+        Parameters
+        ----------
+        ctype : CharacterType
+            concept type to score
+
+        Returns
+        -------
+        ll : tensor
+            scalar; log-probability of the concept type
+        """
+        assert isinstance(ctype, CharacterType)
+        # score the number of parts
+        ll = 0.
+        ll = ll + self.score_k(ctype.k)
+        # step through and score each part
+        for i in range(ctype.k):
+            ll = ll + self.pdist.score_part_type(ctype.k, ctype.part_types[i])
+            ll = ll + self.rdist.score_relation_type(
+                ctype.part_types[:i], ctype.relation_types[i]
+            )
+
+        return ll
 
 
 class PartTypeDist(object):

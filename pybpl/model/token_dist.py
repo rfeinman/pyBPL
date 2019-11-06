@@ -7,7 +7,7 @@ from ..parameters import defaultps
 from ..splines import bspline_gen_s
 from ..part import PartType, StrokeType, PartToken, StrokeToken
 from ..relation import RelationToken
-from ..concept import ConceptType, CharacterType, ConceptToken, CharacterToken
+from ..concept import CharacterType, ConceptToken, CharacterToken
 
 
 class ConceptTokenDist(object):
@@ -33,13 +33,13 @@ class ConceptTokenDist(object):
         """
         Parameters
         ----------
-        ctype : ConceptType
+        ctype : CharacterType
 
         Returns
         -------
         ctoken : ConceptToken
         """
-        assert isinstance(ctype, ConceptType)
+        assert isinstance(ctype, CharacterType)
         P = []
         R = []
         for p, r in zip(ctype.part_types, ctype.relation_types):
@@ -61,7 +61,7 @@ class ConceptTokenDist(object):
         """
         Parameters
         ----------
-        ctype : ConceptType
+        ctype : CharacterType
         ctoken : ConceptToken
 
         Returns

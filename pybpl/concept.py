@@ -5,73 +5,7 @@ from .part import PartType, StrokeType, PartToken, StrokeToken
 from .relation import RelationType, RelationToken
 
 
-class ConceptType(object):
-    """
-    An abstract base class for concept types. Concept types are made up of
-    parts and relations.
-
-    Parameters
-    ----------
-    k : tensor
-        scalar; part count
-    P : list of PartType
-        part type list
-    R : list of RelationType
-        relation type list
-    """
-    def __init__(self, k, P, R):
-        assert isinstance(P, list)
-        assert isinstance(R, list)
-        assert len(P) == len(R)
-        assert k > 0
-        for ptype, rtype in zip(P, R):
-            assert isinstance(ptype, PartType)
-            assert isinstance(rtype, RelationType)
-        self.k = k
-        self.part_types = P
-        self.relation_types = R
-
-    @abstractmethod
-    def parameters(self):
-        """
-        return list of parameters
-        """
-        pass
-
-    @abstractmethod
-    def lbs(self, eps=1e-4):
-        """
-        return list of lower bounds for parameters
-        """
-
-    @abstractmethod
-    def ubs(self, eps=1e-4):
-        """
-        return list of upper bounds for parameters
-        """
-
-    def train(self):
-        """
-        makes params require grad
-        """
-        for param in self.parameters():
-            param.requires_grad_(True)
-
-    def eval(self):
-        """
-        makes params require no grad
-        """
-        for param in self.parameters():
-            param.requires_grad_(False)
-
-    def to(self, device):
-        """
-        moves parameters to device
-        TODO
-        """
-        pass
-
-class CharacterType(ConceptType):
+class CharacterType:
     """
     Character types are made up of strokes (parts) and relations. Relations are
     each either [independent, attach, attach-along].
@@ -87,7 +21,17 @@ class CharacterType(ConceptType):
     """
 
     def __init__(self, k, P, R):
-        super(CharacterType, self).__init__(k, P, R)
+        assert isinstance(P, list)
+        assert isinstance(R, list)
+        assert len(P) == len(R)
+        assert k > 0
+        for ptype, rtype in zip(P, R):
+            assert isinstance(ptype, PartType)
+            assert isinstance(rtype, RelationType)
+        self.k = k
+        self.part_types = P
+        self.relation_types = R
+
         for p in P:
             assert isinstance(p, StrokeType)
 
@@ -148,6 +92,27 @@ class CharacterType(ConceptType):
             ubs.extend(r.ubs(eps))
 
         return ubs
+
+    def train(self):
+        """
+        makes params require grad
+        """
+        for param in self.parameters():
+            param.requires_grad_(True)
+
+    def eval(self):
+        """
+        makes params require no grad
+        """
+        for param in self.parameters():
+            param.requires_grad_(False)
+
+    def to(self, device):
+        """
+        moves parameters to device
+        TODO
+        """
+        pass
 
 
 class ConceptToken(object):
