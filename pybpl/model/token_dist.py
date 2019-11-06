@@ -7,89 +7,17 @@ from ..parameters import defaultps
 from ..splines import bspline_gen_s
 from ..part import PartType, StrokeType, PartToken, StrokeToken
 from ..relation import RelationToken
-from ..concept import CharacterType, ConceptToken, CharacterToken
+from ..concept import CharacterType, CharacterToken
 
 
-class ConceptTokenDist(object):
-    """
-    Defines the distribution P(Token | Type) for concepts
-    """
-    __metaclass__ = ABCMeta
-
-    def __init__(self, lib):
-        self.pdist = PartTokenDist(lib)
-        self.rdist = RelationTokenDist(lib)
-
-    @abstractmethod
-    def sample_location(self, rtoken, prev_parts):
-        pass
-
-    @abstractmethod
-    def score_location(self, rtoken, prev_parts, loc):
-        pass
-
-    @abstractmethod
-    def sample_token(self, ctype):
-        """
-        Parameters
-        ----------
-        ctype : CharacterType
-
-        Returns
-        -------
-        ctoken : ConceptToken
-        """
-        assert isinstance(ctype, CharacterType)
-        P = []
-        R = []
-        for p, r in zip(ctype.part_types, ctype.relation_types):
-            # sample part token
-            ptoken = self.pdist.sample_part_token(p)
-            # sample relation token
-            rtoken = self.rdist.sample_relation_token(r)
-            # sample part position from relation token
-            ptoken.position = self.sample_location(rtoken, P)
-            # append them to the list
-            P.append(ptoken)
-            R.append(rtoken)
-        ctoken = ConceptToken(P, R)
-
-        return ctoken
-
-    @abstractmethod
-    def score_token(self, ctype, ctoken):
-        """
-        Parameters
-        ----------
-        ctype : CharacterType
-        ctoken : ConceptToken
-
-        Returns
-        -------
-        ll : tensor
-        """
-        ll = 0.
-        for i in range(ctype.k):
-            ll = ll + self.pdist.score_part_token(
-                ctype.part_types[i], ctoken.part_tokens[i]
-            )
-            ll = ll + self.rdist.score_relation_token(
-                ctype.relation_types[i], ctoken.relation_tokens[i]
-            )
-            ll = ll + self.score_location(
-                ctoken.relation_tokens[i], ctoken.part_tokens[:i],
-                ctoken.part_tokens[i].position
-            )
-
-        return ll
-
-
-class CharacterTokenDist(ConceptTokenDist):
+class CharacterTokenDist:
     """
     Defines the distribution P(Token | Type) for characters
     """
     def __init__(self, lib):
-        super(CharacterTokenDist, self).__init__(lib)
+        self.pdist = PartTokenDist(lib)
+        self.rdist = RelationTokenDist(lib)
+
         self.pdist = StrokeTokenDist(lib)
         self.default_ps = defaultps()
         # token-level position distribution parameters
@@ -234,7 +162,19 @@ class CharacterTokenDist(ConceptTokenDist):
             character token
         """
         # sample part and relation tokens
-        concept_token = super(CharacterTokenDist, self).sample_token(ctype)
+        assert isinstance(ctype, CharacterType)
+        P = []
+        R = []
+        for p, r in zip(ctype.part_types, ctype.relation_types):
+            # sample part token
+            ptoken = self.pdist.sample_part_token(p)
+            # sample relation token
+            rtoken = self.rdist.sample_relation_token(r)
+            # sample part position from relation token
+            ptoken.position = self.sample_location(rtoken, P)
+            # append them to the list
+            P.append(ptoken)
+            R.append(rtoken)
 
         # sample affine warp
         affine = self.sample_affine() # (4,) tensor
@@ -245,7 +185,7 @@ class CharacterTokenDist(ConceptTokenDist):
 
         # create the character token
         ctoken = CharacterToken(
-            concept_token.part_tokens, concept_token.relation_tokens, affine,
+            P, R, affine,
             epsilon, blur_sigma
         )
 
@@ -269,7 +209,19 @@ class CharacterTokenDist(ConceptTokenDist):
         ll : tensor
             scalar; log-likelihood of the token
         """
-        ll = super(CharacterTokenDist, self).score_token(ctype, ctoken)
+        ll = 0.
+        for i in range(ctype.k):
+            ll = ll + self.pdist.score_part_token(
+                ctype.part_types[i], ctoken.part_tokens[i]
+            )
+            ll = ll + self.rdist.score_relation_token(
+                ctype.relation_types[i], ctoken.relation_tokens[i]
+            )
+            ll = ll + self.score_location(
+                ctoken.relation_tokens[i], ctoken.part_tokens[:i],
+                ctoken.part_tokens[i].position
+            )
+
         ll += self.score_affine(ctoken.affine)
         ll += self.score_image_noise(ctoken.epsilon)
         ll += self.score_image_blur(ctoken.blur_sigma)
