@@ -3,7 +3,6 @@ Concept type distributions for sampling concept types from pre-specified
 type distributions.
 """
 from __future__ import division, print_function
-from abc import ABCMeta, abstractmethod
 import warnings
 import torch
 import torch.distributions as dist
@@ -31,7 +30,7 @@ class CharacterTypeDist:
 
     def __init__(self, lib):
         assert isinstance(lib, Library)
-        self.pdist = PartTypeDist(lib)
+        self.pdist = StrokeTypeDist(lib)
         self.rdist = RelationTypeDist(lib)
         # override part type dist
         self.pdist = StrokeTypeDist(lib)
@@ -150,26 +149,11 @@ class CharacterTypeDist:
                 ctype.part_types[:i], ctype.relation_types[i]
             )
 
-        return ll
+        return ll        
 
 
-class PartTypeDist(object):
-    __metaclass__ = ABCMeta
+class StrokeTypeDist:
     def __init__(self, lib):
-        pass
-
-    @abstractmethod
-    def sample_part_type(self, k):
-        pass
-
-    @abstractmethod
-    def score_part_type(self, k, ptype):
-        pass
-
-
-class StrokeTypeDist(PartTypeDist):
-    def __init__(self, lib):
-        super(StrokeTypeDist, self).__init__(lib)
         # is uniform
         self.isunif = lib.isunif
         # number of control points
@@ -476,6 +460,7 @@ class StrokeTypeDist(PartTypeDist):
              + torch.sum(invscales_scores)
 
         return ll
+
 
 class RelationTypeDist(object):
     __relation_categories = ['unihist', 'start', 'end', 'mid']
