@@ -115,72 +115,7 @@ class CharacterType:
         pass
 
 
-class ConceptToken(object):
-    """
-    Abstract base class for concept tokens. Concept tokens consist of a list
-    of PartTokens and a list of RelationTokens.
-
-    Parameters
-    ----------
-    P : list of PartToken
-        part tokens
-    R : list of RelationToken
-        relation tokens
-    """
-    __metaclass__ = ABCMeta
-
-    def __init__(self, P, R):
-        assert isinstance(P, list)
-        assert isinstance(R, list)
-        assert len(P) == len(R)
-        for ptoken, rtoken in zip(P, R):
-            assert isinstance(ptoken, PartToken)
-            assert isinstance(rtoken, RelationToken)
-        self.part_tokens = P
-        self.relation_tokens = R
-
-    @abstractmethod
-    def parameters(self):
-        """
-        return list of parameters
-        """
-        pass
-
-    @abstractmethod
-    def lbs(self, eps=1e-4):
-        """
-        return list of lower bounds for parameters
-        """
-
-    @abstractmethod
-    def ubs(self, eps=1e-4):
-        """
-        return list of upper bounds for parameters
-        """
-
-    def train(self):
-        """
-        makes params require grad
-        """
-        for param in self.parameters():
-            param.requires_grad_(True)
-
-    def eval(self):
-        """
-        makes params require no grad
-        """
-        for param in self.parameters():
-            param.requires_grad_(False)
-
-    def to(self, device):
-        """
-        moves parameters to device
-        TODO
-        """
-        pass
-
-
-class CharacterToken(ConceptToken):
+class CharacterToken:
     """
     Character tokens hold all token-level parameters of the character. They
     consist of a list of PartTokens and a list of RelationTokens.
@@ -199,7 +134,15 @@ class CharacterToken(ConceptToken):
         scalar; image blur quantity
     """
     def __init__(self, P, R, affine, epsilon, blur_sigma):
-        super(CharacterToken, self).__init__(P, R)
+        assert isinstance(P, list)
+        assert isinstance(R, list)
+        assert len(P) == len(R)
+        for ptoken, rtoken in zip(P, R):
+            assert isinstance(ptoken, PartToken)
+            assert isinstance(rtoken, RelationToken)
+        self.part_tokens = P
+        self.relation_tokens = R
+
         for ptoken in P:
             assert isinstance(ptoken, StrokeToken)
         self.affine = affine
@@ -266,3 +209,24 @@ class CharacterToken(ConceptToken):
         ubs.append(None)
 
         return ubs
+
+    def train(self):
+        """
+        makes params require grad
+        """
+        for param in self.parameters():
+            param.requires_grad_(True)
+
+    def eval(self):
+        """
+        makes params require no grad
+        """
+        for param in self.parameters():
+            param.requires_grad_(False)
+
+    def to(self, device):
+        """
+        moves parameters to device
+        TODO
+        """
+        pass
