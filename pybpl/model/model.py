@@ -40,7 +40,7 @@ class CharacterModel(object):
     def get_pimg(self, ctoken):
         return self.image_dist.get_pimg(ctoken)
 
-    def sample_image_sequential(self):
+    def sample_image_sequential(self, return_partial_image_probss=False):
         # sample affine warp
         affine = self.token_dist.sample_affine()  # (4,) tensor
 
@@ -53,7 +53,8 @@ class CharacterModel(object):
         relation_types = []
         stroke_tokens = []
         relation_tokens = []
-        for _ in range(k):
+        partial_image_probss = []
+        for stroke_id in range(k):
             stroke_type = self.type_dist.stroke_type_dist.sample_stroke_type(k)
             relation_type = \
                 self.type_dist.relation_type_dist.sample_relation_type(
@@ -74,10 +75,20 @@ class CharacterModel(object):
             stroke_tokens.append(stroke_token)
             relation_tokens.append(relation_token)
 
-        # create the character token
-        character_token = CharacterToken(stroke_tokens, relation_tokens,
-                                         affine, epsilon, blur_sigma)
-        return self.image_dist.sample_image(character_token)
+            # evaluate partial image probs
+            partial_character_token = CharacterToken(
+                stroke_tokens[-1:], relation_tokens[-1:], affine, epsilon,
+                blur_sigma)
+            partial_image_probs = self.image_dist.get_pimg(
+                partial_character_token)
+            partial_image_probss.append(partial_image_probs)
+
+        image_probs = torch.clamp(sum(partial_image_probss), 0, 1)
+        image_dist = torch.distributions.Bernoulli(image_probs)
+        if return_partial_image_probss:
+            return image_dist.sample(), partial_image_probss
+        else:
+            return image_dist.sample()
 
 
 def fit_image(im, lib):

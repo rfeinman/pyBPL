@@ -9,19 +9,27 @@ def main():
     print('generating character...')
     lib = Library(lib_dir='./lib_data', use_hist=True)
     model = CharacterModel(lib)
-    fig, axes = plt.subplots(nrows=10, ncols=3, figsize=(1.5, 5))
-    for i in range(10):
-        for j in range(3):
-            img = model.sample_image_sequential()
-            axes[i, j].imshow(img, cmap='Greys')
-            axes[i, j].tick_params(
+    fig, axss = plt.subplots(nrows=10, ncols=11, figsize=(5.5, 5), sharex=True,
+                             sharey=True)
+
+    for img_id in range(10):
+        img, partial_image_probss = model.sample_image_sequential(
+            return_partial_image_probss=True)
+        for partial_image_id, partial_image_probs in enumerate(partial_image_probss):
+            axss[img_id, partial_image_id].imshow(partial_image_probs, cmap='Greys')
+        axss[img_id, len(partial_image_probss)].imshow(img, cmap='Greys')
+        for i in range(len(partial_image_probss) + 1, 11):
+            axss[img_id, i].axis('off')
+    for axs in axss:
+        for ax in axs:
+            ax.tick_params(
                 which='both',
                 bottom=False,
                 left=False,
                 labelbottom=False,
                 labelleft=False
             )
-        axes[i, 0].set_ylabel('%i' % i, fontsize=10)
+    fig.tight_layout(pad=0)
     plt.show()
 
 
