@@ -21,6 +21,7 @@ class ConceptImageDist(object):
     def score_image(self, ctoken, image):
         pass
 
+
 class CharacterImageDist(ConceptImageDist):
     """
     Defines the likelihood distribution P(Image | Token)
@@ -31,7 +32,7 @@ class CharacterImageDist(ConceptImageDist):
 
     def get_pimg(self, ctoken):
         pimg, _ = rendering.apply_render(
-            ctoken.part_tokens, ctoken.affine, ctoken.epsilon,
+            ctoken.stroke_tokens, ctoken.affine, ctoken.epsilon,
             ctoken.blur_sigma, self.default_ps
         )
 

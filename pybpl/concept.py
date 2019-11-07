@@ -134,18 +134,19 @@ class CharacterToken:
     blur_sigma : tensor
         scalar; image blur quantity
     """
-    def __init__(self, P, R, affine, epsilon, blur_sigma):
-        assert isinstance(P, list)
-        assert isinstance(R, list)
-        assert len(P) == len(R)
-        for ptoken, rtoken in zip(P, R):
-            assert isinstance(ptoken, StrokeToken)
-            assert isinstance(rtoken, RelationToken)
-        self.part_tokens = P
-        self.relation_tokens = R
+    def __init__(self, stroke_tokens, relation_tokens, affine, epsilon,
+                 blur_sigma):
+        assert isinstance(stroke_tokens, list)
+        assert isinstance(relation_tokens, list)
+        assert len(stroke_tokens) == len(relation_tokens)
+        for stroke_token, relation_token in zip(stroke_tokens, relation_tokens):
+            assert isinstance(stroke_token, StrokeToken)
+            assert isinstance(relation_token, RelationToken)
+        self.stroke_tokens = stroke_tokens
+        self.relation_tokens = relation_tokens
 
-        for ptoken in P:
-            assert isinstance(ptoken, StrokeToken)
+        for stroke_token in stroke_tokens:
+            assert isinstance(stroke_token, StrokeToken)
         self.affine = affine
         self.epsilon = epsilon
         self.blur_sigma = blur_sigma
@@ -160,9 +161,10 @@ class CharacterToken:
             optimizable parameters
         """
         parameters = []
-        for p, r in zip(self.part_tokens, self.relation_tokens):
-            parameters.extend(p.parameters())
-            parameters.extend(r.parameters())
+        for stroke_token, relation_token in zip(self.stroke_tokens,
+                                                self.relation_tokens):
+            parameters.extend(stroke_token.parameters())
+            parameters.extend(relation_token.parameters())
         parameters.append(self.blur_sigma)
 
         return parameters
@@ -182,9 +184,10 @@ class CharacterToken:
             lower bound for each parameter
         """
         lbs = []
-        for p, r in zip(self.part_tokens, self.relation_tokens):
-            lbs.extend(p.lbs(eps))
-            lbs.extend(r.lbs(eps))
+        for stroke_token, relation_token in zip(self.stroke_tokens,
+                                                self.relation_tokens):
+            lbs.extend(stroke_token.lbs(eps))
+            lbs.extend(relation_token.lbs(eps))
         lbs.append(None)
 
         return lbs
@@ -204,9 +207,10 @@ class CharacterToken:
             upper bound for each parameter
         """
         ubs = []
-        for p, r in zip(self.part_tokens, self.relation_tokens):
-            ubs.extend(p.ubs(eps))
-            ubs.extend(r.ubs(eps))
+        for stroke_token, relation_token in zip(self.stroke_tokens,
+                                                self.relation_tokens):
+            ubs.extend(stroke_token.ubs(eps))
+            ubs.extend(relation_token.ubs(eps))
         ubs.append(None)
 
         return ubs

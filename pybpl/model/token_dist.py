@@ -15,10 +15,9 @@ class CharacterTokenDist:
     Defines the distribution P(Token | Type) for characters
     """
     def __init__(self, lib):
-        self.pdist = StrokeTokenDist(lib)
-        self.rdist = RelationTokenDist(lib)
+        self.stroke_token_dist = StrokeTokenDist(lib)
+        self.relation_token_dist = RelationTokenDist(lib)
 
-        self.pdist = StrokeTokenDist(lib)
         self.default_ps = defaultps()
         # token-level position distribution parameters
         sigma_x = lib.rel['sigma_x']
@@ -26,13 +25,14 @@ class CharacterTokenDist:
         loc_Cov = torch.diag(torch.stack([sigma_x, sigma_y]))
         self.loc_dist = dist.MultivariateNormal(torch.zeros(2), loc_Cov)
 
-    def sample_location(self, rtoken, prev_parts):
+    def sample_location(self, relation_token, prev_stroke_tokens):
         """
         Sample a location for a given part
 
         Parameters
         ----------
-        prev_parts : list of StrokeToken
+        relation_token: RelationToken
+        prev_stroke_tokens : list of StrokeToken
             previous part tokens
 
         Returns
@@ -40,15 +40,15 @@ class CharacterTokenDist:
         loc : (2,) tensor
             location; x-y coordinates
         """
-        for pt in prev_parts:
-            assert isinstance(pt, StrokeToken)
-        base = rtoken.get_attach_point(prev_parts)
+        for stroke_token in prev_stroke_tokens:
+            assert isinstance(stroke_token, StrokeToken)
+        base = relation_token.get_attach_point(prev_stroke_tokens)
         assert base.shape == torch.Size([2])
         loc = base + self.loc_dist.sample()
 
         return loc
 
-    def score_location(self, rtoken, prev_parts, loc):
+    def score_location(self, relation_token, prev_stroke_tokens, loc):
         """
         Compute the log-likelihood of a location
 
@@ -64,9 +64,9 @@ class CharacterTokenDist:
         ll : tensor
             scalar; log-likelihood of the location
         """
-        for pt in prev_parts:
-            assert isinstance(pt, StrokeToken)
-        base = rtoken.get_attach_point(prev_parts)
+        for stroke_token in prev_stroke_tokens:
+            assert isinstance(stroke_token, StrokeToken)
+        base = relation_token.get_attach_point(prev_stroke_tokens)
         assert base.shape == torch.Size([2])
         ll = self.loc_dist.log_prob(loc - base)
 
@@ -146,14 +146,14 @@ class CharacterTokenDist:
 
         return ll
 
-    def sample_token(self, ctype):
+    def sample_token(self, character_type):
         """
         Sample a character token from P(Token | Type = type).
         Note: should only be called from Model
 
         Parameters
         ----------
-        ctype : CharacterType
+        character_type : CharacterType
             TODO
 
         Returns
@@ -162,36 +162,40 @@ class CharacterTokenDist:
             character token
         """
         # sample part and relation tokens
-        assert isinstance(ctype, CharacterType)
-        P = []
-        R = []
-        for p, r in zip(ctype.stroke_types, ctype.relation_types):
-            # sample part token
-            ptoken = self.pdist.sample_part_token(p)
+        assert isinstance(character_type, CharacterType)
+        stroke_tokens = []
+        relation_tokens = []
+        for stroke_type, relation_type in zip(
+            character_type.stroke_types,
+            character_type.relation_types
+        ):
+            # sample stroke token
+            stroke_token = self.stroke_token_dist.sample_part_token(
+                stroke_type)
             # sample relation token
-            rtoken = self.rdist.sample_relation_token(r)
+            relation_token = self.relation_token_dist.sample_relation_token(
+                relation_type)
             # sample part position from relation token
-            ptoken.position = self.sample_location(rtoken, P)
+            stroke_token.position = self.sample_location(relation_token,
+                                                         stroke_tokens)
             # append them to the list
-            P.append(ptoken)
-            R.append(rtoken)
+            stroke_tokens.append(stroke_token)
+            relation_tokens.append(relation_token)
 
         # sample affine warp
-        affine = self.sample_affine() # (4,) tensor
+        affine = self.sample_affine()  # (4,) tensor
 
         # sample rendering parameters
         epsilon = self.sample_image_noise()
         blur_sigma = self.sample_image_blur()
 
         # create the character token
-        ctoken = CharacterToken(
-            P, R, affine,
-            epsilon, blur_sigma
-        )
+        character_token = CharacterToken(stroke_tokens, relation_tokens,
+                                         affine, epsilon, blur_sigma)
 
-        return ctoken
+        return character_token
 
-    def score_token(self, ctype, ctoken):
+    def score_token(self, character_type, character_token):
         """
         Compute the log-probability of a concept token,
         log P(Token = token | Type = type).
@@ -199,9 +203,9 @@ class CharacterTokenDist:
 
         Parameters
         ----------
-        ctype : CharacterType
+        character_type : CharacterType
             concept type to condition on
-        ctoken : CharacterToken
+        character_token : CharacterToken
             concept token to be scored
 
         Returns
@@ -210,21 +214,21 @@ class CharacterTokenDist:
             scalar; log-likelihood of the token
         """
         ll = 0.
-        for i in range(ctype.k):
-            ll = ll + self.pdist.score_part_token(
-                ctype.stroke_types[i], ctoken.part_tokens[i]
+        for i in range(character_type.k):
+            ll = ll + self.stroke_token_dist.score_part_token(
+                character_type.stroke_types[i], character_token.stroke_tokens[i]
             )
-            ll = ll + self.rdist.score_relation_token(
-                ctype.relation_types[i], ctoken.relation_tokens[i]
+            ll = ll + self.relation_token_dist.score_relation_token(
+                character_type.relation_types[i], character_token.relation_tokens[i]
             )
             ll = ll + self.score_location(
-                ctoken.relation_tokens[i], ctoken.part_tokens[:i],
-                ctoken.part_tokens[i].position
+                character_token.relation_tokens[i], character_token.stroke_tokens[:i],
+                character_token.stroke_tokens[i].position
             )
 
-        ll += self.score_affine(ctoken.affine)
-        ll += self.score_image_noise(ctoken.epsilon)
-        ll += self.score_image_blur(ctoken.blur_sigma)
+        ll += self.score_affine(character_token.affine)
+        ll += self.score_image_noise(character_token.epsilon)
+        ll += self.score_image_blur(character_token.blur_sigma)
 
         return ll
 
