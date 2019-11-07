@@ -10,7 +10,7 @@ def display_type(c):
     print('num strokes: %i' % c.k)
     for i in range(c.k):
         print('Stroke #%i:' % i)
-        print('\tsub-stroke ids: ', list(c.part_types[i].ids.numpy()))
+        print('\tsub-stroke ids: ', list(c.stroke_types[i].ids.numpy()))
         print('\trelation category: %s' % c.relation_types[i].category)
     print('----END CHARACTER TYPE INFO----')
 

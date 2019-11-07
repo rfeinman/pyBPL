@@ -30,15 +30,13 @@ class CharacterTypeDist:
 
     def __init__(self, lib):
         assert isinstance(lib, Library)
-        self.pdist = StrokeTypeDist(lib)
-        self.rdist = RelationTypeDist(lib)
-        # override part type dist
-        self.pdist = StrokeTypeDist(lib)
+        self.stroke_type_dist = StrokeTypeDist(lib)
+        self.relation_type_dist = RelationTypeDist(lib)
+
         # distribution of 'k' (number of strokes)
         assert len(lib.pkappa.shape) == 1
         self.kappa = dist.Categorical(probs=lib.pkappa)
         # part distribution
-
 
     def sample_k(self):
         """
@@ -105,25 +103,26 @@ class CharacterTypeDist:
             assert k.shape == torch.Size([])
             assert k.dtype in int_types
 
-        # initialize part and relation type lists
-        P = []
-        R = []
+        # initialize stroke and relation type lists
+        stroke_types = []
+        relation_types = []
         # for each part, sample part parameters
         for _ in range(k):
             # sample the part type
-            p = self.pdist.sample_part_type(k)
+            stroke_type = self.stroke_type_dist.sample_stroke_type(k)
             # sample the relation type
-            r = self.rdist.sample_relation_type(P)
+            relation_type = self.relation_type_dist.sample_relation_type(
+                stroke_types)
             # append to the lists
-            P.append(p)
-            R.append(r)
+            stroke_types.append(stroke_type)
+            relation_types.append(relation_type)
         # create the concept type, i.e. a motor program for sampling
         # concept tokens
-        ctype = CharacterType(k, P, R)
+        character_type = CharacterType(k, stroke_types, relation_types)
 
-        return ctype
+        return character_type
 
-    def score_type(self, ctype):
+    def score_type(self, character_type):
         """
         Compute the log-probability of a concept type under the prior
         $P(type) = P(k)*\prod_{i=1}^k [P(S_i)P(R_i|S_{0:i-1})]$
@@ -138,18 +137,19 @@ class CharacterTypeDist:
         ll : tensor
             scalar; log-probability of the concept type
         """
-        assert isinstance(ctype, CharacterType)
+        assert isinstance(character_type, CharacterType)
         # score the number of parts
         ll = 0.
-        ll = ll + self.score_k(ctype.k)
+        ll = ll + self.score_k(character_type.k)
         # step through and score each part
-        for i in range(ctype.k):
-            ll = ll + self.pdist.score_part_type(ctype.k, ctype.part_types[i])
-            ll = ll + self.rdist.score_relation_type(
-                ctype.part_types[:i], ctype.relation_types[i]
-            )
+        for i in range(character_type.k):
+            ll = ll + self.stroke_type_dist.score_stroke_type(
+                character_type.k, character_type.stroke_types[i])
+            ll = ll + self.relation_type_dist.score_relation_type(
+                character_type.stroke_types[:i],
+                character_type.relation_types[i])
 
-        return ll        
+        return ll
 
 
 class StrokeTypeDist:
@@ -408,7 +408,7 @@ class StrokeTypeDist:
 
         return ll
 
-    def sample_part_type(self, k):
+    def sample_stroke_type(self, k):
         """
         Sample a stroke type from the prior, conditioned on a stroke count
 
@@ -435,7 +435,7 @@ class StrokeTypeDist:
 
         return p
 
-    def score_part_type(self, k, ptype):
+    def score_stroke_type(self, k, ptype):
         """
         Compute the log-probability of the stroke type, conditioned on a
         stroke count, under the prior

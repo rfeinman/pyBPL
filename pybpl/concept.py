@@ -14,30 +14,28 @@ class CharacterType:
     ----------
     k : tensor
         scalar; part count
-    P : list of StrokeType
+    stroke_types: list of StrokeType
         part type list
-    R : list of RelationType
+    relation_types : list of RelationType
         relation type list
     """
 
-    def __init__(self, k, P, R):
-        assert isinstance(P, list)
-        assert isinstance(R, list)
-        assert len(P) == len(R)
+    def __init__(self, k, stroke_types, relation_types):
+        assert isinstance(stroke_types, list)
+        assert isinstance(relation_types, list)
+        assert len(stroke_types) == len(relation_types)
         assert k > 0
-        for ptype, rtype in zip(P, R):
-            assert isinstance(ptype, StrokeType)
-            assert isinstance(rtype, RelationType)
+        for stroke_type, relation_type in zip(stroke_types, relation_types):
+            assert isinstance(stroke_type, StrokeType)
+            assert isinstance(relation_type, RelationType)
         self.k = k
-        self.part_types = P
-        self.relation_types = R
-
-        for p in P:
-            assert isinstance(p, StrokeType)
+        self.stroke_types = stroke_types
+        self.relation_types = relation_types
 
     def parameters(self):
         """
-        Returns a list of parameters that can be optimized via gradient descent.
+        Returns a list of parameters that can be optimized via gradient
+            descent.
 
         Returns
         -------
@@ -45,9 +43,10 @@ class CharacterType:
             optimizable parameters
         """
         parameters = []
-        for p, r in zip(self.part_types, self.relation_types):
-            parameters.extend(p.parameters())
-            parameters.extend(r.parameters())
+        for stroke_type, relation_type in zip(self.stroke_types,
+                                              self.relation_types):
+            parameters.extend(stroke_type.parameters())
+            parameters.extend(relation_type.parameters())
 
         return parameters
 
@@ -66,9 +65,10 @@ class CharacterType:
             lower bound for each parameter
         """
         lbs = []
-        for p, r in zip(self.part_types, self.relation_types):
-            lbs.extend(p.lbs(eps))
-            lbs.extend(r.lbs(eps))
+        for stroke_type, relation_type in zip(self.stroke_types,
+                                              self.relation_types):
+            lbs.extend(stroke_type.lbs(eps))
+            lbs.extend(relation_type.lbs(eps))
 
         return lbs
 
@@ -87,9 +87,10 @@ class CharacterType:
             upper bound for each parameter
         """
         ubs = []
-        for p, r in zip(self.part_types, self.relation_types):
-            ubs.extend(p.ubs(eps))
-            ubs.extend(r.ubs(eps))
+        for stroke_type, relation_type in zip(self.stroke_types,
+                                              self.relation_types):
+            ubs.extend(stroke_type.ubs(eps))
+            ubs.extend(relation_type.ubs(eps))
 
         return ubs
 

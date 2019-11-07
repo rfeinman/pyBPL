@@ -165,7 +165,7 @@ class CharacterTokenDist:
         assert isinstance(ctype, CharacterType)
         P = []
         R = []
-        for p, r in zip(ctype.part_types, ctype.relation_types):
+        for p, r in zip(ctype.stroke_types, ctype.relation_types):
             # sample part token
             ptoken = self.pdist.sample_part_token(p)
             # sample relation token
@@ -212,7 +212,7 @@ class CharacterTokenDist:
         ll = 0.
         for i in range(ctype.k):
             ll = ll + self.pdist.score_part_token(
-                ctype.part_types[i], ctoken.part_tokens[i]
+                ctype.stroke_types[i], ctoken.part_tokens[i]
             )
             ll = ll + self.rdist.score_relation_token(
                 ctype.relation_types[i], ctoken.relation_tokens[i]

@@ -105,7 +105,7 @@ def main():
     # sample a character type
     c = model.sample_type(k=args.ns)
     print('num strokes: %i' % c.k)
-    print('num sub-strokes: ', [p.nsub.item() for p in c.part_types])
+    print('num sub-strokes: ', [p.nsub.item() for p in c.stroke_types])
 
     # optimize the character type that we sampled
     score_list = optimize_type(model, c, args.lr, args.nb_iter, args.eps)
