@@ -4,6 +4,7 @@ import torch
 from .type_dist import CharacterTypeDist
 from .token_dist import CharacterTokenDist
 from .image_dist import CharacterImageDist
+from ..concept import CharacterToken
 
 
 class CharacterModel(object):
@@ -39,6 +40,45 @@ class CharacterModel(object):
     def get_pimg(self, ctoken):
         return self.image_dist.get_pimg(ctoken)
 
+    def sample_image_sequential(self):
+        # sample affine warp
+        affine = self.token_dist.sample_affine()  # (4,) tensor
+
+        # sample rendering parameters
+        epsilon = self.token_dist.sample_image_noise()
+        blur_sigma = self.token_dist.sample_image_blur()
+
+        k = self.type_dist.sample_k()
+        stroke_types = []
+        relation_types = []
+        stroke_tokens = []
+        relation_tokens = []
+        for _ in range(k):
+            stroke_type = self.type_dist.stroke_type_dist.sample_stroke_type(k)
+            relation_type = \
+                self.type_dist.relation_type_dist.sample_relation_type(
+                    stroke_types)
+            stroke_token = \
+                self.token_dist.stroke_token_dist.sample_stroke_token(
+                    stroke_type)
+            relation_token = \
+                self.token_dist.relation_token_dist.sample_relation_token(
+                    relation_type)
+
+            # sample part position from relation token
+            stroke_token.position = self.token_dist.sample_location(
+                relation_token, stroke_tokens)
+
+            stroke_types.append(stroke_type)
+            relation_types.append(relation_type)
+            stroke_tokens.append(stroke_token)
+            relation_tokens.append(relation_token)
+
+        # create the character token
+        character_token = CharacterToken(stroke_tokens, relation_tokens,
+                                         affine, epsilon, blur_sigma)
+        return self.image_dist.sample_image(character_token)
+
 
 def fit_image(im, lib):
     # Optimization would look something like this
@@ -64,4 +104,3 @@ def fit_image(im, lib):
         loss = -score
         loss.backward()
         optimizer.step()
-
