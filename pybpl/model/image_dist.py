@@ -1,5 +1,4 @@
 from __future__ import division, print_function
-from abc import ABCMeta, abstractmethod
 import torch
 import torch.distributions as dist
 
@@ -7,38 +6,23 @@ from .. import rendering
 from ..parameters import defaultps
 
 
-class ConceptImageDist(object):
-    __metaclass__ = ABCMeta
-
-    def __init__(self, lib):
-        self.lib = lib
-
-    @abstractmethod
-    def sample_image(self, ctoken):
-        pass
-
-    @abstractmethod
-    def score_image(self, ctoken, image):
-        pass
-
-
-class CharacterImageDist(ConceptImageDist):
+class CharacterImageDist:
     """
     Defines the likelihood distribution P(Image | Token)
     """
     def __init__(self, lib):
-        super(CharacterImageDist, self).__init__(lib)
+        self.lib = lib
         self.default_ps = defaultps()
 
-    def get_pimg(self, ctoken):
+    def get_pimg(self, character_token):
         pimg, _ = rendering.apply_render(
-            ctoken.stroke_tokens, ctoken.affine, ctoken.epsilon,
-            ctoken.blur_sigma, self.default_ps
-        )
+            character_token.stroke_tokens, character_token.affine,
+            character_token.epsilon, character_token.blur_sigma,
+            self.default_ps)
 
         return pimg
 
-    def sample_image(self, ctoken):
+    def sample_image(self, character_token):
         """
         Samples a binary image
         Note: Should only be called from Model
@@ -48,13 +32,13 @@ class CharacterImageDist(ConceptImageDist):
         image : (H,W) tensor
             binary image sample
         """
-        pimg = self.get_pimg(ctoken)
+        pimg = self.get_pimg(character_token)
         bern = dist.Bernoulli(pimg)
         image = bern.sample()
 
         return image
 
-    def score_image(self, ctoken, image):
+    def score_image(self, character_token, image):
         """
         Compute the log-likelihood of a binary image
         Note: Should only be called from Model
@@ -69,7 +53,7 @@ class CharacterImageDist(ConceptImageDist):
         ll : tensor
             scalar; log-likelihood of the image
         """
-        pimg = self.get_pimg(ctoken)
+        pimg = self.get_pimg(character_token)
         bern = dist.Bernoulli(pimg)
         ll = bern.log_prob(image)
         ll = torch.sum(ll)
