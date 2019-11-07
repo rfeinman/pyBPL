@@ -170,7 +170,7 @@ class CharacterTokenDist:
             character_type.relation_types
         ):
             # sample stroke token
-            stroke_token = self.stroke_token_dist.sample_part_token(
+            stroke_token = self.stroke_token_dist.sample_stroke_token(
                 stroke_type)
             # sample relation token
             relation_token = self.relation_token_dist.sample_relation_token(
@@ -338,7 +338,7 @@ class StrokeTokenDist:
 
         return ll
 
-    def sample_part_token(self, ptype):
+    def sample_stroke_token(self, ptype):
         """
         Sample a stroke token
 
