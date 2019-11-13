@@ -8,6 +8,8 @@ from ..splines import bspline_gen_s
 from ..part import StrokeType, StrokeToken
 from ..relation import RelationToken
 from ..concept import CharacterType, CharacterToken
+import pyprob
+import pybpl
 
 
 class CharacterTokenDist:
@@ -23,7 +25,11 @@ class CharacterTokenDist:
         sigma_x = lib.rel['sigma_x']
         sigma_y = lib.rel['sigma_y']
         loc_Cov = torch.diag(torch.stack([sigma_x, sigma_y]))
-        self.loc_dist = dist.MultivariateNormal(torch.zeros(2), loc_Cov)
+        # PYPROB
+        # TODO: implement MVN or do indep normals
+        self.loc_dist = pyprob.distributions.Normal(torch.zeros(2), [sigma_x, sigma_y])
+        # ORIGINAL
+        # self.loc_dist = dist.MultivariateNormal(torch.zeros(2), loc_Cov)
 
     def sample_location(self, relation_token, prev_stroke_tokens):
         """
@@ -44,7 +50,13 @@ class CharacterTokenDist:
             assert isinstance(stroke_token, StrokeToken)
         base = relation_token.get_attach_point(prev_stroke_tokens)
         assert base.shape == torch.Size([2])
-        loc = base + self.loc_dist.sample()
+        # MVN p(L_i | R_i, T_1:i-1)
+        # PYPROB and PYPROB CUDA
+        loc = base.cpu() + pyprob.sample(self.loc_dist,
+                                         control=pybpl.TRAIN_NON_CATEGORICALS,
+                                         address='noise').cpu()
+        # ORIGINAL
+        # loc = base + self.loc_dist.sample()
 
         return loc
 
@@ -256,9 +268,19 @@ class StrokeTokenDist:
         shapes_token : (ncpt, 2, nsub) tensor
             sampled shapes token
         """
-        shapes_dist = dist.normal.Normal(shapes_type, self.sigma_shape)
-        # sample shapes token
-        shapes_token = shapes_dist.sample()
+        # Normal p(x_ij^(m) | x_ij)
+        # PYPROB
+        # TODO: make normal_normal_mixture proposals deal with independent normals
+        shapes_dist = pyprob.distributions.Normal(shapes_type,
+                                                  self.sigma_shape)
+        shapes_token = pyprob.sample(shapes_dist,
+                                     control=pybpl.TRAIN_NON_CATEGORICALS,
+                                     address='shapes_token')
+
+        # ORIGINAL
+        # shapes_dist = dist.normal.Normal(shapes_type, self.sigma_shape)
+        # # sample shapes token
+        # shapes_token = shapes_dist.sample()
 
         return shapes_token
 
@@ -298,10 +320,26 @@ class StrokeTokenDist:
         invscales_token : (nsub,) tensor
             sampled invscales token
         """
-        scales_dist = dist.normal.Normal(invscales_type, self.sigma_invscale)
+        # PYPROB
+        # TODO: need indep normal with dynamic dimensions
+        scales_dist = pyprob.distributions.Normal(
+            invscales_type, self.sigma_invscale)
+        # ORIGINAL
+        # scales_dist = dist.normal.Normal(invscales_type, self.sigma_invscale)
         while True:
-            invscales_token = scales_dist.sample()
-            ll = self.score_invscales_token(invscales_type, invscales_token)
+            # Normal p(y_ij^(m) | y_ij)
+            # PYPROB
+            invscales_token = pyprob.sample(
+                scales_dist,
+                control=pybpl.TRAIN_NON_CATEGORICALS,
+                address='invscales_token')
+
+            # ORIGINAL
+            # invscales_token = scales_dist.sample()
+
+            # PYPROB CUDA
+            ll = self.score_invscales_token(invscales_type,
+                                            invscales_token.cpu())
             if not torch.any(ll == -float('inf')):
                 break
 
@@ -405,9 +443,14 @@ class RelationTokenDist(object):
         """
         if rtype.category == 'mid':
             assert hasattr(rtype, 'eval_spot')
-            eval_spot_dist = dist.normal.Normal(
-                rtype.eval_spot, self.sigma_attach
-            )
+            # PYPROB
+            eval_spot_dist = pyprob.distributions.Normal(rtype.eval_spot,
+                                                         self.sigma_attach)
+
+            # ORIGINAL
+            # eval_spot_dist = dist.normal.Normal(
+            #     rtype.eval_spot, self.sigma_attach
+            # )
             eval_spot_token = sample_eval_spot_token(
                 eval_spot_dist, self.ncpt
             )
@@ -462,7 +505,13 @@ def sample_eval_spot_token(eval_spot_dist, ncpt):
         scalar; token-level spline coordinate
     """
     while True:
-        eval_spot_token = eval_spot_dist.sample()
+        # Normal p(tau_i^(m) | tau_i)
+        # PYPROB
+        eval_spot_token = pyprob.sample(eval_spot_dist,
+                                        control=pybpl.TRAIN_NON_CATEGORICALS,
+                                        address='eval_spot_token')
+        # ORIGINAL
+        # eval_spot_token = eval_spot_dist.sample()
         ll = score_eval_spot_token(eval_spot_token, eval_spot_dist, ncpt)
         if not ll == -float('inf'):
             break

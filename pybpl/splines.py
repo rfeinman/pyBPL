@@ -27,6 +27,8 @@ def vectorized_bspline_coeff(vi, vs):
     """
     assert vi.shape == vs.shape
     assert vi.dtype == vs.dtype
+    # PYPROB CUDA
+    vs = vs.cpu()
 
     # step through the conditions
     # NOTE: in the following, * stands in for 'and'
@@ -102,6 +104,8 @@ def bspline_eval(s, Y):
     Cof : (neval, nland) tensor
         TODO
     """
+    # PYPROB CUDA
+    Y = Y.cpu()
     if s.shape == torch.Size([]):
         s = s.view(1)
     assert len(s.shape) == 1

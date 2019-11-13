@@ -1,0 +1,6 @@
+plots/
+save/
+cp_from_om.sh
+runs.txt
+offline_data/
+cp_from_om_cuda.sh

@@ -14,3 +14,10 @@ LIB_DATA_PATH = os.path.join(
     os.path.dirname(os.path.dirname(__file__)),
     'lib_data'
 )
+
+TRAIN_NON_CATEGORICALS = True
+
+
+def set_train_non_categoricals(value):
+    global TRAIN_NON_CATEGORICALS
+    TRAIN_NON_CATEGORICALS = value
