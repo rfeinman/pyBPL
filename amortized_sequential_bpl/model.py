@@ -54,6 +54,8 @@ class BPL(Model):
             partial_image_probs = self.model.image_dist.get_pimg(
                 partial_character_token)
             partial_image_probss.append(partial_image_probs)
+            pyprob.tag(partial_image_probs, address='partial_image_{}'.format(
+                stroke_id))
 
         character_token = CharacterToken(stroke_tokens, relation_tokens,
                                          affine, epsilon, blur_sigma)

@@ -73,7 +73,7 @@ def train(args):
                 'dim': 128,
                 'embedding': embedding,
                 'reshape': (1, 105, 105)}},
-            inference_network=pyprob.InferenceNetwork.LSTM)
+            inference_network=pyprob.InferenceNetwork.BPL)
         save_bpl_inference_network(bpl, save_path_suffix)
         total_num_traces += num_traces
 
