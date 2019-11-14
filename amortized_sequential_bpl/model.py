@@ -25,7 +25,7 @@ class BPL(Model):
         relation_types = []
         stroke_tokens = []
         relation_tokens = []
-        partial_image_probss = []
+        current_partial_image_probss = []
         for stroke_id in range(k):
             stroke_type = self.model.type_dist.stroke_type_dist.sample_stroke_type(k)
             relation_type = \
@@ -48,18 +48,19 @@ class BPL(Model):
             relation_tokens.append(relation_token)
 
             # evaluate partial image probs
-            partial_character_token = CharacterToken(
+            current_character_token = CharacterToken(
                 stroke_tokens[-1:], relation_tokens[-1:], affine, epsilon,
                 blur_sigma)
-            partial_image_probs = self.model.image_dist.get_pimg(
-                partial_character_token)
-            partial_image_probss.append(partial_image_probs)
+            current_partial_image_probs = self.model.image_dist.get_pimg(
+                current_character_token)
+            current_partial_image_probss.append(current_partial_image_probs)
+            partial_image_probs = torch.clamp(sum(current_partial_image_probss), 0, 1)
             pyprob.tag(partial_image_probs, address='partial_image_{}'.format(
                 stroke_id))
 
         character_token = CharacterToken(stroke_tokens, relation_tokens,
                                          affine, epsilon, blur_sigma)
-        image_probs = torch.clamp(sum(partial_image_probss), 0, 1)
+        image_probs = torch.clamp(sum(current_partial_image_probss), 0, 1)
         image_dist = pyprob.distributions.Bernoulli(image_probs)
         pyprob.observe(image_dist, name='image')
 
