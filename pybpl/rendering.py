@@ -178,7 +178,7 @@ def seqadd(D, lind_x, lind_y, inkval):
     inkval_unique = torch.stack(
         [torch.sum(torch.where(lind==i, inkval, zero)) for i in lind_unique]
     )
-    D[lind_unique] += inkval_unique
+    D = D.scatter_add(0,lind_unique,inkval_unique)
     # reshape the image back to 2D from 1D
     D = D.view(shape)
 
