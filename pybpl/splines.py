@@ -4,10 +4,12 @@ B-splines utilities. For reference material on B-splines, see Kristin Branson's
 http://vision.ucsd.edu/~kbranson/research/bsplines/bsplines.pdf
 """
 from __future__ import division, print_function
-import warnings
+import math
 import torch
 
+from .parameters import defaultps
 from .util.general import least_squares
+from .util.stroke import dist_along_traj
 
 
 def vectorized_bspline_coeff(vi, vs):
@@ -180,13 +182,21 @@ def get_stk_from_bspline(Y, neval=None):
     assert len(Y.shape) == 2 and Y.shape[1] == 2
     nland = Y.shape[0]
 
-    # In the original BPL repo there is an option to set the number of eval
-    # points adaptively based on the stroke size. Not yet implemented here
+    # if `neval` is None, set it adaptively according to stroke size
     if neval is None:
-        warnings.warn(
-            "cannot yet set 'neval' adaptively... using neval=200 for now."
-        )
-        neval = 200
+        params = defaultps()
+        min_neval = params.spline_min_neval
+        max_neval = params.spline_max_neval
+        spl_grain = params.spline_grain
+        # check the stroke size
+        s, _, _ = bspline_gen_s(nland, min_neval)
+        stk, _ = bspline_eval(s, Y)
+        dist = dist_along_traj(stk)
+        # set neval based on stroke size
+        neval = math.ceil(dist/spl_grain)
+        # threshold
+        neval = max(neval, min_neval)
+        neval = min(neval, max_neval)
 
     # generate time points
     s, _, _ = bspline_gen_s(nland, neval)
