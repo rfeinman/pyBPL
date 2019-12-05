@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 
 
 def dist_along_traj(stk):
@@ -15,7 +16,12 @@ def dist_along_traj(stk):
 
     """
     assert stk.shape[1] == 2
-    distances = np.linalg.norm(stk[1:] - stk[:-1], axis=1)
+    if isinstance(stk, np.ndarray):
+        distances = np.linalg.norm(stk[1:] - stk[:-1], axis=1)
+    elif isinstance(stk, torch.Tensor):
+        distances = torch.norm(stk[1:] - stk[:-1], dim=1)
+    else:
+        raise Exception
     dist = distances.sum()
     return dist
 
