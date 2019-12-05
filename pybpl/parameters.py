@@ -25,6 +25,8 @@ class defaultps(object):
         self.ink_a = torch.tensor(0.5, dtype=torch.float)
         # ink parameter 2
         self.ink_b = torch.tensor(6, dtype=torch.float)
+        # convolution size for blurring
+        self.fsize = 11
 
         ## Creating a trajectory from a spline ##
         # maxmium number of evaluations

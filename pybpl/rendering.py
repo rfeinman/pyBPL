@@ -309,7 +309,7 @@ def render_image(cell_traj, epsilon, blur_sigma, parameters):
     # filter the image to get Gaussian
     # noise around the area with ink
     if blur_sigma > 0:
-        fsize = 11
+        fsize = parameters.fsize
         H_gaussian = fspecial(fsize, blur_sigma, ftype='gaussian')
         pimg = imfilter(pimg, H_gaussian, mode='conv')
         pimg = imfilter(pimg, H_gaussian, mode='conv')
