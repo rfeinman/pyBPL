@@ -8,7 +8,7 @@ def dist_along_traj(stk):
 
     Parameters
     ----------
-    stk : (n,2) array
+    stk : (n,2) array or tensor
 
     Returns
     -------
@@ -57,7 +57,7 @@ def normalize_stk(stk, newscale=105.):
 
     Parameters
     ----------
-    stk : (n,2) array
+    stk : (n,2) array or tensor
     newscale : float
 
     Returns
@@ -68,11 +68,18 @@ def normalize_stk(stk, newscale=105.):
 
     """
     # subtract center of mass
-    center = stk.mean(axis=0)
+    center = stk.mean(0)
     stk = stk - center
 
     # re-scale
-    range_x, range_y = np.ptp(stk, axis=0)
+    if isinstance(stk, np.ndarray):
+        range_x, range_y = np.ptp(stk, 0)
+    elif isinstance(stk, torch.Tensor):
+        vmax, _ = stk.max(0)
+        vmin, _ = stk.min(0)
+        range_x, range_y = (vmax - vmin)
+    else:
+        raise Exception
     invscale = newscale / max(1, max(range_x, range_y))
     stk = stk * invscale
 
