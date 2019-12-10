@@ -83,7 +83,6 @@ python examples/optimize_type.py
 ```
 Optionally, you may add the integer parameter `--ns=<int>` to specify how many
 strokes you would like the generated character type to have.
-NOTE: this script needs to be updated - not operational right now!
 
 
 ## Status Notes
