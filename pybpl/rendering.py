@@ -168,7 +168,7 @@ def seqadd(D, lind_x, lind_y, inkval):
     shape = D.shape
     D = D.view(-1)
     # convert the indices from 2D to 1D
-    lind = sub2ind(shape, lind_x, lind_y)
+    lind = sub2ind(shape, lind_x, lind_y).to(inkval.device)
     # create a zeros vector of same size as inkval. needed for next step
     zero = torch.zeros_like(inkval)
     # sum all inkvals with same index
@@ -226,15 +226,16 @@ def render_image(cell_traj, epsilon, blur_sigma, parameters):
     """
     # convert to image space
     # Note: traj_img is still shape (nsub_total,neval,2)
+    device = cell_traj[0].device
     traj_img = [space_motor_to_img(traj) for traj in cell_traj]
 
     # get relevant parameters
     imsize = parameters.imsize
-    ink = parameters.ink_pp
-    max_dist = parameters.ink_max_dist
+    ink = parameters.ink_pp.to(device)
+    max_dist = parameters.ink_max_dist.to(device)
 
     # draw the trajectories on the image
-    pimg = torch.zeros(imsize, dtype=torch.float)
+    pimg = torch.zeros(imsize, dtype=torch.float, device=device)
     nsub_total = len(traj_img)
     ink_off_page = False
     for i in range(nsub_total):
@@ -294,12 +295,13 @@ def render_image(cell_traj, epsilon, blur_sigma, parameters):
         [[a/12, a/6, a/12],[a/6, 1-a, a/6],[a/12, a/6, a/12]],
         dtype=torch.float
     )
+    H_broaden = H_broaden.to(device)
     for i in range(ink_ncon):
         pimg = imfilter(pimg, H_broaden, mode='conv')
 
     # store min and maximum pimg values for truncation
-    min_val = torch.tensor(0., dtype=torch.float)
-    max_val = torch.tensor(1., dtype=torch.float)
+    min_val = torch.tensor(0., dtype=torch.float, device=device)
+    max_val = torch.tensor(1., dtype=torch.float, device=device)
 
     # truncate
     pimg = torch.min(pimg, max_val)
@@ -309,6 +311,7 @@ def render_image(cell_traj, epsilon, blur_sigma, parameters):
     if blur_sigma > 0:
         fsize = parameters.fsize
         H_gaussian = fspecial(fsize, blur_sigma, ftype='gaussian')
+        H_gaussian = H_gaussian.to(device)
         pimg = imfilter(pimg, H_gaussian, mode='conv')
         pimg = imfilter(pimg, H_gaussian, mode='conv')
 
