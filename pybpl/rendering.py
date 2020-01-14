@@ -15,7 +15,8 @@ from . import splines
 def vanilla_to_motor(shapes, invscales, first_pos, neval=200):
     """
     Create the fine-motor trajectory of a stroke (denoted 'f()' in pseudocode)
-    with 'nsub' sub-strokes
+    with 'nsub' sub-strokes.
+    Reference: BPL/classes/Stroke.m (lines 203-238)
 
     :param shapes: [(ncpt,2,nsub) tensor] spline points in normalized space
     :param invscales: [(nsub,) tensor] inverse scales for each sub-stroke
@@ -204,7 +205,8 @@ def space_motor_to_img(pt):
 
 def render_image(cell_traj, epsilon, blur_sigma, parameters):
     """
-    TODO
+    Render a list of stroke trajectories into a image probability map.
+    Reference: BPL/misc/render_image.m
 
     Parameters
     ----------
@@ -331,7 +333,8 @@ def render_image(cell_traj, epsilon, blur_sigma, parameters):
 
 def apply_render(P, affine, epsilon, blur_sigma, parameters):
     """
-    TODO
+    Apply affine warp and render the image
+    Reference: BPL/classes/MotorProgram.m (lines 247-259)
 
     Parameters
     ----------
