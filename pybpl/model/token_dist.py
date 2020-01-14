@@ -93,10 +93,9 @@ class CharacterTokenDist(ConceptTokenDist):
         self.pdist = StrokeTokenDist(lib)
         self.default_ps = defaultps()
         # token-level position distribution parameters
-        sigma_x = lib.rel['sigma_x']
-        sigma_y = lib.rel['sigma_y']
-        loc_Cov = torch.diag(torch.stack([sigma_x, sigma_y]))
-        self.loc_dist = dist.MultivariateNormal(torch.zeros(2), loc_Cov)
+        means = torch.zeros(2)
+        scales = torch.stack([lib.rel['sigma_x'], lib.rel['sigma_y']])
+        self.loc_dist = dist.Independent(dist.Normal(means, scales), 1)
 
     def sample_location(self, rtoken, prev_parts):
         """
