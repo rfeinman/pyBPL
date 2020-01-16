@@ -354,14 +354,14 @@ def apply_warp(motor_unwarped, A):
 
     Parameters
     ----------
-    motor_unwarped : list of (nsub, ncpt, 2) tensors
+    motor_unwarped : list of (nsub, ncpt, 2) or (n,2) tensors
     A : (4,) tensor
 
     Returns
     -------
     motor_warped : list of (nsub, ncpt, 2) tensors
     """
-    cell_traj = torch.cat(motor_unwarped) # (nsub_total, ncpt, 2)
+    cell_traj = torch.cat(motor_unwarped) # (nsub_total, ncpt, 2) or (m,2)
     com = com_char(cell_traj)
     B = torch.zeros(4)
     B[:2] = A[:2]
