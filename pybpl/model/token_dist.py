@@ -92,10 +92,20 @@ class CharacterTokenDist(ConceptTokenDist):
         super(CharacterTokenDist, self).__init__(lib)
         self.pdist = StrokeTokenDist(lib)
         self.default_ps = defaultps()
+
         # token-level position distribution parameters
         means = torch.zeros(2)
         scales = torch.stack([lib.rel['sigma_x'], lib.rel['sigma_y']])
         self.loc_dist = dist.Independent(dist.Normal(means, scales), 1)
+
+        # affine scale dist
+        mu_scale = lib.affine['mu_scale']
+        Cov_scale = lib.affine['Sigma_scale']
+        self.A_scale_dist = dist.MultivariateNormal(mu_scale, Cov_scale)
+        # affine translation dist
+        mu_trans = torch.stack([lib.affine['mu_xtranslate'], lib.affine['mu_ytranslate']])
+        scale_trans = torch.stack([lib.affine['sigma_xtranslate'], lib.affine['sigma_ytranslate']])
+        self.A_trans_dist = dist.Independent(dist.Normal(mu_trans, scale_trans), 1)
 
     def sample_location(self, rtoken, prev_parts):
         """
@@ -146,17 +156,17 @@ class CharacterTokenDist(ConceptTokenDist):
     def sample_affine(self):
         """
         Sample an affine warp
-        TODO: update this function. right now it returns None
 
         Returns
         -------
-        affine : (4,) tensor
+        A : (4,) tensor
             affine transformation
         """
-        # set affine to None for now
-        affine = None
+        A = torch.zeros(4)
+        A[:2] = self.A_scale_dist.sample()
+        A[2:] = self.A_trans_dist.sample()
 
-        return affine
+        return A
 
     def score_affine(self, affine):
         return 0.
@@ -164,7 +174,7 @@ class CharacterTokenDist(ConceptTokenDist):
     def sample_image_noise(self):
         """
         Sample an "epsilon," i.e. image noise quantity
-        TODO: update this function. right now it returns fixed quantity
+        TODO: implement this function
 
         Returns
         -------
@@ -172,9 +182,7 @@ class CharacterTokenDist(ConceptTokenDist):
             scalar; image noise quantity
         """
         # set rendering parameters to minimum noise for now
-        epsilon = self.default_ps.min_epsilon
-
-        return epsilon
+        raise NotImplementedError
 
     def score_image_noise(self, epsilon):
         return 0.
@@ -189,10 +197,9 @@ class CharacterTokenDist(ConceptTokenDist):
             scalar; image blur quantity
         """
         # set rendering parameters to minimum noise for now
-        #lb = self.default_ps.min_blur_sigma
-        #ub = self.default_ps.max_blur_sigma
-        #blur_sigma = dist.Uniform(lb, ub).sample()
-        blur_sigma = self.default_ps.min_blur_sigma
+        lb = self.default_ps.min_blur_sigma
+        ub = self.default_ps.max_blur_sigma
+        blur_sigma = dist.Uniform(lb, ub).sample()
 
         return blur_sigma
 
@@ -236,11 +243,16 @@ class CharacterTokenDist(ConceptTokenDist):
         concept_token = super(CharacterTokenDist, self).sample_token(ctype)
 
         # sample affine warp
-        affine = self.sample_affine() # (4,) tensor
+        affine = self.sample_affine()
+        affine = None
 
-        # sample rendering parameters
-        epsilon = self.sample_image_noise()
-        blur_sigma = self.sample_image_blur()
+        # sample image noise
+        #epsilon = self.sample_image_noise()
+        epsilon = self.default_ps.min_epsilon
+
+        # sample image blur
+        #blur_sigma = self.sample_image_blur()
+        blur_sigma = self.default_ps.min_blur_sigma
 
         # create the character token
         ctoken = CharacterToken(
