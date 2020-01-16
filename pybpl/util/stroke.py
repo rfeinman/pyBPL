@@ -84,3 +84,61 @@ def normalize_stk(stk, newscale=105.):
     stk = stk * invscale
 
     return stk, center, invscale
+
+def affine_warp(stk, affine):
+    """
+    Parameters
+    ----------
+    stk : (n,2) tensor
+    affine : (4,) tensor
+
+    Returns
+    -------
+    stk : (n,2) tensor
+
+    """
+    stk = stk * affine[:2] + affine[2:]
+
+    return stk
+
+def com_stk(stk):
+    """
+    Get center-of-mass for one stroke
+
+    Parameters
+    ----------
+    stk : (ncpt, 2) tensor
+        stroke
+
+    Returns
+    -------
+    center : (2,) tensor
+        center of mass
+    """
+    center = stk.mean(0)
+    return center
+
+def com_char(char):
+    """
+    Get the overall center-of-mass for a character
+
+    Parameters
+    ----------
+    char : (nsub_total, ncpt, 2) tensor
+        the substrokes that define the character
+
+    Returns
+    -------
+    center : (2,) tensor
+        center of mass of the character
+    """
+    ns = len(char)
+    lens = [len(stk) for stk in char]
+    wsum = torch.zeros(ns,2)
+    for i in range(ns):
+        wsum[i] = com_stk(char[i]) * lens[i]
+
+    center = wsum.sum(0) / sum(lens)
+    assert center.shape == torch.Size([2])
+
+    return center
