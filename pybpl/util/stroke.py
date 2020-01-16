@@ -98,7 +98,6 @@ def affine_warp(stk, affine):
 
     """
     stk = stk * affine[:2] + affine[2:]
-
     return stk
 
 def com_stk(stk):
@@ -132,13 +131,6 @@ def com_char(char):
     center : (2,) tensor
         center of mass of the character
     """
-    ns = len(char)
-    lens = [len(stk) for stk in char]
-    wsum = torch.zeros(ns,2)
-    for i in range(ns):
-        wsum[i] = com_stk(char[i]) * lens[i]
-
-    center = wsum.sum(0) / sum(lens)
-    assert center.shape == torch.Size([2])
-
+    char = char.view(-1,2) # (nsub_total*2, 2)
+    center = char.mean(0) # (2,)
     return center
