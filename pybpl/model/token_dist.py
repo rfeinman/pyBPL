@@ -243,7 +243,7 @@ class CharacterTokenDist(ConceptTokenDist):
         concept_token = super(CharacterTokenDist, self).sample_token(ctype)
 
         # sample affine warp
-        affine = self.sample_affine()
+        #affine = self.sample_affine()
         affine = None
 
         # sample image noise
