@@ -5,6 +5,7 @@ from __future__ import print_function, division
 import torch
 
 from .util.general import sub2ind, fspecial, imfilter
+from .util.stroke import com_char, affine_warp
 from . import splines
 
 
@@ -52,28 +53,6 @@ def vanilla_to_motor(shapes, invscales, first_pos, neval=200):
 
     return motor, motor_spline
 
-
-# ----
-# affine warp
-# ----
-
-def com_char(char):
-    raise NotImplementedError
-
-def affine_warp(stk, affine):
-    raise NotImplementedError
-
-def apply_warp(motor_unwarped, affine):
-    raise NotImplementedError('affine warping not yet implemented.')
-    cell_traj = torch.cat(motor_unwarped) # flatten substrokes
-    com = com_char(cell_traj)
-    b = torch.zeros(4, dtype=torch.float)
-    b[:2] = affine[:2]
-    b[2:4] = affine[2:4] - (affine[:2]-1)*com
-    fn = lambda stk: affine_warp(stk, b)
-    #motor_warped = util_character.apply_each_substroke(motor_unwarped, fn)
-
-    return motor_warped
 
 
 # ----
@@ -211,20 +190,20 @@ def render_image(cell_traj, epsilon, blur_sigma, parameters):
     Parameters
     ----------
     cell_traj : (nsub_total,neval,2) tensor, or list of (neval,2) tensor
-        TODO
+        list of sub-strokes that make up the character
     epsilon : float
-        TODO
+        image noise value
     blur_sigma : float
-        TODO
+        image blur value
     parameters : defaultps
-        TODO
+        bpl parameters
 
     Returns
     -------
-    pimg : (H, W) tensor
-        TODO
+    pimg : (h,w) tensor
+        image probability map
     ink_off_page : bool
-        TODO
+        boolean indicating whether the ink went off the page
     """
     # convert to image space
     # Note: traj_img is still shape (nsub_total,neval,2)
@@ -331,7 +310,7 @@ def render_image(cell_traj, epsilon, blur_sigma, parameters):
 # apply render
 # ----
 
-def apply_render(P, affine, epsilon, blur_sigma, parameters):
+def apply_render(P, A, epsilon, blur_sigma, parameters):
     """
     Apply affine warp and render the image
     Reference: BPL/classes/MotorProgram.m (lines 247-259)
@@ -339,31 +318,54 @@ def apply_render(P, affine, epsilon, blur_sigma, parameters):
     Parameters
     ----------
     P : list of StrokeToken
-        TODO
-    affine : TODO
-        TODO
-    epsilon : TODO
-        TODO
-    blur_sigma : TODO
-        TODO
+        strokes that make up the character token
+    A : (4,) tensor
+        affine warp
+    epsilon : float
+        image noise value
+    blur_sigma : float
+        image blur value
     parameters : defaultps
-        TODO
+        bpl parameters
 
     Returns
     -------
-    pimg : TODO
-        TODO
-    ink_off_page : TODO
-        TODO
+    pimg : (h,w) tensor
+        image probability map
+    ink_off_page : bool
+        boolean indicating whether the ink went off the page
     """
     # get motor for each part
-    motor = [p.motor for p in P]
+    motor = [p.motor for p in P] # list of (nsub, ncpt, 2)
     # apply affine transformation if needed
-    if affine is not None:
-        motor = apply_warp(motor, affine)
-    motor_flat = torch.cat(motor) # flatten substrokes
+    if A is not None:
+        motor = apply_warp(motor, A)
+    motor_flat = torch.cat(motor) # (nsub_total, ncpt, 2)
     pimg, ink_off_page = render_image(
         motor_flat, epsilon, blur_sigma, parameters
     )
 
     return pimg, ink_off_page
+
+def apply_warp(motor_unwarped, A):
+    """
+    Apply affine warp and render the image
+    Reference: BPL/classes/MotorProgram.m (lines 231-245)
+
+    Parameters
+    ----------
+    motor_unwarped : list of (nsub, ncpt, 2) tensors
+    A : (4,) tensor
+
+    Returns
+    -------
+    motor_warped : list of (nsub, ncpt, 2) tensors
+    """
+    cell_traj = torch.cat(motor_unwarped) # (nsub_total, ncpt, 2)
+    com = com_char(cell_traj)
+    B = torch.zeros(4)
+    B[:2] = A[:2]
+    B[2:] = A[2:] - (A[:2]-1)*com
+    motor_warped = [affine_warp(stk, B) for stk in motor_unwarped]
+
+    return motor_warped

@@ -232,7 +232,7 @@ class CharacterTokenDist(ConceptTokenDist):
         Parameters
         ----------
         ctype : CharacterType
-            TODO
+            character type
 
         Returns
         -------
@@ -243,8 +243,8 @@ class CharacterTokenDist(ConceptTokenDist):
         concept_token = super(CharacterTokenDist, self).sample_token(ctype)
 
         # sample affine warp
-        #affine = self.sample_affine()
-        affine = None
+        #A = self.sample_affine()
+        A = None
 
         # sample image noise
         #epsilon = self.sample_image_noise()
@@ -256,7 +256,7 @@ class CharacterTokenDist(ConceptTokenDist):
 
         # create the character token
         ctoken = CharacterToken(
-            concept_token.part_tokens, concept_token.relation_tokens, affine,
+            concept_token.part_tokens, concept_token.relation_tokens, A,
             epsilon, blur_sigma
         )
 
