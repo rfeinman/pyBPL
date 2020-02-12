@@ -12,14 +12,14 @@ probabilistic program induction" and the [original BPL repository](https://githu
 ## Setup
 
 This code repository requires PyTorch >= 0.4.0. A full list of requirements can
-be found in `requirements.txt`. To install, run the following command to clone
+be found in `requirements.txt`. To install, first run the following command to clone
 the repository into a folder of your choice:
 ```
 git clone https://github.com/rfeinman/pyBPL.git
 ```
-On UNIX machines, add the repository path to your `PYTHONPATH` environment variable to enable imports from any folder:
+Then, run the following command to install the package:
 ```
-export PYTHONPATH="/path/to/pyPBL:$PYTHONPATH"
+python setup.py install
 ```
 
 
