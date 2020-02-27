@@ -7,12 +7,12 @@ from ..part import vanilla_to_motor
 
 
 
-class TestRendering(unittest.TestCase):
+class TestVanillaToMotor(unittest.TestCase):
 
     def setUp(self):
         self.lib = Library()
 
-    def testVanillaToMotor(self):
+    def testV2M(self):
         ncpt = 5
         nsub = 3
         # shapes_token has shape (ncpt, 2, nsub)
