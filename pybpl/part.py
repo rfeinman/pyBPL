@@ -6,7 +6,7 @@ from __future__ import division, print_function
 from abc import ABCMeta, abstractmethod
 import torch
 
-from . import rendering
+from . import splines
 
 
 class PartType(object):
@@ -218,7 +218,7 @@ class StrokeToken(PartToken):
         TODO
         """
         assert self.position is not None
-        motor, _ = rendering.vanilla_to_motor(
+        motor, _ = vanilla_to_motor(
             self.shapes, self.invscales, self.position
         )
 
@@ -230,7 +230,7 @@ class StrokeToken(PartToken):
         TODO
         """
         assert self.position is not None
-        _, motor_spline = rendering.vanilla_to_motor(
+        _, motor_spline = vanilla_to_motor(
             self.shapes, self.invscales, self.position
         )
 
@@ -288,3 +288,42 @@ class StrokeToken(PartToken):
         return ubs
 
 
+def vanilla_to_motor(shapes, invscales, first_pos, neval=200):
+    """
+    Create the fine-motor trajectory of a stroke (denoted 'f()' in pseudocode)
+    with 'nsub' sub-strokes.
+    Reference: BPL/classes/Stroke.m (lines 203-238)
+
+    :param shapes: [(ncpt,2,nsub) tensor] spline points in normalized space
+    :param invscales: [(nsub,) tensor] inverse scales for each sub-stroke
+    :param first_pos: [(2,) tensor] starting location of stroke
+    :param neval: [int] number of evaluations to use for each motor
+                    trajectory
+    :return:
+        motor: [(nsub,neval,2) tensor] fine motor sequence
+        motor_spline: [(ncpt,2,nsub) tensor] fine motor sequence in spline space
+    """
+    for elt in [shapes, invscales, first_pos]:
+        assert elt is not None
+        assert isinstance(elt, torch.Tensor)
+    assert len(shapes.shape) == 3
+    assert shapes.shape[1] == 2
+    assert len(invscales.shape) == 1
+    assert first_pos.shape == torch.Size([2])
+    ncpt, _, nsub = shapes.shape
+    motor = torch.zeros(nsub, neval, 2, dtype=torch.float)
+    motor_spline = torch.zeros_like(shapes, dtype=torch.float)
+    previous_pos = first_pos
+    for i in range(nsub):
+        # re-scale the control points
+        shapes_scaled = invscales[i]*shapes[:,:,i]
+        # get trajectories from b-spline
+        traj = splines.get_stk_from_bspline(shapes_scaled, neval)
+        # reposition; shift by offset
+        offset = traj[0] - previous_pos
+        motor[i] = traj - offset
+        motor_spline[:,:,i] = shapes_scaled - offset
+        # update previous_pos to be last position of current traj
+        previous_pos = motor[i,-1]
+
+    return motor, motor_spline

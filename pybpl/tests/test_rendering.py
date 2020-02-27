@@ -3,7 +3,9 @@ import unittest
 import torch
 
 from ..library import Library
-from .. import rendering
+from ..part import vanilla_to_motor
+
+
 
 class TestRendering(unittest.TestCase):
 
@@ -40,7 +42,7 @@ class TestRendering(unittest.TestCase):
         position = torch.tensor(position)
         assert position.shape == torch.Size([2])
         # call vanilla_to_motor
-        motor, motor_spline = rendering.vanilla_to_motor(
+        motor, motor_spline = vanilla_to_motor(
             shapes_token, invscales_token, position
         )
         self.assertEqual(motor.shape, torch.Size([nsub,200,2]))
