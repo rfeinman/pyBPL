@@ -136,15 +136,142 @@ def space_motor_to_img(pt):
 
     return new_pt
 
-def render_image(cell_traj, epsilon, blur_sigma, parameters):
+def add_stroke(pimg, stk, parameters):
+    """
+    Draw one stroke onto an image
+
+    Parameters
+    ----------
+    pimg : (h,w) tensor
+        current image probability map
+    stk : (neval,2) tensor
+        stroke to be drawn on the image
+    parameters : defaultps
+        bpl parameters
+
+    Returns
+    -------
+    pimg : (h,w) tensor
+        updated image probability map
+    ink_off_page : bool
+        boolean indicating whether the ink went off the page
+    """
+    device = stk.device
+    ink = parameters.ink_pp.to(device)
+    max_dist = parameters.ink_max_dist.to(device)
+    ink_off_page = False
+
+    # convert stroke to image coordinate space
+    stk = space_motor_to_img(stk)
+
+    # reduce trajectory to only those points that are in bounds
+    out = check_bounds(stk, pimg.shape) # boolean; shape (neval,)
+    if out.any():
+        ink_off_page = True
+    if out.all():
+        return pimg, ink_off_page
+    stk = stk[~out]
+
+    # compute distance between each trajectory point and the next one
+    if stk.shape[0] == 1:
+        myink = ink
+    else:
+        dist = pair_dist(stk) # shape (k,)
+        dist = torch.min(dist, max_dist)
+        dist = torch.cat([dist[:1], dist])
+        myink = (ink/max_dist)*dist # shape (k,)
+
+    # make sure we have the minimum amount of ink, if a particular
+    # trajectory is very small
+    sumink = torch.sum(myink)
+    if torch.abs(sumink) < 1e-6:
+        nink = myink.shape[0]
+        myink = (ink/nink)*torch.ones_like(myink)
+    elif sumink < ink:
+        myink = (ink/sumink)*myink
+    assert torch.sum(myink) > (ink-1e-4)
+
+    # share ink with the neighboring 4 pixels
+    x = stk[:,0]
+    y = stk[:,1]
+    xfloor = torch.floor(x)
+    yfloor = torch.floor(y)
+    xceil = torch.ceil(x)
+    yceil = torch.ceil(y)
+    x_c_ratio = x - xfloor
+    y_c_ratio = y - yfloor
+    x_f_ratio = 1 - x_c_ratio
+    y_f_ratio = 1 - y_c_ratio
+
+    # paint the image
+    pimg = seqadd(pimg, xfloor, yfloor, myink*x_f_ratio*y_f_ratio)
+    pimg = seqadd(pimg, xceil, yfloor, myink*x_c_ratio*y_f_ratio)
+    pimg = seqadd(pimg, xfloor, yceil, myink*x_f_ratio*y_c_ratio)
+    pimg = seqadd(pimg, xceil, yceil, myink*x_c_ratio*y_c_ratio)
+
+    return pimg, ink_off_page
+
+def broaden_and_blur(pimg, blur_sigma, parameters):
+    """
+    Apply broadening and blurring transformations to the image
+
+    Parameters
+    ----------
+    pimg : (h,w) tensor
+        current image probability map
+    blur_sigma : float
+        image blur value
+    parameters : defaultps
+        bpl parameters
+
+    Returns
+    -------
+    pimg : (h,w) tensor
+        updated image probability map
+    """
+    device = pimg.device
+
+    # filter the image to get the desired brush-stroke size
+    a = parameters.ink_a
+    b = parameters.ink_b
+    H_broaden = b*torch.tensor(
+        [[a/12, a/6, a/12],[a/6, 1-a, a/6],[a/12, a/6, a/12]],
+        dtype=torch.float,
+        device=device
+    )
+    for i in range(parameters.ink_ncon):
+        pimg = imfilter(pimg, H_broaden, mode='conv')
+
+    # store min and maximum pimg values for truncation
+    min_val = torch.tensor(0., dtype=torch.float, device=device)
+    max_val = torch.tensor(1., dtype=torch.float, device=device)
+
+    # truncate
+    pimg = torch.min(pimg, max_val)
+
+    # filter the image to get Gaussian
+    # noise around the area with ink
+    if blur_sigma > 0:
+        H_gaussian = fspecial(parameters.fsize, blur_sigma, ftype='gaussian')
+        H_gaussian = H_gaussian.to(device)
+        pimg = imfilter(pimg, H_gaussian, mode='conv')
+        pimg = imfilter(pimg, H_gaussian, mode='conv')
+
+    # final truncation
+    pimg = torch.min(pimg, max_val)
+    pimg = torch.max(pimg, min_val)
+
+    return pimg
+
+def render_image(strokes, epsilon, blur_sigma, parameters):
     """
     Render a list of stroke trajectories into a image probability map.
     Reference: BPL/misc/render_image.m
 
     Parameters
     ----------
-    cell_traj : (nsub_total,neval,2) tensor, or list of (neval,2) tensor
-        list of sub-strokes that make up the character
+    strokes : iterable of (neval,2) tensor
+        collection of strokes that make up the character
     epsilon : float
         image noise value
     blur_sigma : float
@@ -159,109 +286,29 @@ def render_image(cell_traj, epsilon, blur_sigma, parameters):
     ink_off_page : bool
         boolean indicating whether the ink went off the page
     """
-    # convert to image space
-    # Note: traj_img is still shape (nsub_total,neval,2)
-    device = cell_traj[0].device
-    traj_img = [space_motor_to_img(traj) for traj in cell_traj]
-
-    # get relevant parameters
-    imsize = parameters.imsize
-    ink = parameters.ink_pp.to(device)
-    max_dist = parameters.ink_max_dist.to(device)
-
-    # draw the trajectories on the image
-    pimg = torch.zeros(imsize, dtype=torch.float, device=device)
-    nsub_total = len(traj_img)
+    # initialize the image pixel map
+    device = strokes[0].device
+    pimg = torch.zeros(parameters.imsize, dtype=torch.float, device=device)
     ink_off_page = False
-    for i in range(nsub_total):
-        # get trajectory for current sub-stroke
-        myt = traj_img[i] # shape (neval,2)
-        # reduce trajectory to only those points that are in bounds
-        out = check_bounds(myt, imsize) # boolean; shape (neval,)
-        if out.any():
-            ink_off_page = True
-        if out.all():
-            continue
-        myt = myt[~out]
 
-        # compute distance between each trajectory point and the next one
-        if myt.shape[0] == 1:
-            myink = ink
-        else:
-            dist = pair_dist(myt) # shape (k,)
-            dist = torch.min(dist, max_dist)
-            dist = torch.cat([dist[:1], dist])
-            myink = (ink/max_dist)*dist # shape (k,)
+    # draw the strokes on the image
+    for stk in strokes:
+        pimg, ink_off_i = add_stroke(pimg, stk, parameters)
+        ink_off_page = ink_off_page or ink_off_i
 
-        # make sure we have the minimum amount of ink, if a particular
-        # trajectory is very small
-        sumink = torch.sum(myink)
-        if torch.abs(sumink) < 1e-6:
-            nink = myink.shape[0]
-            myink = (ink/nink)*torch.ones_like(myink)
-        elif sumink < ink:
-            myink = (ink/sumink)*myink
-        assert torch.sum(myink) > (ink-1e-4)
-
-        # share ink with the neighboring 4 pixels
-        x = myt[:,0]
-        y = myt[:,1]
-        xfloor = torch.floor(x)
-        yfloor = torch.floor(y)
-        xceil = torch.ceil(x)
-        yceil = torch.ceil(y)
-        x_c_ratio = x - xfloor
-        y_c_ratio = y - yfloor
-        x_f_ratio = 1 - x_c_ratio
-        y_f_ratio = 1 - y_c_ratio
-
-        # paint the image
-        pimg = seqadd(pimg, xfloor, yfloor, myink*x_f_ratio*y_f_ratio)
-        pimg = seqadd(pimg, xceil, yfloor, myink*x_c_ratio*y_f_ratio)
-        pimg = seqadd(pimg, xfloor, yceil, myink*x_f_ratio*y_c_ratio)
-        pimg = seqadd(pimg, xceil, yceil, myink*x_c_ratio*y_c_ratio)
-
-
-    # filter the image to get the desired brush-stroke size
-    a = parameters.ink_a
-    b = parameters.ink_b
-    ink_ncon = parameters.ink_ncon
-    H_broaden = b*torch.tensor(
-        [[a/12, a/6, a/12],[a/6, 1-a, a/6],[a/12, a/6, a/12]],
-        dtype=torch.float
-    )
-    H_broaden = H_broaden.to(device)
-    for i in range(ink_ncon):
-        pimg = imfilter(pimg, H_broaden, mode='conv')
-
-    # store min and maximum pimg values for truncation
-    min_val = torch.tensor(0., dtype=torch.float, device=device)
-    max_val = torch.tensor(1., dtype=torch.float, device=device)
-
-    # truncate
-    pimg = torch.min(pimg, max_val)
-
-    # filter the image to get Gaussian
-    # noise around the area with ink
-    if blur_sigma > 0:
-        fsize = parameters.fsize
-        H_gaussian = fspecial(fsize, blur_sigma, ftype='gaussian')
-        H_gaussian = H_gaussian.to(device)
-        pimg = imfilter(pimg, H_gaussian, mode='conv')
-        pimg = imfilter(pimg, H_gaussian, mode='conv')
-
-    # final truncation
-    pimg = torch.min(pimg, max_val)
-    pimg = torch.max(pimg, min_val)
+    # broaden and blur the image
+    pimg = broaden_and_blur(pimg, blur_sigma, parameters)
 
     # probability of each pixel being on
-    pimg = (1-epsilon)*pimg + epsilon*(1-pimg)
+    if epsilon > 0:
+        pimg = (1-epsilon)*pimg + epsilon*(1-pimg)
 
     return pimg, ink_off_page
 
 
+
 # ----
-# apply render
+# apply rendering to a character token
 # ----
 
 def apply_render(P, A, epsilon, blur_sigma, parameters):
