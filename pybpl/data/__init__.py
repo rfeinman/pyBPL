@@ -1,3 +1,6 @@
+"""
+The `data` module contains data processing functions.
+"""
 from .unif_space import unif_space
 from .unif_time import unif_time
 from .partition_stroke import partition_stroke

@@ -1,3 +1,3 @@
 """
-The util module contains utility functions.
+The `util` module contains utility functions.
 """
