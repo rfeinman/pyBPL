@@ -4,15 +4,14 @@ type distributions.
 """
 from __future__ import division, print_function
 from abc import ABCMeta, abstractmethod
-import warnings
 import torch
 import torch.distributions as dist
 
 from ..library import Library
-from ..relation import (RelationType, RelationIndependent, RelationAttach,
+from ..objects import (RelationType, RelationIndependent, RelationAttach,
                        RelationAttachAlong)
-from ..part import StrokeType
-from ..concept import ConceptType, CharacterType
+from ..objects import StrokeType
+from ..objects import ConceptType, CharacterType
 from ..splines import bspline_gen_s
 
 # list of acceptable dtypes for 'k' parameter

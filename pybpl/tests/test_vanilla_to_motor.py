@@ -3,7 +3,7 @@ import unittest
 import torch
 
 from ..library import Library
-from ..part import vanilla_to_motor
+from ..objects.part import vanilla_to_motor
 
 
 

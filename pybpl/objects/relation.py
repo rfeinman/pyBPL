@@ -7,7 +7,7 @@ from abc import ABCMeta, abstractmethod
 import torch
 
 from .part import PartToken
-from .splines import bspline_eval, bspline_gen_s
+from ..splines import bspline_eval, bspline_gen_s
 
 categories_allowed = ['unihist', 'start', 'end', 'mid']
 
