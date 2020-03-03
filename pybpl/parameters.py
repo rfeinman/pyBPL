@@ -32,6 +32,8 @@ class defaultps(object):
         self.ink_a = torch.tensor(0.5, dtype=torch.float)
         # parameter 2
         self.ink_b = torch.tensor(6, dtype=torch.float)
+        # broadening version (must be either "Lake" or "Hinton")
+        self.broaden_mode = 'Lake'
 
         ## blurring parameters
         # convolution size for blurring

@@ -234,7 +234,14 @@ def broaden_and_blur(pimg, blur_sigma, parameters):
     # filter the image to get the desired brush-stroke size
     a = parameters.ink_a
     b = parameters.ink_b
-    H_broaden = b*torch.tensor(
+    if parameters.broaden_mode == 'Lake':
+        h_scale = b
+    elif parameters.broaden_mode == 'Hinton':
+        h_scale = b*(1+a)
+    else:
+        raise Exception("'broaden_mode' must be either 'Lake' or 'Hinton'")
+
+    H_broaden = h_scale*torch.tensor(
         [[a/12, a/6, a/12],[a/6, 1-a, a/6],[a/12, a/6, a/12]],
         dtype=torch.float,
         device=device
