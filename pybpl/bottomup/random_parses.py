@@ -6,6 +6,8 @@ from .. import BPL_PATH
 
 
 def generate_random_parses(I, verbose=False):
+    if verbose:
+        print('starting matlab engine...')
     # start matlab engine
     eng = matlab.engine.start_matlab()
     # add BPL code to matlab path
@@ -13,6 +15,8 @@ def generate_random_parses(I, verbose=False):
     # add current directory to matlab path
     eng.addpath(os.path.dirname(__file__), nargout=0)
 
+    if verbose:
+        print('generating parses...')
     # convert image to matlab format
     I = matlab.logical(I.tolist())
     # call matlab function
