@@ -18,13 +18,13 @@ function S_walks = generate_random_parses_RF(I,verbose)
     end
     
     % Get character skeleton from the fast bottom-up method
-    G = extract_skeleton(I,verbose);
+    G = extract_skeleton(I);
     
     % Create a set of random parses through random walks
     ps = defaultps_bottomup;
     if verbose, fprintf(1,'\ngenerating random walks...\n'); end
     RW = RandomWalker(G);
-    PP = ProcessParses(I,lib,verbose);
+    PP = ProcessParsesRF(I,lib,verbose);
     
     % Add deterministic minimum angle walks
     for i=1:ps.nwalk_det
