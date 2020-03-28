@@ -11,6 +11,8 @@ from .parameters import defaultps
 from .util.general import least_squares
 from .util.stroke import dist_along_traj
 
+PM = defaultps()
+
 
 def vectorized_bspline_coeff(vi, vs):
     """
@@ -184,19 +186,15 @@ def get_stk_from_bspline(Y, neval=None):
 
     # if `neval` is None, set it adaptively according to stroke size
     if neval is None:
-        params = defaultps()
-        min_neval = params.spline_min_neval
-        max_neval = params.spline_max_neval
-        spl_grain = params.spline_grain
         # check the stroke size
-        s, _, _ = bspline_gen_s(nland, max_neval)
+        s, _, _ = bspline_gen_s(nland, PM.spline_max_neval)
         stk, _ = bspline_eval(s, Y)
         dist = dist_along_traj(stk)
         # set neval based on stroke size
-        neval = math.ceil(dist/spl_grain)
+        neval = math.ceil(dist/PM.spline_grain)
         # threshold
-        neval = max(neval, min_neval)
-        neval = min(neval, max_neval)
+        neval = max(neval, PM.spline_min_neval)
+        neval = min(neval, PM.spline_max_neval)
 
     # generate time points
     s, _, _ = bspline_gen_s(nland, neval)
