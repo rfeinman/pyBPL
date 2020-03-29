@@ -8,6 +8,7 @@ from .util.general import sub2ind, fspecial, imfilter
 from .util.stroke import com_char, affine_warp
 
 
+space_flip = torch.tensor([-1.,1.])
 
 # ----
 # render the image
@@ -53,17 +54,10 @@ def pair_dist(D):
     z : (k-1,) tensor
         list of distances
     """
-    assert isinstance(D, torch.Tensor)
+    assert torch.is_tensor(D)
     assert len(D.shape) == 2
     assert D.shape[1] == 2
-    x1 = D[:-1]
-    x2 = D[1:]
-    z = torch.sqrt(
-        torch.sum(
-            torch.pow(x1-x2, 2),
-            dim=1
-        )
-    )
+    z = torch.norm(D[1:]-D[:-1], dim=-1)
 
     return z
 
@@ -131,8 +125,8 @@ def space_motor_to_img(pt):
     new_pt : (...,neval,2) tensor
         image point sequence for each sub-stroke
     """
-    assert isinstance(pt, torch.Tensor)
-    new_pt = torch.stack([-pt[...,1], pt[...,0]], dim=-1)
+    assert torch.is_tensor(pt)
+    new_pt = torch.flip(pt, dims=[-1])*space_flip
 
     return new_pt
 
