@@ -82,11 +82,11 @@ def seqadd(D, lind_x, lind_y, inkval):
         image with ink added to it
     """
     assert len(lind_x) == len(lind_y) == len(inkval)
-    lind = torch.stack([lind_x, lind_y], dim=1)
     imsize = D.shape
 
     # keep only the adding points that are in bounds
-    out = check_bounds(lind, imsize=D.shape)
+    lind_stack = torch.stack([lind_x, lind_y], dim=-1)
+    out = check_bounds(lind_stack, imsize=imsize)
     lind_x = lind_x[~out].long()
     lind_y = lind_y[~out].long()
     inkval = inkval[~out]
@@ -183,10 +183,10 @@ def add_stroke(pimg, stk, parameters):
     # share ink with the neighboring 4 pixels
     x = stk[:,0]
     y = stk[:,1]
-    xfloor = torch.floor(x)
-    yfloor = torch.floor(y)
-    xceil = torch.ceil(x)
-    yceil = torch.ceil(y)
+    xfloor = torch.floor(x).detach()
+    yfloor = torch.floor(y).detach()
+    xceil = torch.ceil(x).detach()
+    yceil = torch.ceil(y).detach()
     x_c_ratio = x - xfloor
     y_c_ratio = y - yfloor
     x_f_ratio = 1 - x_c_ratio
