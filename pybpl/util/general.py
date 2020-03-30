@@ -95,15 +95,11 @@ def sub2ind(shape, rows, cols):
     index : (n,) tensor
     """
     # checks
-    assert isinstance(shape, torch.Size) or \
-           isinstance(shape, list) or \
-           isinstance(shape, tuple)
+    assert isinstance(shape, tuple) or isinstance(shape, list)
     assert isinstance(rows, torch.Tensor) and len(rows.shape) == 1
     assert isinstance(cols, torch.Tensor) and len(cols.shape) == 1
     assert len(rows) == len(cols)
-    valid_rows = rows < shape[0]
-    valid_cols = cols < shape[1]
-    assert valid_cols.all() and valid_cols.all()
+    assert torch.all(rows < shape[0]) and torch.all(cols < shape[1])
     if not len(shape) == 2:
         raise NotImplementedError('only implemented for 2D case.')
     # compute inds

@@ -82,31 +82,26 @@ def seqadd(D, lind_x, lind_y, inkval):
         image with ink added to it
     """
     assert len(lind_x) == len(lind_y) == len(inkval)
-    # check if any adding points are out of bounds
     lind = torch.stack([lind_x, lind_y], dim=1)
-    out = check_bounds(lind, imsize=(D.shape[0]-1, D.shape[1]-1))
+    imsize = D.shape
+
     # keep only the adding points that are in bounds
+    out = check_bounds(lind, imsize=(D.shape[0]-1, D.shape[1]-1))
     lind_x = lind_x[~out].long()
     lind_y = lind_y[~out].long()
     inkval = inkval[~out]
+
     # return D if all adding points are out of bounds
     if len(lind_x) == 0:
         return D
-    # store the original shape of the image and then flatten it from 2D to 1D
-    shape = D.shape
+
+    # flatten x-y indices
+    lind = sub2ind(imsize, lind_x, lind_y).to(inkval.device)
+
+    # add to image
     D = D.view(-1)
-    # convert the indices from 2D to 1D
-    lind = sub2ind(shape, lind_x, lind_y).to(inkval.device)
-    # create a zeros vector of same size as inkval. needed for next step
-    zero = torch.zeros_like(inkval)
-    # sum all inkvals with same index
-    lind_unique = torch.unique(lind)
-    inkval_unique = torch.stack(
-        [torch.sum(torch.where(lind==i, inkval, zero)) for i in lind_unique]
-    )
-    D = D.scatter_add(0,lind_unique,inkval_unique)
-    # reshape the image back to 2D from 1D
-    D = D.view(shape)
+    D = D.scatter_add(0, lind, inkval)
+    D = D.view(imsize)
 
     return D
 
