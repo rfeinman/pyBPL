@@ -173,7 +173,7 @@ def add_stroke(pimg, stk, parameters):
     # make sure we have the minimum amount of ink, if a particular
     # trajectory is very small
     sumink = torch.sum(myink)
-    if torch.abs(sumink) < 1e-6:
+    if sumink < 2.22e-6:
         nink = myink.shape[0]
         myink = (ink/nink)*torch.ones_like(myink)
     elif sumink < ink:
