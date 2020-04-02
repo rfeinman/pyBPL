@@ -134,7 +134,7 @@ def imfilter(A, h, mode='conv'):
 
     return A_filt
 
-def fspecial(hsize, sigma, ftype='gaussian'):
+def fspecial(hsize, sigma, ftype='gaussian', device=None):
     """
     Implementation of MATLAB's "fspecial" function for option ftype='gaussian'.
     Calculate the 2-dimensional gaussian kernel which is the product of two
@@ -148,16 +148,10 @@ def fspecial(hsize, sigma, ftype='gaussian'):
     """
     if not ftype == 'gaussian':
         raise NotImplementedError("Only Gaussain kernel implemented.")
-    assert isinstance(hsize, int)
-    if isinstance(sigma, torch.Tensor):
-        assert sigma.shape == torch.Size([])
-        assert sigma.dtype == torch.float
-    else:
-        assert isinstance(sigma, float) or isinstance(sigma, int)
     assert hsize % 2 == 1, 'Image size must be odd'
 
     # create a x, y coordinate grid of shape (kernel_size, kernel_size, 2)
-    x_cord = torch.arange(hsize, dtype=torch.float)
+    x_cord = torch.arange(hsize, dtype=torch.float, device=device)
     x_grid = x_cord.repeat(hsize).view(hsize, hsize)
     y_grid = x_grid.t()
     xy_grid = torch.stack([x_grid, y_grid], dim=-1)
