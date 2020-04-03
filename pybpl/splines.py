@@ -11,23 +11,36 @@ from .parameters import defaultps
 from .util.general import least_squares
 from .util.stroke import dist_along_traj
 
+
+
 PM = defaultps()
 
 
+def get_vi(neval, nland, device=None):
+    vi = torch.arange(nland, dtype=torch.float, device=device)
+    vi = vi.unsqueeze(0).expand(neval, nland)
+    return vi
+
+def s_to_vs(s, nland):
+    vs = s.unsqueeze(1).expand(s.size(0),nland)
+    return vs
+
 def vectorized_bspline_coeff(vi, vs):
     """
-    TODO: what does this do exactly?
+    Compute spline coefficient matrix
     see Kristin Branson's "A Practical Review of Uniform B-splines"
 
     Parameters
     ----------
-    vi : (neval,nland) tensor
-    vs : (neval,nland) tensor
+    vi : torch.Tensor
+        [neval,nland] spline evaluation indices
+    vs : torch.Tensor
+        [neval,nland] spline evaluation times
 
     Returns
     -------
-    C : (neval,nland)
-        coefficients
+    C : torch.Tensor
+        [neval,nland] spline coefficient matrix
     """
     assert vi.shape == vs.shape
     assert vi.dtype == vs.dtype
@@ -59,7 +72,7 @@ def vectorized_bspline_coeff(vi, vs):
 
     return C
 
-def bspline_gen_s(nland, neval=200):
+def bspline_gen_s(nland, neval=200, device=None):
     """
     Generate time points for evaluating spline.
     The convex-combination of the endpoints with five control points are 80
@@ -74,17 +87,19 @@ def bspline_gen_s(nland, neval=200):
 
     Returns
     -------
-    s : (neval,) tensor
-        time points for spline eval
-    lb : TODO
-    ub : TODO
+    s : torch.Tensor
+        [neval,] time points for spline eval
+    lb : float
+        lower bound
+    ub : float
+        upper bound
     """
-    lb = torch.tensor(2, dtype=torch.float)
-    ub = torch.tensor(nland+1, dtype=torch.float)
+    lb = 2.
+    ub = float(nland+1)
     if neval == 1:
-        s = torch.tensor([lb], dtype=torch.float)
+        s = torch.tensor([lb], dtype=torch.float, device=device)
     else:
-        s = torch.linspace(lb, ub, neval)
+        s = torch.linspace(lb, ub, neval, device=device)
 
     return s, lb, ub
 
@@ -94,17 +109,15 @@ def bspline_eval(s, Y):
 
     Parameters
     ----------
-    s : (neval,) tensor
-        time points for spline eval
-    Y : (nland,2) tensor
-        input spline (control points)
+    s : torch.Tensor
+        [neval,] time points for spline eval
+    Y : torch.Tensor
+        [nland,2] input spline (control points)
 
     Returns
     -------
-    X : (neval,2) tensor
-        output trajectory
-    Cof : (neval, nland) tensor
-        TODO
+    X : torch.Tensor
+        [neval,2] output trajectory
     """
     if s.shape == torch.Size([]):
         s = s.view(1)
@@ -114,15 +127,14 @@ def bspline_eval(s, Y):
     nland = Y.shape[0]
 
     # compute spline coefficients
-    S = s.unsqueeze(1).repeat(1,nland) # (neval, nland)
-    I = torch.arange(nland).unsqueeze(0).repeat(neval, 1).float() # (neval, nland)
+    S = s_to_vs(s, nland) # (neval, nland)
+    I = get_vi(neval, nland, device=Y.device) # (neval, nland)
     A = vectorized_bspline_coeff(I, S) # (neval, nland)
     Cof = A / torch.sum(A, dim=1, keepdim=True) # (neval, nland)
 
-    # (neval,nland) @ (nland,2) = (neval,2)
-    X = Cof @ Y
+    X = Cof @ Y # (neval,nland) @ (nland,2) = (neval,2)
 
-    return X, Cof
+    return X
 
 def bspline_fit(s, X, nland, include_resid=False):
     """
@@ -130,10 +142,10 @@ def bspline_fit(s, X, nland, include_resid=False):
 
     Parameters
     ----------
-    s : (neval,) tensor
-        time points for spline eval
-    X : (neval,2) tensor
-        input trajectory
+    s : torch.Tensor
+        [neval,] time points for spline eval
+    X : torch.Tensor
+        [neval,2] input trajectory
     nland : int
         number of landmarks (control points) for the spline
     include_resid : bool
@@ -141,17 +153,17 @@ def bspline_fit(s, X, nland, include_resid=False):
 
     Returns
     -------
-    Y : (nland,2) tensor
-        output spline
-    residuals : (2,) tensor
-        (optional) residuals of the least-squares problem
+    Y : torch.Tensor
+        [nland,2] output spline
+    residuals : torch.Tensor
+        [2,] residuals of the least-squares problem (optional)
     """
     neval = s.size(0)
     assert X.shape == (neval, 2)
 
     # compute spline coefficients
-    S = s.unsqueeze(1).repeat(1,nland) # (neval, nland)
-    I = torch.arange(nland).unsqueeze(0).repeat(neval, 1).float() # (neval, nland)
+    S = s_to_vs(s, nland) # (neval, nland)
+    I = get_vi(neval, nland, device=X.device) # (neval, nland)
     A = vectorized_bspline_coeff(I, S) # (neval, nland)
     Cof = A / torch.sum(A, dim=1, keepdim=True) # (neval, nland)
 
@@ -170,15 +182,15 @@ def get_stk_from_bspline(Y, neval=None):
 
     Parameters
     ----------
-    Y : (nland,2) tensor
-        input spline (control points)
+    Y : torch.Tensor
+        [nland,2] input spline (control points)
     neval : int
-        number of eval points
+        number of eval points (optional)
 
     Returns
     -------
-    X : (neval,2) tensor
-        output trajectory
+    X : torch.Tensor
+        [neval,2] output trajectory
     """
     assert isinstance(Y, torch.Tensor)
     assert len(Y.shape) == 2 and Y.shape[1] == 2
@@ -187,8 +199,8 @@ def get_stk_from_bspline(Y, neval=None):
     # if `neval` is None, set it adaptively according to stroke size
     if neval is None:
         # check the stroke size
-        s, _, _ = bspline_gen_s(nland, PM.spline_max_neval)
-        stk, _ = bspline_eval(s, Y.detach())
+        s, _, _ = bspline_gen_s(nland, PM.spline_max_neval, device=Y.device)
+        stk = bspline_eval(s, Y.detach())
         dist = dist_along_traj(stk)
         # set neval based on stroke size
         neval = math.ceil(dist/PM.spline_grain)
@@ -197,9 +209,9 @@ def get_stk_from_bspline(Y, neval=None):
         neval = min(neval, PM.spline_max_neval)
 
     # generate time points
-    s, _, _ = bspline_gen_s(nland, neval)
+    s, _, _ = bspline_gen_s(nland, neval, device=Y.device)
     # compute trajectory
-    X, _ = bspline_eval(s, Y)
+    X = bspline_eval(s, Y)
 
     return X
 
@@ -210,8 +222,8 @@ def fit_bspline_to_traj(X, nland, include_resid=False):
 
     Parameters
     ----------
-    X : (neval,2) tensor
-        input trajectory
+    X : torch.Tensor
+        [neval,2] input trajectory
     nland : int
         number of landmarks (control points)
     include_resid : bool
@@ -219,16 +231,16 @@ def fit_bspline_to_traj(X, nland, include_resid=False):
 
     Returns
     -------
-    Y : (nland,2) tensor
-        output spline
-    residuals : (2,) tensor
-        (optional) residuals of the least-squares problem
+    Y : torch.Tensor
+        [neval,2] output spline
+    residuals : torch.Tensor
+        [2,] residuals of the least-squares problem (optional)
     """
     assert isinstance(X, torch.Tensor)
     assert len(X.shape) == 2 and X.shape[1] == 2
 
     # generate time points
-    s, _, _ = bspline_gen_s(nland, neval=len(X))
+    s, _, _ = bspline_gen_s(nland, neval=len(X), device=X.device)
     # compute spline
     if include_resid:
         Y, residuals = bspline_fit(s, X, nland, include_resid=True)
