@@ -18,11 +18,11 @@ PM = defaultps()
 
 def get_vi(neval, nland, device=None):
     vi = torch.arange(nland, dtype=torch.float, device=device)
-    vi = vi.unsqueeze(0).expand(neval, nland)
+    vi = vi.unsqueeze(0).repeat(neval,1)
     return vi
 
 def s_to_vs(s, nland):
-    vs = s.unsqueeze(1).expand(s.size(0),nland)
+    vs = s.unsqueeze(1).repeat(1,nland)
     return vs
 
 def vectorized_bspline_coeff(vi, vs):
