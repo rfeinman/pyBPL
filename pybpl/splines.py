@@ -4,6 +4,7 @@ B-splines utilities. For reference material on B-splines, see Kristin Branson's
 http://vision.ucsd.edu/~kbranson/research/bsplines/bsplines.pdf
 """
 from __future__ import division, print_function
+import functools
 import math
 import torch
 
@@ -16,15 +17,18 @@ from .util.stroke import dist_along_traj
 PM = defaultps()
 
 
+@functools.lru_cache(maxsize=128)
 def get_vi(neval, nland, device=None):
     vi = torch.arange(nland, dtype=torch.float, device=device)
     vi = vi.unsqueeze(0).repeat(neval,1)
     return vi
 
+@functools.lru_cache(maxsize=128)
 def s_to_vs(s, nland):
     vs = s.unsqueeze(1).repeat(1,nland)
     return vs
 
+@functools.lru_cache(maxsize=128)
 def vectorized_bspline_coeff(vi, vs):
     """
     Compute spline coefficient matrix
@@ -72,6 +76,7 @@ def vectorized_bspline_coeff(vi, vs):
 
     return C
 
+@functools.lru_cache(maxsize=128)
 def bspline_gen_s(nland, neval=200, device=None):
     """
     Generate time points for evaluating spline.
