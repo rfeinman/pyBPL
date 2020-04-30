@@ -70,9 +70,8 @@ classdef ProcessParsesRF < BetterHandle
            end
            
            % Finish the processing
-           this.smooth;
+           %this.smooth;
            this.convert_space;
-            
         end
         
         % Return the list of random walks, now potentially

@@ -1,9 +1,9 @@
 % Mostly bottom-up method for generating a set
 % See https://github.com/brendenlake/BPL/blob/master/bottomup/generate_random_parses.m
-function S_walks = generate_random_parses_RF(I,verbose)
-    if ~exist('verbose','var')
-       verbose = false; 
-    end    
+function S_walks = generate_random_parses_RF(I,seed)
+    if exist('seed', 'var')
+        rng(seed);
+    end
 
     ps = defaultps;
     load(ps.libname,'lib');
@@ -22,9 +22,8 @@ function S_walks = generate_random_parses_RF(I,verbose)
     
     % Create a set of random parses through random walks
     ps = defaultps_bottomup;
-    if verbose, fprintf(1,'\ngenerating random walks...\n'); end
     RW = RandomWalker(G);
-    PP = ProcessParsesRF(I,lib,verbose);
+    PP = ProcessParsesRF(I,lib,false);
     
     % Add deterministic minimum angle walks
     for i=1:ps.nwalk_det
@@ -37,14 +36,7 @@ function S_walks = generate_random_parses_RF(I,verbose)
         list_walks = RW.sample(1);
         PP.add(list_walks{1});
         walk_count = walk_count + 1;
-        if verbose && mod(walk_count,5)==0
-            fprintf(1,'%d,',walk_count);
-            if mod(walk_count,20)==0
-               fprintf(1,'\n'); 
-            end
-        end
     end
-    if verbose, fprintf(1,'done.\n'); end
 
     PP.freeze;
     S_walks = PP.get_S;
