@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 from scipy.interpolate import interp1d
 
 
@@ -9,7 +10,7 @@ def unif_space(stroke, dist_int=1.):
 
     Parameters
     ----------
-    stroke : np.ndarray
+    stroke : np.ndarray | torch.Tensor
         (n,2) input stroke
     space_int : float
         space interval; we want approximately this much euclidean distance
@@ -20,6 +21,11 @@ def unif_space(stroke, dist_int=1.):
     new_stroke : np.ndarray
         (m,2) interpolated stroke
     """
+    is_tensor = False
+    if torch.is_tensor(stroke):
+        stroke = stroke.numpy()
+        is_tensor = True
+
     num_steps = len(stroke)
 
     # return if stroke is too short
@@ -52,5 +58,8 @@ def unif_space(stroke, dist_int=1.):
     new_stroke = np.zeros((nint,2))
     new_stroke[:,0] = fx(query_points)
     new_stroke[:,1] = fy(query_points)
+
+    if is_tensor:
+        new_stroke = torch.from_numpy(new_stroke).float()
 
     return new_stroke
