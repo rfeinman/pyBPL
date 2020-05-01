@@ -15,5 +15,13 @@ LIB_DATA_PATH = os.path.join(
     'lib_data'
 )
 
-# path to BPL matlab repository. must be set by user
-BPL_PATH = '/Users/rfeinman/src/BayesianProgramLearning/BPL'
+# path to BPL matlab repository (https://github.com/brendenlake/BPL)
+# must be set by user
+if 'BPL_PATH' in os.environ:
+    BPL_PATH = os.environ['BPL_PATH']
+elif os.path.exists('/Users/rfeinman'):
+    BPL_PATH = '/Users/rfeinman/src/BayesianProgramLearning/BPL'
+elif os.path.exists('/home/feinman'):
+    BPL_PATH = '/home/feinman/src/BPL'
+else:
+    raise Exception('BPL_PATH environment variable must be set by user')
