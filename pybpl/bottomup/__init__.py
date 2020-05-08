@@ -1,1 +1,1 @@
-from .random_parses import generate_random_parses
+from .generate_random_parses_m import generate_random_parses
