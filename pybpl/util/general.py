@@ -9,10 +9,10 @@ def least_squares(a, b, rcond=None):
 
     Parameters
     ----------
-    a : (m,n) tensor
-        "Coefficient" matrix
-    b : (m,) or (m,k) tensor
-        Ordinate or "dependent variable" values
+    a : torch.Tensor
+        (m,n) "Coefficient" matrix
+    b : torch.Tensor
+        (m,) or (m,k) "dependent variable" values
     rcond : float
         Cutt-off ratio for small singular values of a. For the
         purposes of rank determination, singular values are treated
@@ -22,17 +22,17 @@ def least_squares(a, b, rcond=None):
 
     Returns
     -------
-    x : (n,) or (n,k) tensor
-        Least-squares solution
-    residuals: (1,) or (k,) or (0,) tensor
-        Sums of residuals; squared Euclidean 2-norm for each column
-        in b - a*x. If rank(a) < n or m <= n, this is an empty
-        array. If b is 1-dimensional, this is a (1,) shape array.
-        Otherwise the shape is (k,)
+    x : torch.Tensor
+        (n,) or (n,k) least-squares solution
+    residuals: torch.Tensor
+        (1,) or (k,) or (0,) sums of residuals; squared Euclidean 2-norm for
+        each column in b - a*x. If rank(a) < n or m <= n, this is an empty
+        array. If b is 1-dimensional, this is a (1,) shape array. Otherwise
+        the shape is (k,).
     rank : int
-        Rank of matrix a
-    s : (min(m,n),) tensor
-        Singular values of matrix a
+        rank of matrix a
+    s : torch.Tensor
+        (min(m,n),) singular values of matrix a
 
     """
     m,n = a.shape
@@ -55,15 +55,18 @@ def ind2sub(shape, index):
 
     Parameters
     ----------
-    shape : torch.Size or list or tuple
-        shape of the hypothetical 2D matrix
-    index : (n,) tensor
-        indices to convert
+    shape : torch.Size | list | tuple
+        shape of the 2D matrix
+    index : torch.Tensor
+        (n,) linear indices
 
     Returns
     -------
-    rows : (n,) tensor
-    cols : (n,) tensor
+    rows : torch.Tensor
+        (n,) row subscripts
+    cols : torch.Tensor
+        (n,) column subscripts
+
     """
     # checks
     assert isinstance(shape, torch.Size) or \
@@ -86,13 +89,17 @@ def sub2ind(shape, rows, cols):
 
     Parameters
     ----------
-    shape : torch.Size or list or tuple
-    rows : (n,) tensor
-    cols : (n,) tensor
+    shape : torch.Size | list | tuple
+        shape of the 2D matrix
+    rows : torch.Tensor
+        (n,) row subscripts
+    cols : torch.Tensor
+        (n,) column subscripts
 
     Returns
     -------
-    index : (n,) tensor
+    index : torch.Tensor
+        (n,) linear indices
     """
     # checks
     assert isinstance(shape, tuple) or isinstance(shape, list)
@@ -112,9 +119,20 @@ def imfilter(A, h, mode='conv'):
     """
     A PyTorch implementation of MATLAB's "imfilter" function
 
-    :param A: [(m,n) tensor] image
-    :param h: [(k,l) tensor] filter kernel
-    :return:
+    Parameters
+    ----------
+    A : torch.Tensor
+        (m,n) image
+    h : torch.Tensor
+        (k,l) filter kernel
+    mode : str
+        filter mode. only 'conv' is supported right now.
+
+    Returns
+    -------
+    A_filt : torch.Tensor
+        (m,n) filtered image
+
     """
     if not mode == 'conv':
         raise NotImplementedError("Only 'conv' mode imfilter implemented.")
@@ -139,12 +157,25 @@ def fspecial(hsize, sigma, ftype='gaussian', device=None):
     Implementation of MATLAB's "fspecial" function for option ftype='gaussian'.
     Calculate the 2-dimensional gaussian kernel which is the product of two
     gaussian distributions for two different variables (in this case called
-    x and y)
+    x and y).
 
-    :param hsize:
-    :param sigma:
-    :param ftype:
-    :return:
+    Parameters
+    ----------
+    hsize : int
+        kernel window size (must be odd). Returned kernel will be a 2D matrix
+        of size (hsize, hsize)
+    sigma : float
+        standard deviation of the gaussian kernel
+    ftype : str
+        filter type. only default 'gaussian' is supported currently
+    device : torch.device
+        device to initialize the filter kernel on
+
+    Returns
+    -------
+    kernel : torch.Tensor
+        (hsize, hsize) gaussian kernel
+
     """
     if not ftype == 'gaussian':
         raise NotImplementedError("Only Gaussain kernel implemented.")
@@ -190,21 +221,3 @@ def aeq(x, y, tol=2.22e-6):
         r = diff < tol
 
     return r
-
-def inspect_dir(dir_name):
-    raise NotImplementedError
-
-def makestr(varargin):
-    raise NotImplementedError
-
-def rand_discrete(vcell, wts):
-    raise NotImplementedError
-
-def rand_reset():
-    raise NotImplementedError
-
-def randint(m, n, rg):
-    raise NotImplementedError
-
-def sptight(nrow, ncol, indx):
-    raise NotImplementedError

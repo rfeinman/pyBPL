@@ -8,11 +8,13 @@ def dist_along_traj(stk):
 
     Parameters
     ----------
-    stk : (n,2) array or tensor
+    stk : torch.Tensor | np.ndarray
+        (n,2) stroke trajectory
 
     Returns
     -------
     total_dist : float
+        distance along the stroke trajectory
 
     """
     assert stk.shape[1] == 2
@@ -31,13 +33,18 @@ def remove_short_stks(slist, minlen, mindist):
 
     Parameters
     ----------
-    slist
-    minlen
-    mindist
+    slist : list[np.ndarray] | list[torch.Tensor]
+        list of strokes
+    minlen : int
+        minimum number of stroke coordinates
+    mindist : float
+        minimum stroke trajectory distance
 
     Returns
     -------
-    slist_new
+    slist_new : list[np.ndarray] | list[torch.Tensor]
+        list of strokes (filtered)
+
     """
     slist_new = []
     for stk in slist:
@@ -57,14 +64,19 @@ def normalize_stk(stk, newscale=105.):
 
     Parameters
     ----------
-    stk : (n,2) array or tensor
+    stk : np.ndarray | torch.Tensor
+        (n,2) stroke trajectory
     newscale : float
+        target scale for the stroke
 
     Returns
     -------
-    stk : (n,2) array
-    center : (2,) array
+    stk : np.ndarray | torch.Tensor
+        (n,2) normalized stroke
+    center : np.ndarray | torch.Tensor
+        (2,) stroke center-of-mass
     invscale : float
+        inverse of stroke scale (1/scale)
 
     """
     # subtract center of mass
@@ -89,12 +101,15 @@ def affine_warp(stk, affine):
     """
     Parameters
     ----------
-    stk : (n,2) tensor
-    affine : (4,) tensor
+    stk : np.ndarray | torch.Tensor
+        (n,2) stroke trajectory
+    affine : np.ndarray | torch.Tensor
+        (4,) affine parameter vector
 
     Returns
     -------
-    stk : (n,2) tensor
+    stk : np.ndarray | torch.Tensor
+        (n,2) warped stroke trajectory
 
     """
     stk = stk * affine[:2] + affine[2:]
@@ -106,13 +121,14 @@ def com_stk(stk):
 
     Parameters
     ----------
-    stk : (ncpt, 2) tensor
-        stroke
+    stk : np.ndarray | torch.Tensor
+        (n,2) stroke trajectory
 
     Returns
     -------
-    center : (2,) tensor
-        center of mass
+    center : np.ndarray | torch.Tensor
+        (2,) stroke center-of-mass
+
     """
     center = stk.mean(0)
     return center
@@ -123,13 +139,14 @@ def com_char(char):
 
     Parameters
     ----------
-    char : (nsub_total, ncpt, 2) tensor
-        the substrokes that define the character
+    char : torch.Tensor
+        (nsub_total, ncpt, 2) substrokes that define the character
 
     Returns
     -------
-    center : (2,) tensor
-        center of mass of the character
+    center : torch.Tensor
+        (2,) character center-of-mass
+
     """
     char = char.view(-1,2) # (nsub_total*2, 2)
     center = char.mean(0) # (2,)
