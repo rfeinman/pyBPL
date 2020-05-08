@@ -2,7 +2,7 @@
 
 pyBPL is a package of tools to implement Bayesian Program Learning (BPL) in Python 3
 using PyTorch backend. The original BPL implementation was written in MATLAB (see Lake et al. 2015 "Human-level concept learning through
-probabilistic program induction" and the [original BPL repository](https://github.com/brendenlake/BPL)). I'm a Ph.D. student with Brenden Lake and I've developed this modern implementation to use with our ongoing research projects.
+probabilistic program induction" and the [original BPL repository](https://github.com/brendenlake/BPL)). I'm a Ph.D. student with Brenden Lake and I've developed this modern implementation to use for our ongoing research projects.
 
 The key contributions of this repository are:
 1. A fully-differentiable implementation of the original BPL character learning tools including symbolic rendering, spline fitting/evaluation, and model scoring (log-likelihoods).
