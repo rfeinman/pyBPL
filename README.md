@@ -92,9 +92,26 @@ strokes you would like the generated character type to have.
 #### General
 
 All functions required to sample character types, tokens and images are now
-complete. Currently, independent relations sample their position from a uniform distribution over the entire image window by default. To use the original spatial histogram from BPL, make sure to load the Library object with `use_hist=True`. Note, however, that log-likelihoods for spatial histograms are not differentiable.
+complete. 
+Currently, independent relations sample their position from a uniform distribution over the entire image window by default. 
+To use the original spatial histogram from BPL, make sure to load the Library object with `use_hist=True`. 
+Note, however, that log-likelihoods for spatial histograms are not differentiable.
 
-The bottum-up methods for proposing character parses for an image have not yet been re-implemented in Python. However, I have provided some wrapper functions in `pybpl.bottumup` that call the original matlab code using the [MATLAB Engine API for Python](https://www.mathworks.com/help/matlab/matlab-engine-for-python.html). You must have the MATLAB bindings installed to use this code.
+My Python implementations of the bottum-up image parsing algorithms are not yet complete (HELP WANTED! see `pybpl.bottomup` for current status).
+However, I have provided some wrapper functions in that call the original matlab code using the [MATLAB Engine API for Python](https://www.mathworks.com/help/matlab/matlab-engine-for-python.html). 
+You must have the MATLAB bindings installed to use this code. With the bindings installed, you can run the parser as follows:
+
+```python
+import numpy as np
+from pybpl.bottomup import generate_random_parses
+
+# load your binary image
+I = np.zeros((105,105), dtype=np.bool) 
+
+# call bottum-up parser (optional random seed for reproducibility)
+parses = generate_random_parses(I, seed=3)
+```
+
 
 #### Library
 
@@ -108,10 +125,15 @@ obtain this folder of files. For an example of how to load the library, see
 `examples/generate_character.py`.
 
 
-## Unit Tests
-Unit tests are found in the `pybpl.tests` module. They can be run using
-`python -m`. For example, to run the test `test_general_util.py`, use the
-following command:
+## Citing
+If you use pyBPL for your research, you are encouraged (though not required) to use the following BibTeX reference:
+
 ```
-python -m pybpl.tests.test_general_util
+@misc{feinman2020pybpl,
+    title={{pyBPL}},
+    author={Feinman, Reuben},
+    year={2020},
+    version={0.1},
+    url={https://github.com/rfeinman/pyBPL}
+}
 ```
