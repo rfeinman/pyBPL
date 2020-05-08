@@ -1,11 +1,12 @@
 # pyBPL: Python-based Bayesian Program Learning
 
-pyBPL is a Python 3 package to implement Bayesian Program Learning (BPL)
-using PyTorch backend. The BPL framework has been generalized to work with
-various types of concepts. Character learning with Omniglot is one
-manifestation of the BPL framework, and it is included here as the preliminary
-use case (see Lake et al. 2015 "Human-level concept learning through
-probabilistic program induction" and the [original BPL repository](https://github.com/brendenlake/BPL)).
+pyBPL is a package of tools to implement Bayesian Program Learning (BPL) in Python 3
+using PyTorch backend. The original BPL implementation was written in MATLAB (see Lake et al. 2015 "Human-level concept learning through
+probabilistic program induction" and the [original BPL repository](https://github.com/brendenlake/BPL)). I'm a Ph.D. student with Brenden Lake and I've developed this modern implementation to use with our ongoing research projects.
+
+The key contributions of this repository are:
+1. A fully-differentiable implementation of the original BPL character learning tools including symbolic rendering, spline fitting/evaluation, and model scoring (log-likelihoods).
+2. A generalized framework for BPL that can work with various types of concepts. Character learning is one manifestation of the BPL framework, and it is included here as the preliminary use case.
 
 
 
@@ -31,6 +32,7 @@ following commands from the root folder:
 cd docs/
 make html
 ```
+NOTE: documentation build is broken right now, needs to be fixed. Help wanted!
 
 ## Usage Example
 
@@ -42,7 +44,7 @@ from pybpl.library import Library
 from pybpl.model import CharacterModel
 
 # load the hyperparameters of the BPL graphical model (i.e. the "library")
-lib = Library(lib_dir='/path/to/lib_dir')
+lib = Library(lib_dir='/path/to/lib_dir', use_hist=True)
 
 # create the BPL graphical model
 model = CharacterModel(lib)
@@ -90,7 +92,9 @@ strokes you would like the generated character type to have.
 #### General
 
 All functions required to sample character types, tokens and images are now
-complete. Currently, independent relations sample their position from a uniform distribution over the entire image window. This must be updated to reflect the actual spatial distributions of each stroke id (a hyperparameter of the BPL model). Inference algorithms are in the works. 
+complete. Currently, independent relations sample their position from a uniform distribution over the entire image window by default. To use the original spatial histogram from BPL, make sure to load the Library object with `use_hist=True`. Note, however, that log-likelihoods for spatial histograms are not differentiable.
+
+The bottum-up methods for proposing character parses for an image have not yet been re-implemented in Python. However, I have provided some wrapper functions in `pybpl.bottumup` that call the original matlab code using the [MATLAB Engine API for Python](https://www.mathworks.com/help/matlab/matlab-engine-for-python.html). You must have the MATLAB bindings installed to use this code.
 
 #### Library
 
@@ -99,7 +103,7 @@ model. These parameters have been learned from the Omniglot dataset.
 The library data is stored as a 
 series of `.mat` files in the subfolder `lib_data/`. 
 I've included a Matlab script, `process_library.m`, which can be
-run inside the [original BPL repository](https://github.com/brendenlake/BPL) to 
+run inside the original BPL repository to 
 obtain this folder of files. For an example of how to load the library, see
 `examples/generate_character.py`.
 
