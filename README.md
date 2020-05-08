@@ -11,7 +11,7 @@ probabilistic program induction" and the [original BPL repository](https://githu
 
 ## Setup
 
-This code repository requires PyTorch >= 0.4.0. A full list of requirements can
+This code repository requires PyTorch >= 1.0.0. A full list of requirements can
 be found in `requirements.txt`. To install, first run the following command to clone
 the repository into a folder of your choice:
 ```
