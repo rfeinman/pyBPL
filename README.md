@@ -32,7 +32,7 @@ following commands from the root folder:
 cd docs/
 make html
 ```
-NOTE: documentation build is broken right now, needs to be fixed. Help wanted!
+HELP WANTED: documentation build is broken right now, needs to be fixed.
 
 ## Usage Example
 
@@ -97,7 +97,7 @@ Currently, independent relations sample their position from a uniform distributi
 To use the original spatial histogram from BPL, make sure to load the Library object with `use_hist=True`. 
 Note, however, that log-likelihoods for spatial histograms are not differentiable.
 
-My Python implementations of the bottum-up image parsing algorithms are not yet complete (HELP WANTED! see `pybpl.bottomup` for current status).
+My Python implementations of the bottum-up image parsing algorithms are not yet complete (HELP WANTED! see `pybpl/bottomup` for current status).
 However, I have provided some wrapper functions in that call the original matlab code using the [MATLAB Engine API for Python](https://www.mathworks.com/help/matlab/matlab-engine-for-python.html). 
 You must have the MATLAB bindings installed to use this code. With the bindings installed, you can run the parser as follows:
 
