@@ -2,7 +2,7 @@ import os
 import numpy as np
 import matlab.engine
 
-from .. import BPL_PATH
+from ... import BPL_PATH
 
 eng = matlab.engine.start_matlab() # start matlab engine
 eng.addpath(eng.genpath(BPL_PATH), nargout=0) # add BPL code to matlab path
