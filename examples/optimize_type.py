@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 
 from pybpl.library import Library
 from pybpl.model import CharacterModel
-from pybpl.concept import CharacterType
+from pybpl.objects.concept import CharacterType
 
 
 
