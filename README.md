@@ -126,7 +126,7 @@ obtain this folder of files. For an example of how to load the library, see
 
 
 ## Citing
-If you use pyBPL for your research, you are encouraged (though not required) to use the following BibTeX reference:
+If you use pyBPL for your research, you are encouraged (though not required) to cite this repository with the following BibTeX reference:
 
 ```
 @misc{feinman2020pybpl,
