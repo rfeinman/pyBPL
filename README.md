@@ -8,7 +8,7 @@ The key contributions of this repository are:
 1. A fully-differentiable implementation of the original BPL character learning tools including symbolic rendering, spline fitting/evaluation, and model scoring (log-likelihoods).
 2. A generalized framework for BPL that can work with various types of concepts. Character learning is one manifestation of the BPL framework, and it is included here as the preliminary use case.
 
-
+I am thankful to Maxwell Nye, Mark Goldstein and Tuan-Anh Le for their help developing this library.
 
 ## Setup
 
