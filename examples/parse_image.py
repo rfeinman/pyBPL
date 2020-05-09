@@ -3,7 +3,7 @@ import imageio
 import numpy as np
 import matplotlib.pylab as plt
 
-from pybpl.util.stroke import dist_along_traj
+from pybpl.util import dist_along_traj
 from pybpl.bottomup import generate_random_parses
 
 

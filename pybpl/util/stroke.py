@@ -2,6 +2,7 @@ import numpy as np
 import torch
 
 
+
 def dist_along_traj(stk):
     """
     Compute the total euclidean dist. along a stroke (or sub-stroke) trajectory
