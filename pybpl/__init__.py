@@ -9,21 +9,8 @@ and it is included here as the preliminary use case (see Lake et al. 2015
 """
 __version__ = "0.1"
 import os
-import warnings
 
 LIB_DATA_PATH = os.path.join(
     os.path.dirname(os.path.dirname(__file__)),
     'lib_data'
 )
-
-# path to BPL matlab repository (https://github.com/brendenlake/BPL)
-# must be set by user
-if 'BPL_PATH' in os.environ:
-    BPL_PATH = os.environ['BPL_PATH']
-elif os.path.exists('/Users/rfeinman'):
-    BPL_PATH = '/Users/rfeinman/src/BayesianProgramLearning/BPL'
-elif os.path.exists('/home/feinman'):
-    BPL_PATH = '/home/feinman/src/BPL'
-else:
-    warnings.warn("no BPL_PATH environment variable found... cannot use "
-                  "bottomup parsing code until this is set.")

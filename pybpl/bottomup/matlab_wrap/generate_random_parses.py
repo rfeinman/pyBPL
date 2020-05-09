@@ -1,12 +1,26 @@
 import os
+import warnings
 import numpy as np
-import matlab.engine
 
-from ... import BPL_PATH
+try:
+    import matlab.engine
+except:
+    raise Exception('Must have the MATLAB Engine API for Python installed')
 
-eng = matlab.engine.start_matlab() # start matlab engine
-eng.addpath(eng.genpath(BPL_PATH), nargout=0) # add BPL code to matlab path
-eng.addpath(os.path.dirname(__file__), nargout=0) # add current directory to matlab path
+# start matlab engine
+eng = matlab.engine.start_matlab()
+
+try:
+    # add BPL code to matlab path
+    bpl_path = os.environ['BPL_PATH']
+    eng.addpath(eng.genpath(bpl_path), nargout=0)
+except:
+    warnings.warn('BPL_PATH environment variable not set... therefore you'
+                  'must have BPL matlab repository already added to your matlab '
+                  'path')
+
+# add current directory to matlab path
+eng.addpath(os.path.dirname(__file__), nargout=0)
 
 
 def generate_random_parses(I, seed=None):
