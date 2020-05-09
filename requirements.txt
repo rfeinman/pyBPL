@@ -1,4 +1,10 @@
+##### General requirements #####
 numpy
 scipy >= 1.0.0
 matplotlib
 torch >= 1.0.0
+
+##### Requirements to use (in-development) pybpl.bottomup package #####
+numba
+scikit-image
+networkx
