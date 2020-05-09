@@ -5,12 +5,12 @@ from .initialize import RandomWalker
 
 
 
-def generate_random_parses(I, nwalk_det=5, max_nstroke=100, max_nwalk=150):
+def generate_random_parses(image, nwalk_det=5, max_nstroke=100, max_nwalk=150):
     warnings.warn("using incomplete python implementation of "
                   "'generate_random_walks' function")
 
     # get character skeleton from the fast bottom-up method
-    graph = extract_skeleton(I)
+    graph = extract_skeleton(image)
 
     # initialize random walker and empty parse list
     walker = RandomWalker(graph)

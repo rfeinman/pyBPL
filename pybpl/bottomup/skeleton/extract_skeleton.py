@@ -5,11 +5,11 @@ from .sknw import build_sknw
 
 
 
-def extract_skeleton(I):
+def extract_skeleton(image):
     # get thinned image (skeleton)
-    I = morphology.remove_small_holes(I, 2)
-    I = morphology.thin(I)
+    image = morphology.remove_small_holes(image, 2)
+    image = morphology.thin(image)
     # convert skeleton into network of junction nodes (undirected graph)
-    graph = build_sknw(I.astype(np.uint16))
+    graph = build_sknw(image.astype(np.uint16))
 
     return graph
