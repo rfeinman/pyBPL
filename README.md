@@ -7,7 +7,7 @@ At the moment, only the forward generative model is complete; inference algorith
 
 The key components of this repository are:
 1. A fully-differentiable implementation of BPL character learning tools including symbolic rendering, spline fitting/evaluation, and model scoring (log-likelihoods).
-2. A generalized framework for representing concepts and background knowledge as probabilistic programs. Character concepts are one manifestation of the framework, included here as the preliminary use case.
+2. A generalized framework for representing concepts and conceptual background knowledge as probabilistic programs. Character concepts are one manifestation of the framework, included here as the preliminary use case.
 
 I am thankful to Maxwell Nye, Mark Goldstein and Tuan-Anh Le for their help developing this library.
 
