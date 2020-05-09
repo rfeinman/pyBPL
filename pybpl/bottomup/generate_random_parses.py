@@ -4,6 +4,7 @@ from .skeleton import extract_skeleton
 from .initialize import RandomWalker
 
 
+
 def generate_random_parses(I, nwalk_det=5, max_nstroke=100, max_nwalk=150):
     warnings.warn("using incomplete python implementation of "
                   "'generate_random_walks' function")
@@ -11,7 +12,7 @@ def generate_random_parses(I, nwalk_det=5, max_nstroke=100, max_nwalk=150):
     # get character skeleton from the fast bottom-up method
     graph = extract_skeleton(I)
 
-    # initialize random walker
+    # initialize random walker and empty parse list
     walker = RandomWalker(graph)
     parses = []
 
@@ -21,9 +22,9 @@ def generate_random_parses(I, nwalk_det=5, max_nstroke=100, max_nwalk=150):
 
     # sample random walks until we reach capacity
     while num_strokes(parses) < max_nstroke and len(parses) < max_nwalk:
-        list_walks = walker.sample(1)
-        parses.append(list_walks[0])
+        parses.append(walker.sample())
 
+    return parses
 
 def num_strokes(parses):
     raise NotImplementedError
