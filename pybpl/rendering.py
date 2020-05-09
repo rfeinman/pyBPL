@@ -248,8 +248,8 @@ def broaden_and_blur(pimg, blur_sigma, parameters):
     # filter the image to get Gaussian
     # noise around the area with ink
     if blur_sigma > 0:
-        H_gaussian = fspecial(parameters.fsize, blur_sigma, ftype='gaussian')
-        H_gaussian = H_gaussian.to(device)
+        H_gaussian = fspecial(parameters.fsize, blur_sigma, ftype='gaussian',
+                              device=device)
         pimg = imfilter(pimg, H_gaussian, mode='conv')
         pimg = imfilter(pimg, H_gaussian, mode='conv')
 
