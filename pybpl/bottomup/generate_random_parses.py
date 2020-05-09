@@ -13,7 +13,7 @@ def generate_random_parses(image, nwalk_det=5, max_nstroke=100, max_nwalk=150):
     graph = extract_skeleton(image)
 
     # initialize random walker and empty parse list
-    walker = RandomWalker(graph)
+    walker = RandomWalker(graph, image)
     parses = []
 
     # add deterministic minimum-angle walks

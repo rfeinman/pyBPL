@@ -2,9 +2,11 @@ import numpy as np
 from scipy.special import logsumexp
 import networkx as nx
 
+from ..parameters_bottomup import defaultps_bottomup
 from .walker import Walker
 from .walker_stroke import WalkerStroke
-from ..parameters_bottomup import defaultps_bottomup
+from .fit_smooth_stk import fit_smooth_stk
+
 
 
 
@@ -14,16 +16,18 @@ class RandomWalker(Walker):
     It is presumed the direction and order of the strokes doesn't
     matter, and this will be optimized later.
     """
-    def __init__(self, graph, ps=None):
+    def __init__(self, graph, image, ps=None):
         """
         Parameters
         ----------
         graph : nx.Graph
             the (undirected) graph to walk on
+        image : np.ndarray
+            (H,W) original image in binary format
         ps : defaultps_bottomup
             parameters for bottom-up methods
         """
-        super().__init__(graph)
+        super().__init__(graph, image)
         if ps is None:
             ps = defaultps_bottomup()
         self.ps = ps
@@ -93,10 +97,24 @@ class RandomWalker(Walker):
         Angle move: select a step based on the angle
         from the current trajectory.
         """
-        raise NotImplementedError
+        cell_traj, vei = self.get_moves()
+        n = len(vei)
+        if n == 0:
+            self.pen_up_down()
+            return
+        newedge = np.array([not self.edges_visited(v) for v in vei])
 
-    def viz_angle_step(self, angles_for_new, first_half, second_half, cell_smooth):
-        raise NotImplementedError
+        # default angle for used edges
+        angles = self.ps.faux_angle_repeat * np.ones(n)
+        angles[newedge] = self._angles_for_moves(cell_traj[newedge])
+        angles = np.append(angles, self.ps.faux_angle_lift)
+
+        # select move stochastically
+        rindx = self._action_via_angle(angles)
+        if rindx == len(angles):
+            self.pen_up_down()
+        else:
+            self.select_moves(rindx)
 
     def pen_simple_step(self):
         """
@@ -108,16 +126,49 @@ class RandomWalker(Walker):
         n = len(vei)
         if n == 0:
             self.pen_up_down()
-        else:
-            sel = np.random.randint(n)
-            self.select_new_moves(sel)
+            return
+        sel = np.random.randint(n)
+        self.select_new_moves(sel)
 
     def _action_via_angle(self, angles):
-        raise NotImplementedError
+        theta = angles / 180
+        netinput = -self.lambda_softmax*theta
+        logpvec = netinput - logsumexp(netinput)
+        pvec = np.exp(logpvec)
+        rindx = np.random.choice(len(pvec), p=pvec)
+        return rindx
 
     def _angles_for_moves(self, cell_traj):
-        raise NotImplementedError
+        junct_pt = self.curr_pt
+        nt = len(cell_traj)
+
+        # for each possible move, list the entire stroke that we
+        # would create if we accepted it
+        last_stk = self.S[-1]
+        cell_prop = [np.concatenate([last_stk, traj[1:]]) for traj in cell_traj]
+
+        # smooth each candidate stroke
+        cell_smooth = [fit_smooth_stk(prop, self.image, self.ps) for prop in cell_prop]
+
+        # at the junction, isolate the relevant segments of the
+        # smoothed stroke
+        angles = np.zeros(nt)
+        for i in range(nt):
+            first_half, second_half = \
+                split_by_junction(junct_pt, cell_smooth[i], self.ps.rad_junction)
+            angles[i] = compute_angle(second_half, first_half, self.ps)
+
+        if np.any(np.isnan(angles) | (np.imag(angles)!= 0)):
+            raise Exception('error in angle calculation')
+
+        return angles
 
     @property
     def _pts_on_new_edges(self):
         raise NotImplementedError
+
+def split_by_junction(junct_pt, traj, radius):
+    raise NotImplementedError
+
+def compute_angle(seg_ext, seg_prev, ps):
+    raise NotImplementedError

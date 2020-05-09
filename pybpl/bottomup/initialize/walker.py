@@ -2,6 +2,9 @@ import abc
 import numpy as np
 import networkx as nx
 
+from .walker_stroke import WalkerStroke
+
+
 
 class Walker(abc.ABC):
     """
@@ -9,14 +12,17 @@ class Walker(abc.ABC):
     that is defined by the skeleton. The walk is complete
     when all of the edges have been covered.
     """
-    def __init__(self, graph):
+    def __init__(self, graph, image):
         """
         Parameters
         ----------
         graph : nx.Graph
             the (undirected) graph to walk on
+        image : np.ndarray
+            (H,W) original image in binary format
         """
         self.graph = graph
+        self.image = image
         self.list_ws = []
 
     @property
@@ -55,8 +61,16 @@ class Walker(abc.ABC):
         raise NotImplementedError
 
     def add_singletons(self):
-        for node in nx.isolates(self.graph):
-            self.list_ws.append(node)
+        for nid in nx.isolates(self.graph):
+            stroke = WalkerStroke(self.graph)
+            stroke.start_pt = self.graph.nodes[nid]['o']
+            self.list_ws.append(stroke)
+
+    def get_moves(self):
+        raise NotImplementedError
+
+    def select_moves(self, sel):
+        raise NotImplementedError
 
     def get_new_moves(self):
         raise NotImplementedError
