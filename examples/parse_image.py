@@ -54,9 +54,6 @@ def main():
     plt.subplots_adjust(hspace=0., wspace=0.)
     plt.show()
 
-    # display
-    plt.show()
-
 
 if __name__ == '__main__':
     main()
