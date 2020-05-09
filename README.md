@@ -1,21 +1,21 @@
 # pyBPL: Python-based Bayesian Program Learning
 
-pyBPL is a package of tools to implement Bayesian Program Learning (BPL) in Python 3
-using PyTorch backend. The original BPL implementation was written in MATLAB (see Lake et al. 2015 "Human-level concept learning through
-probabilistic program induction" and the [original BPL repository](https://github.com/brendenlake/BPL)). I'm a Ph.D. student with Brenden Lake and I've developed this modern implementation to use for our ongoing research projects.
+pyBPL is a package of tools to implement Bayesian Program Learning (BPL) in Python 3 using PyTorch backend. 
+The original BPL implementation was written in MATLAB (see Lake et al. 2015 "Human-level concept learning through probabilistic program induction" and the [original BPL repository](https://github.com/brendenlake/BPL)). 
+I'm a Ph.D. student with Brenden Lake and I've developed this library for our ongoing research projects.
+At the moment, only the forward generative model is complete; inference algorithms are still in the works (contributions welcome!).
 
-The key contributions of this repository are:
-1. A fully-differentiable implementation of the original BPL character learning tools including symbolic rendering, spline fitting/evaluation, and model scoring (log-likelihoods).
-2. A generalized framework for BPL that can work with various types of concepts. Character learning is one manifestation of the BPL framework, and it is included here as the preliminary use case.
+The key components of this repository are:
+1. A fully-differentiable implementation of BPL character learning tools including symbolic rendering, spline fitting/evaluation, and model scoring (log-likelihoods).
+2. A generalized framework for representing concepts and background knowledge as probabilistic programs. Character concepts are one manifestation of the framework, included here as the preliminary use case.
 
 I am thankful to Maxwell Nye, Mark Goldstein and Tuan-Anh Le for their help developing this library.
 
 
 ## Setup
 
-This code repository requires PyTorch >= 1.0.0. A full list of requirements can
-be found in `requirements.txt`. To install, first run the following command to clone
-the repository into a folder of your choice:
+This code repository requires PyTorch >= 1.0.0. A full list of requirements can be found in `requirements.txt`. 
+To install, first run the following command to clone the repository into a folder of your choice:
 ```
 git clone https://github.com/rfeinman/pyBPL.git
 ```
