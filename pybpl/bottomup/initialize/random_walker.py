@@ -9,7 +9,6 @@ from .fit_smooth_stk import fit_smooth_stk
 
 
 
-
 class RandomWalker(Walker):
     """
     RandomWalker : produce a random walk on the graph skeleton.
@@ -37,9 +36,12 @@ class RandomWalker(Walker):
 
     def clear(self):
         """
-        Clear the object.
+        Reset the walker.
+        Clear the WalkerStroke list and set all nodes & edges as unvisited
         """
         self.list_ws = []
+        nx.set_node_attributes(self.graph, False, name='visited')
+        nx.set_edge_attributes(self.graph, False, name='visited')
 
     def sample(self):
         """
@@ -86,8 +88,7 @@ class RandomWalker(Walker):
         logwts = logwts - logsumexp(logwts)
         wts = np.exp(logwts)
         rindx = np.random.choice(len(wts), p=wts)
-        stroke = WalkerStroke(self.graph)
-        stroke.start_pt = new_pts[rindx]
+        stroke = WalkerStroke(self.graph, start_pt=new_pts[rindx])
         self.list_ws.append(stroke)
         if not self.complete:
             self.pen_simple_step()
@@ -102,16 +103,16 @@ class RandomWalker(Walker):
         if n == 0:
             self.pen_up_down()
             return
-        newedge = np.array([not self.edges_visited(v) for v in vei])
 
-        # default angle for used edges
-        angles = self.ps.faux_angle_repeat * np.ones(n)
-        angles[newedge] = self._angles_for_moves(cell_traj[newedge])
+        # get angles for all edges
+        visited = np.array([self.graph.edges[eid]['visited'] for eid in vei])
+        angles = self.ps.faux_angle_repeat * np.ones(n) # default angle for used edges
+        angles[~visited] = self._angles_for_moves(cell_traj[~visited])
         angles = np.append(angles, self.ps.faux_angle_lift)
 
         # select move stochastically
         rindx = self._action_via_angle(angles)
-        if rindx == len(angles):
+        if rindx == (len(angles)-1):
             self.pen_up_down()
         else:
             self.select_moves(rindx)
