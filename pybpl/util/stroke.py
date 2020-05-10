@@ -98,24 +98,6 @@ def normalize_stk(stk, newscale=105.):
 
     return stk, center, invscale
 
-def affine_warp(stk, affine):
-    """
-    Parameters
-    ----------
-    stk : np.ndarray | torch.Tensor
-        (n,2) stroke trajectory
-    affine : np.ndarray | torch.Tensor
-        (4,) affine parameter vector
-
-    Returns
-    -------
-    stk : np.ndarray | torch.Tensor
-        (n,2) warped stroke trajectory
-
-    """
-    stk = stk * affine[:2] + affine[2:]
-    return stk
-
 def com_stk(stk):
     """
     Get center-of-mass for one stroke

@@ -2,7 +2,8 @@ from abc import ABCMeta, abstractmethod
 import torch
 import torch.distributions as dist
 
-from ..rendering import render_image, apply_warp
+from ..util.affine import apply_warp
+from ..rendering import render_image
 from ..parameters import Parameters
 
 
