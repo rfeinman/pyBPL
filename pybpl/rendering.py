@@ -39,28 +39,6 @@ def check_bounds(myt, imsize):
 
     return out
 
-def pair_dist(D):
-    """
-    Given a list of 2D points (x-y coordinates), compute the euclidean distance
-    between each point and the next point in the list
-
-    Parameters
-    ----------
-    D : (k,2) tensor
-        list of 2D points
-
-    Returns
-    -------
-    z : (k-1,) tensor
-        list of distances
-    """
-    assert torch.is_tensor(D)
-    assert len(D.shape) == 2
-    assert D.shape[1] == 2
-    z = torch.norm(D[1:]-D[:-1], dim=-1)
-
-    return z
-
 def seqadd(D, lind_x, lind_y, inkval):
     """
     Add ink to an image at the indicated locations
@@ -165,7 +143,7 @@ def add_stroke(pimg, stk, parameters):
     if stk.shape[0] == 1:
         myink = ink
     else:
-        dist = pair_dist(stk) # shape (k,)
+        dist = torch.norm(stk[1:] - stk[:-1], dim=-1)
         dist = torch.min(dist, max_dist)
         dist = torch.cat([dist[:1], dist])
         myink = (ink/max_dist)*dist # shape (k,)
