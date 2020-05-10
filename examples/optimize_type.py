@@ -10,13 +10,11 @@ import matplotlib.pyplot as plt
 
 from pybpl.library import Library
 from pybpl.model import CharacterModel
-from pybpl.objects.concept import CharacterType
+from pybpl.objects import CharacterType
 
 
 
-def optimize_type(
-        model, c, lr, nb_iter, eps, show_examples=True
-):
+def optimize_type(model, c, lr, nb_iter, eps, show_examples=True):
     """
     Take a character type and optimize its parameters to maximize the
     likelihood under the prior, using gradient descent
