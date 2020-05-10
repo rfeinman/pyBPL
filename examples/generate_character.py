@@ -16,7 +16,7 @@ def display_type(c):
 
 def main():
     print('generating character...')
-    lib = Library(lib_dir='./lib_data', use_hist=True)
+    lib = Library(use_hist=True)
     model = CharacterModel(lib)
     fig, axes = plt.subplots(nrows=10, ncols=3, figsize=(1.5, 5))
     for i in range(10):
