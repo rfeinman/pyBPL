@@ -103,7 +103,7 @@ def space_motor_to_img(pt):
 
     return new_pt
 
-def add_stroke(pimg, stk, parameters):
+def add_stroke(pimg, stk, ps):
     """
     Draw one stroke onto an image
 
@@ -113,7 +113,7 @@ def add_stroke(pimg, stk, parameters):
         current image probability map
     stk : (neval,2) tensor
         stroke to be drawn on the image
-    parameters : Parameters
+    ps : Parameters
         bpl parameters
 
     Returns
@@ -124,8 +124,8 @@ def add_stroke(pimg, stk, parameters):
         boolean indicating whether the ink went off the page
     """
     device = stk.device
-    ink = parameters.ink_pp.to(device)
-    max_dist = parameters.ink_max_dist.to(device)
+    ink = ps.ink_pp.to(device)
+    max_dist = ps.ink_max_dist.to(device)
     ink_off_page = False
 
     # convert stroke to image coordinate space
@@ -178,7 +178,7 @@ def add_stroke(pimg, stk, parameters):
 
     return pimg, ink_off_page
 
-def broaden_and_blur(pimg, blur_sigma, parameters):
+def broaden_and_blur(pimg, blur_sigma, ps):
     """
     Apply broadening and blurring transformations to the image
 
@@ -188,7 +188,7 @@ def broaden_and_blur(pimg, blur_sigma, parameters):
         current image probability map
     blur_sigma : float
         image blur value
-    parameters : Parameters
+    ps : Parameters
         bpl parameters
 
     Returns
@@ -199,11 +199,11 @@ def broaden_and_blur(pimg, blur_sigma, parameters):
     device = pimg.device
 
     # filter the image to get the desired brush-stroke size
-    a = parameters.ink_a
-    b = parameters.ink_b
-    if parameters.broaden_mode == 'Lake':
+    a = ps.ink_a
+    b = ps.ink_b
+    if ps.broaden_mode == 'Lake':
         h_scale = b
-    elif parameters.broaden_mode == 'Hinton':
+    elif ps.broaden_mode == 'Hinton':
         h_scale = b*(1+a)
     else:
         raise Exception("'broaden_mode' must be either 'Lake' or 'Hinton'")
@@ -213,7 +213,7 @@ def broaden_and_blur(pimg, blur_sigma, parameters):
         dtype=torch.float,
         device=device
     )
-    for i in range(parameters.ink_ncon):
+    for i in range(ps.ink_ncon):
         pimg = imfilter(pimg, H_broaden, mode='conv')
 
     # store min and maximum pimg values for truncation
@@ -226,7 +226,7 @@ def broaden_and_blur(pimg, blur_sigma, parameters):
     # filter the image to get Gaussian
     # noise around the area with ink
     if blur_sigma > 0:
-        H_gaussian = fspecial(parameters.fsize, blur_sigma, ftype='gaussian',
+        H_gaussian = fspecial(ps.fsize, blur_sigma, ftype='gaussian',
                               device=device)
         pimg = imfilter(pimg, H_gaussian, mode='conv')
         pimg = imfilter(pimg, H_gaussian, mode='conv')
@@ -237,7 +237,7 @@ def broaden_and_blur(pimg, blur_sigma, parameters):
 
     return pimg
 
-def render_image(strokes, epsilon, blur_sigma, parameters):
+def render_image(strokes, epsilon, blur_sigma, ps):
     """
     Render a list of stroke trajectories into a image probability map.
     Reference: BPL/misc/render_image.m
@@ -250,7 +250,7 @@ def render_image(strokes, epsilon, blur_sigma, parameters):
         image noise value
     blur_sigma : float
         image blur value
-    parameters : Parameters
+    ps : Parameters
         bpl parameters
 
     Returns
@@ -262,16 +262,16 @@ def render_image(strokes, epsilon, blur_sigma, parameters):
     """
     # initialize the image pixel map
     device = strokes[0].device
-    pimg = torch.zeros(parameters.imsize, dtype=torch.float, device=device)
+    pimg = torch.zeros(ps.imsize, dtype=torch.float, device=device)
     ink_off_page = False
 
     # draw the strokes on the image
     for stk in strokes:
-        pimg, ink_off_i = add_stroke(pimg, stk, parameters)
+        pimg, ink_off_i = add_stroke(pimg, stk, ps)
         ink_off_page = ink_off_page or ink_off_i
 
     # broaden and blur the image
-    pimg = broaden_and_blur(pimg, blur_sigma, parameters)
+    pimg = broaden_and_blur(pimg, blur_sigma, ps)
 
     # probability of each pixel being on
     if epsilon > 0:
@@ -285,7 +285,7 @@ def render_image(strokes, epsilon, blur_sigma, parameters):
 # apply rendering to a character token
 # ----
 
-def apply_render(P, A, epsilon, blur_sigma, parameters):
+def apply_render(P, A, epsilon, blur_sigma, ps):
     """
     Apply affine warp and render the image
     Reference: BPL/classes/MotorProgram.m (lines 247-259)
@@ -300,7 +300,7 @@ def apply_render(P, A, epsilon, blur_sigma, parameters):
         image noise value
     blur_sigma : float
         image blur value
-    parameters : Parameters
+    ps : Parameters
         bpl parameters
 
     Returns
@@ -316,9 +316,7 @@ def apply_render(P, A, epsilon, blur_sigma, parameters):
     if A is not None:
         motor = apply_warp(motor, A)
     motor_flat = torch.cat(motor) # (nsub_total, ncpt, 2)
-    pimg, ink_off_page = render_image(
-        motor_flat, epsilon, blur_sigma, parameters
-    )
+    pimg, ink_off_page = render_image(motor_flat, epsilon, blur_sigma, ps)
 
     return pimg, ink_off_page
 
