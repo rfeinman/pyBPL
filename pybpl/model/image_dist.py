@@ -2,7 +2,7 @@ from abc import ABCMeta, abstractmethod
 import torch
 import torch.distributions as dist
 
-from .. import rendering
+from ..rendering import render_image, apply_warp
 from ..parameters import Parameters
 
 
@@ -29,10 +29,14 @@ class CharacterImageDist(ConceptImageDist):
         self.ps = Parameters()
 
     def get_pimg(self, ctoken):
-        pimg, _ = rendering.apply_render(
-            ctoken.part_tokens, ctoken.affine, ctoken.epsilon,
-            ctoken.blur_sigma, self.ps
-        )
+        # get motor for each part
+        motor = [p.motor for p in ctoken.part_tokens] # list of (nsub, ncpt, 2)
+        # apply affine transformation if needed
+        if ctoken.affine is not None:
+            motor = apply_warp(motor, ctoken.affine)
+        motor_flat = torch.cat(motor) # (nsub_total, ncpt, 2)
+        pimg, _ = render_image(
+            motor_flat, ctoken.epsilon, ctoken.blur_sigma, self.ps)
 
         return pimg
 

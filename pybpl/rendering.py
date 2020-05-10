@@ -286,52 +286,17 @@ def render_image(strokes, epsilon, blur_sigma, ps=None):
 
 
 # ----
-# apply rendering to a character token
+# apply affine warp to a character token
 # ----
 
-def apply_render(P, A, epsilon, blur_sigma, ps):
-    """
-    Apply affine warp and render the image
-    Reference: BPL/classes/MotorProgram.m (lines 247-259)
-
-    Parameters
-    ----------
-    P : list[StrokeToken]
-        strokes that make up the character token
-    A : torch.Tensor
-        (4,) affine warp
-    epsilon : float
-        image noise value
-    blur_sigma : float
-        image blur value
-    ps : Parameters
-        bpl parameters
-
-    Returns
-    -------
-    pimg : torch.Tensor
-        (H,W) image probability map
-    ink_off_page : bool
-        boolean indicating whether the ink went off the page
-    """
-    # get motor for each part
-    motor = [p.motor for p in P] # list of (nsub, ncpt, 2)
-    # apply affine transformation if needed
-    if A is not None:
-        motor = apply_warp(motor, A)
-    motor_flat = torch.cat(motor) # (nsub_total, ncpt, 2)
-    pimg, ink_off_page = render_image(motor_flat, epsilon, blur_sigma, ps)
-
-    return pimg, ink_off_page
-
-def apply_warp(motor_unwarped, A):
+def apply_warp(motor, A):
     """
     Apply affine warp and render the image
     Reference: BPL/classes/MotorProgram.m (lines 231-245)
 
     Parameters
     ----------
-    motor_unwarped : list[torch.Tensor]
+    motor : list[torch.Tensor]
         a list of (m,n,2) or (n,2) tensors; collection of strokes (or stacked
         sub-strokes) that make up the character
     A : torch.Tensor
@@ -341,11 +306,11 @@ def apply_warp(motor_unwarped, A):
     -------
     motor_warped : list of (nsub, ncpt, 2) tensors
     """
-    cell_traj = torch.cat(motor_unwarped) # (ns*m, n, 2) or (ns*n,2)
+    cell_traj = torch.cat(motor) # (ns*m, n, 2) or (ns*n,2)
     com = com_char(cell_traj)
     B = torch.zeros(4)
     B[:2] = A[:2]
     B[2:] = A[2:] - (A[:2]-1)*com
-    motor_warped = [affine_warp(stk, B) for stk in motor_unwarped]
+    motor = [affine_warp(stk, B) for stk in motor]
 
-    return motor_warped
+    return motor
