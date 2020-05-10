@@ -8,7 +8,6 @@ from .util.general import sub2ind, fspecial, imfilter
 from .util.stroke import com_char, affine_warp
 
 
-space_flip = torch.tensor([-1.,1.])
 
 # ----
 # render the image
@@ -99,7 +98,8 @@ def space_motor_to_img(pt):
         image point sequence for each sub-stroke
     """
     assert torch.is_tensor(pt)
-    new_pt = torch.flip(pt, dims=[-1])*space_flip
+    space_flip = torch.tensor([-1.,1.], device=pt.device)
+    new_pt = torch.flip(pt, dims=[-1]) * space_flip
 
     return new_pt
 
