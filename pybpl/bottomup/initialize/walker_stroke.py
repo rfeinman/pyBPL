@@ -27,16 +27,11 @@ class WalkerStroke:
 
     @property
     def curr_ni(self):
-        pt = self.curr_pt
-        return map_pt_to_ni(self.graph, pt)
-
-def map_pt_to_ni(graph, pt):
-    mindist = float('inf')
-    nid = -1
-    for i, node in graph.nodes.items():
-        dist = np.linalg.norm(node['o'] - pt)
-        if dist < mindist:
-            nid = i
-            mindist = dist
-    assert nid != -1
-    return nid
+        """
+        get index of current node, i.e. node where most recent edge ended
+        """
+        eid, flip = self.ei[-1], self.ei_flip[-1]
+        if flip:
+            return eid[0]
+        else:
+            return eid[1]
