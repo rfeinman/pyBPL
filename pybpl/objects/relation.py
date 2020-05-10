@@ -61,7 +61,7 @@ class RelationToken(object):
             else:
                 assert self.rtype.category == 'mid'
                 bspline = prev.motor_spline[:, :, self.rtype.attach_subix]
-                loc, _ = bspline_eval(self.eval_spot_token, bspline)
+                loc = bspline_eval(self.eval_spot_token, bspline)
                 # convert (1,2) tensor -> (2,) tensor
                 loc = torch.squeeze(loc, dim=0)
 
