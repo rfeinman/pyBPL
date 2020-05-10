@@ -2,7 +2,6 @@
 Concept type distributions for sampling concept types from pre-specified
 type distributions.
 """
-from __future__ import division, print_function
 from abc import ABCMeta, abstractmethod
 import torch
 import torch.distributions as dist

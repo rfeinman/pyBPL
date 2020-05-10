@@ -1,4 +1,3 @@
-from __future__ import division, print_function
 import os
 import scipy.io as io
 import numpy as np

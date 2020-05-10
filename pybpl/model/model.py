@@ -1,4 +1,3 @@
-from __future__ import division, print_function
 import torch
 
 from .type_dist import CharacterTypeDist

@@ -1,4 +1,3 @@
-from __future__ import division, print_function
 import matplotlib.pyplot as plt
 
 from pybpl.library import Library

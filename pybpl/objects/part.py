@@ -2,7 +2,6 @@
 Parts for sampling part tokens. Parts, together with relations between parts,
 make up concepts.
 """
-from __future__ import division, print_function
 from abc import ABCMeta, abstractmethod
 import torch
 

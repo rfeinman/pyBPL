@@ -3,7 +3,6 @@ B-splines utilities. For reference material on B-splines, see Kristin Branson's
 "A Practical Review of Uniform B-splines":
 http://vision.ucsd.edu/~kbranson/research/bsplines/bsplines.pdf
 """
-from __future__ import division, print_function
 import functools
 import math
 import torch

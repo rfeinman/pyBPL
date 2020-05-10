@@ -2,7 +2,6 @@
 Sample a character type and then optimize its parameters to maximize the
 likelihood of the type under the prior
 """
-from __future__ import print_function, division
 import argparse
 import torch
 import numpy as np

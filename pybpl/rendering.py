@@ -1,7 +1,6 @@
 """
 All the functions and modules for differentiable rendering go here
 """
-from __future__ import print_function, division
 import torch
 
 from .util.general import sub2ind, fspecial, imfilter

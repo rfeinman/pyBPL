@@ -2,7 +2,6 @@
 Relations for sampling part positions. Relations, together with parts, make up
 concepts.
 """
-from __future__ import print_function, division
 from abc import ABCMeta, abstractmethod
 import torch
 
