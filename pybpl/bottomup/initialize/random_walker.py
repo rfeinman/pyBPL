@@ -2,7 +2,7 @@ import numpy as np
 from scipy.special import logsumexp
 import networkx as nx
 
-from ..parameters_bottomup import defaultps_bottomup
+from ..parameters import defaultps_bottomup
 from .walker import Walker
 from .walker_stroke import WalkerStroke
 from .fit_smooth_stk import fit_smooth_stk
