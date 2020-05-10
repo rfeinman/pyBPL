@@ -41,7 +41,9 @@ def apply_warp(motor, A):
 
     Returns
     -------
-    motor_warped : list of (nsub, ncpt, 2) tensors
+    motor : list[torch.Tensor]
+        warped strokes
+        
     """
     cell_traj = torch.cat(motor) # (ns*m, n, 2) or (ns*n,2)
     com = com_char(cell_traj)
