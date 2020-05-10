@@ -98,7 +98,7 @@ def main():
     args = parser.parse_args()
 
     # load the library
-    lib = Library(lib_dir='./lib_data')
+    lib = Library()
     # create the BPL graphical model
     model = CharacterModel(lib)
 
