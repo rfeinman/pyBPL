@@ -4,7 +4,9 @@ Parameters...
 from __future__ import division, print_function
 import torch
 
-class defaultps(object):
+
+
+class Parameters:
     def __init__(self):
         # Library to use
         self.libname = 'library'

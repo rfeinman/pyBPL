@@ -4,7 +4,7 @@ import torch
 import torch.distributions as dist
 
 from .. import rendering
-from ..parameters import defaultps
+from ..parameters import Parameters
 
 
 class ConceptImageDist(object):
@@ -27,7 +27,7 @@ class CharacterImageDist(ConceptImageDist):
     """
     def __init__(self, lib):
         super(CharacterImageDist, self).__init__(lib)
-        self.default_ps = defaultps()
+        self.default_ps = Parameters()
 
     def get_pimg(self, ctoken):
         pimg, _ = rendering.apply_render(

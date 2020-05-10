@@ -8,13 +8,13 @@ import functools
 import math
 import torch
 
-from .parameters import defaultps
+from .parameters import Parameters
 from .util.general import least_squares
 from .util.stroke import dist_along_traj
 
 
 
-PM = defaultps()
+PM = Parameters()
 
 
 @functools.lru_cache(maxsize=128)

@@ -113,7 +113,7 @@ def add_stroke(pimg, stk, parameters):
         current image probability map
     stk : (neval,2) tensor
         stroke to be drawn on the image
-    parameters : defaultps
+    parameters : Parameters
         bpl parameters
 
     Returns
@@ -188,7 +188,7 @@ def broaden_and_blur(pimg, blur_sigma, parameters):
         current image probability map
     blur_sigma : float
         image blur value
-    parameters : defaultps
+    parameters : Parameters
         bpl parameters
 
     Returns
@@ -250,7 +250,7 @@ def render_image(strokes, epsilon, blur_sigma, parameters):
         image noise value
     blur_sigma : float
         image blur value
-    parameters : defaultps
+    parameters : Parameters
         bpl parameters
 
     Returns
@@ -300,7 +300,7 @@ def apply_render(P, A, epsilon, blur_sigma, parameters):
         image noise value
     blur_sigma : float
         image blur value
-    parameters : defaultps
+    parameters : Parameters
         bpl parameters
 
     Returns

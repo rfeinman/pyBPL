@@ -3,7 +3,7 @@ from abc import ABCMeta, abstractmethod
 import torch
 import torch.distributions as dist
 
-from ..parameters import defaultps
+from ..parameters import Parameters
 from ..splines import bspline_gen_s
 from ..objects import StrokeType, PartToken, StrokeToken
 from ..objects import RelationToken
@@ -91,7 +91,7 @@ class CharacterTokenDist(ConceptTokenDist):
     def __init__(self, lib):
         super(CharacterTokenDist, self).__init__(lib)
         self.pdist = StrokeTokenDist(lib)
-        self.default_ps = defaultps()
+        self.default_ps = Parameters()
 
         # token-level position distribution parameters
         means = torch.zeros(2)
