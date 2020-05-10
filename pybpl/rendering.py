@@ -4,7 +4,6 @@ All the functions and modules for differentiable rendering go here
 import torch
 
 from .util.general import sub2ind, fspecial, imfilter
-from .util.stroke import com_char, affine_warp
 from .parameters import Parameters
 
 
