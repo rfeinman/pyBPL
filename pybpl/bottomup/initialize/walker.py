@@ -1,4 +1,4 @@
-import abc
+from abc import ABCMeta
 import numpy as np
 import networkx as nx
 
@@ -6,7 +6,7 @@ from .walker_stroke import WalkerStroke
 
 
 
-class Walker(abc.ABC):
+class Walker(metaclass=ABCMeta):
     """
     Walker: Class that controls a walk on the directed graph
     that is defined by the skeleton. The walk is complete
