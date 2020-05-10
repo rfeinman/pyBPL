@@ -20,9 +20,9 @@ def check_bounds(myt, imsize):
 
     Parameters
     ----------
-    myt : (k,2) tensor
-        list of 2D points
-    imsize : (2,) tensor
+    myt : torch.Tensor
+        (k,2) matrix of 2D points
+    imsize : tuple or torch.Size
         image size; H x W
 
     Returns
@@ -44,19 +44,19 @@ def seqadd(D, lind_x, lind_y, inkval):
 
     Parameters
     ----------
-    D : (m,n) tensor
-        image that we'll be adding to
-    lind_x : (k,) tensor
-        x-coordinate for each adding point
-    lind_y : (k,) tensor
-        y-coordinate for each adding point
-    inkval : (k,) tensor
-        amount of ink to add for each adding point
+    D : torch.Tensor
+        (H,W) image that we'll be adding to
+    lind_x : torch.Tensor
+        (k,) x-coordinate for each adding point
+    lind_y : torch.Tensor
+        (k,) y-coordinate for each adding point
+    inkval : torch.Tensor
+        (k,) amount of ink to add for each adding point
 
     Returns
     -------
-    D : (m,n) tensor
-        image with ink added to it
+    D : torch.Tensor
+        (H,W) image with ink added to it
     """
     assert len(lind_x) == len(lind_y) == len(inkval)
     imsize = D.shape
@@ -89,13 +89,13 @@ def space_motor_to_img(pt):
 
     Parameters
     ----------
-    pt : (...,neval,2) tensor
-        spline point sequence for each sub-stroke
+    pt : torch.Tensor
+        (..., 2) spline point sequence for each sub-stroke
 
     Returns
     -------
-    new_pt : (...,neval,2) tensor
-        image point sequence for each sub-stroke
+    new_pt : torch.Tensor
+        (..., 2) image point sequence for each sub-stroke
     """
     assert torch.is_tensor(pt)
     space_flip = torch.tensor([-1.,1.], device=pt.device)
@@ -109,17 +109,17 @@ def add_stroke(pimg, stk, ps):
 
     Parameters
     ----------
-    pimg : (h,w) tensor
-        current image probability map
-    stk : (neval,2) tensor
-        stroke to be drawn on the image
+    pimg : torch.Tensor
+        (H,W) current image probability map
+    stk : torch.Tensor
+        (n,2) stroke to be drawn on the image
     ps : Parameters
         bpl parameters
 
     Returns
     -------
-    pimg : (h,w) tensor
-        updated image probability map
+    pimg : torch.Tensor
+        (H,W) updated image probability map
     ink_off_page : bool
         boolean indicating whether the ink went off the page
     """
@@ -184,8 +184,8 @@ def broaden_and_blur(pimg, blur_sigma, ps):
 
     Parameters
     ----------
-    pimg : (h,w) tensor
-        current image probability map
+    pimg : torch.Tensor
+        (H,W) current image probability map
     blur_sigma : float
         image blur value
     ps : Parameters
@@ -193,8 +193,8 @@ def broaden_and_blur(pimg, blur_sigma, ps):
 
     Returns
     -------
-    pimg : (h,w) tensor
-        updated image probability map
+    pimg : torch.Tensor
+        (H,W) updated image probability map
     """
     device = pimg.device
 
@@ -244,8 +244,9 @@ def render_image(strokes, epsilon, blur_sigma, ps=None):
 
     Parameters
     ----------
-    strokes : iterable of (neval,2) tensor
-        collection of strokes that make up the character
+    strokes : torch.Tensor | list[torch.Tensor]
+        either a single (m,n,2) tensor or a list of (n,2) tensors with
+        varying size n; collection of strokes that make up the character
     epsilon : float
         image noise value
     blur_sigma : float
@@ -255,8 +256,8 @@ def render_image(strokes, epsilon, blur_sigma, ps=None):
 
     Returns
     -------
-    pimg : (h,w) tensor
-        image probability map
+    pimg : torch.Tensor
+        (H,W) image probability map
     ink_off_page : bool
         boolean indicating whether the ink went off the page
     """
@@ -295,10 +296,10 @@ def apply_render(P, A, epsilon, blur_sigma, ps):
 
     Parameters
     ----------
-    P : list of StrokeToken
+    P : list[StrokeToken]
         strokes that make up the character token
-    A : (4,) tensor
-        affine warp
+    A : torch.Tensor
+        (4,) affine warp
     epsilon : float
         image noise value
     blur_sigma : float
@@ -308,8 +309,8 @@ def apply_render(P, A, epsilon, blur_sigma, ps):
 
     Returns
     -------
-    pimg : (h,w) tensor
-        image probability map
+    pimg : torch.Tensor
+        (H,W) image probability map
     ink_off_page : bool
         boolean indicating whether the ink went off the page
     """
@@ -330,14 +331,17 @@ def apply_warp(motor_unwarped, A):
 
     Parameters
     ----------
-    motor_unwarped : list of (nsub, ncpt, 2) or (n,2) tensors
-    A : (4,) tensor
+    motor_unwarped : list[torch.Tensor]
+        a list of (m,n,2) or (n,2) tensors; collection of strokes (or stacked
+        sub-strokes) that make up the character
+    A : torch.Tensor
+        (4,) affine warp
 
     Returns
     -------
     motor_warped : list of (nsub, ncpt, 2) tensors
     """
-    cell_traj = torch.cat(motor_unwarped) # (nsub_total, ncpt, 2) or (m,2)
+    cell_traj = torch.cat(motor_unwarped) # (ns*m, n, 2) or (ns*n,2)
     com = com_char(cell_traj)
     B = torch.zeros(4)
     B[:2] = A[:2]
