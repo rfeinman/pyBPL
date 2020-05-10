@@ -5,6 +5,7 @@ import torch
 
 from .util.general import sub2ind, fspecial, imfilter
 from .util.stroke import com_char, affine_warp
+from .parameters import Parameters
 
 
 
@@ -236,7 +237,7 @@ def broaden_and_blur(pimg, blur_sigma, ps):
 
     return pimg
 
-def render_image(strokes, epsilon, blur_sigma, ps):
+def render_image(strokes, epsilon, blur_sigma, ps=None):
     """
     Render a list of stroke trajectories into a image probability map.
     Reference: BPL/misc/render_image.m
@@ -259,6 +260,9 @@ def render_image(strokes, epsilon, blur_sigma, ps):
     ink_off_page : bool
         boolean indicating whether the ink went off the page
     """
+    # load default parameters if necessary
+    if ps is None:
+        ps = Parameters()
     # initialize the image pixel map
     device = strokes[0].device
     pimg = torch.zeros(ps.imsize, dtype=torch.float, device=device)
