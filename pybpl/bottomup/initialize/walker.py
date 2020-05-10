@@ -23,7 +23,16 @@ class Walker(metaclass=ABCMeta):
         """
         self.graph = graph
         self.image = image
+        self.clear()
+
+    def clear(self):
+        """
+        Reset the walker.
+        Clear the WalkerStroke list and set all nodes & edges as unvisited
+        """
         self.list_ws = []
+        nx.set_node_attributes(self.graph, False, name='visited')
+        nx.set_edge_attributes(self.graph, False, name='visited')
 
     @property
     def ns(self):
@@ -36,10 +45,26 @@ class Walker(metaclass=ABCMeta):
         return [elt.stk for elt in self.list_ws]
 
     @property
+    def visited_edges(self):
+        eid_list = set()
+        for eid in self.graph.edges():
+            if self.graph.edges[eid]['visited']:
+                eid_list.add(eid)
+        return eid_list
+
+    @property
+    def unvisited_edges(self):
+        eid_list = set()
+        for eid in self.graph.edges():
+            if not self.graph.edges[eid]['visited']:
+                eid_list.add(eid)
+        return eid_list
+
+    @property
     def complete(self):
         # is the entire graph drawn?
-        edges_visited = [edge['visited'] for edge in self.graph.edges.values()]
-        return all(edges_visited)
+        is_visited = [edge['visited'] for edge in self.graph.edges.values()]
+        return all(is_visited)
 
     @property
     def curr_ni(self):
@@ -66,12 +91,12 @@ class Walker(metaclass=ABCMeta):
 
     def get_new_moves(self):
         cell_traj, vei = self.list_ws[-1].get_moves()
-        visited = np.array([self.graph.edges[eid]['visited'] for eid in vei])
-        return cell_traj[~visited], vei[~visited]
+        is_visited = np.array([self.graph.edges[eid]['visited'] for eid in vei])
+        return cell_traj[~is_visited], vei[~is_visited]
 
     def select_new_moves(self, sel_new):
         _, vei = self.list_ws[-1].get_moves()
-        visited = np.array([self.graph.edges[eid]['visited'] for eid in vei])
-        findx = np.where(~visited)[0]
+        is_visited = np.array([self.graph.edges[eid]['visited'] for eid in vei])
+        findx = np.where(~is_visited)[0]
         sel = findx[sel_new]
         self.list_ws[-1].select_mov(sel)

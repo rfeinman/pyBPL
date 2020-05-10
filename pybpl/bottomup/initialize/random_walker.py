@@ -34,15 +34,6 @@ class RandomWalker(Walker):
         self.exp_wt_start = None
         self.lambda_softmax = None
 
-    def clear(self):
-        """
-        Reset the walker.
-        Clear the WalkerStroke list and set all nodes & edges as unvisited
-        """
-        self.list_ws = []
-        nx.set_node_attributes(self.graph, False, name='visited')
-        nx.set_edge_attributes(self.graph, False, name='visited')
-
     def sample(self):
         """
         Produce a sample from the random walk model
@@ -105,9 +96,9 @@ class RandomWalker(Walker):
             return
 
         # get angles for all edges
-        visited = np.array([self.graph.edges[eid]['visited'] for eid in vei])
+        is_visited = np.array([self.graph.edges[eid]['visited'] for eid in vei])
         angles = self.ps.faux_angle_repeat * np.ones(n) # default angle for used edges
-        angles[~visited] = self._angles_for_moves(cell_traj[~visited])
+        angles[~is_visited] = self._angles_for_moves(cell_traj[~is_visited])
         angles = np.append(angles, self.ps.faux_angle_lift)
 
         # select move stochastically
@@ -132,6 +123,10 @@ class RandomWalker(Walker):
         self.select_new_moves(sel)
 
     def _action_via_angle(self, angles):
+        """
+        Given a vector of angles, compute move probabilities proportional
+        to exp(-lambda*angle/180) and sample a move index
+        """
         theta = angles / 180
         netinput = -self.lambda_softmax*theta
         logpvec = netinput - logsumexp(netinput)
@@ -140,6 +135,9 @@ class RandomWalker(Walker):
         return rindx
 
     def _angles_for_moves(self, cell_traj):
+        """
+        Compute angle for each move.
+        """
         junct_pt = self.curr_pt
         nt = len(cell_traj)
 
@@ -166,10 +164,32 @@ class RandomWalker(Walker):
 
     @property
     def _pts_on_new_edges(self):
-        raise NotImplementedError
+        """
+        For all new edges in the graph, make a list of their start/end
+        points where we may want to drop our pen. Also, return their degree
+        """
+        new_eids = self.unvisited_edges
+        new_nids = []
+        for eid in new_eids:
+            new_nids.extend([eid[0], eid[1]])
+        degree = np.zeros(len(new_nids))
+        for i, nid in enumerate(new_nids):
+            nbr_edges = self.graph.edges(nid)
+            nbr_edges = [eid for eid in nbr_edges if not self.graph.edges[eid]['visited']]
+            degree[i] = len(nbr_edges)
+        list_pts = [self.graph.nodes(nid)['o'] for nid in new_nids]
+
+        return list_pts, degree
 
 def split_by_junction(junct_pt, traj, radius):
+    """
+    Get portion of trajectory within the specific radius,
+    and divide it in two based on the closest point to the junction
+    """
     raise NotImplementedError
 
 def compute_angle(seg_ext, seg_prev, ps):
+    """
+    Compute the angle between two vectors
+    """
     raise NotImplementedError
