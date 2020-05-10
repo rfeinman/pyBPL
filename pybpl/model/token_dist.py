@@ -90,7 +90,7 @@ class CharacterTokenDist(ConceptTokenDist):
     def __init__(self, lib):
         super(CharacterTokenDist, self).__init__(lib)
         self.pdist = StrokeTokenDist(lib)
-        self.default_ps = Parameters()
+        self.ps = Parameters()
 
         # token-level position distribution parameters
         means = torch.zeros(2)
@@ -196,8 +196,8 @@ class CharacterTokenDist(ConceptTokenDist):
             scalar; image blur quantity
         """
         # set rendering parameters to minimum noise for now
-        lb = self.default_ps.min_blur_sigma
-        ub = self.default_ps.max_blur_sigma
+        lb = self.ps.min_blur_sigma
+        ub = self.ps.max_blur_sigma
         blur_sigma = dist.Uniform(lb, ub).sample()
 
         return blur_sigma
@@ -217,8 +217,8 @@ class CharacterTokenDist(ConceptTokenDist):
             scalar; log-probability of the image blur
 
         """
-        lb = self.default_ps.min_blur_sigma
-        ub = self.default_ps.max_blur_sigma
+        lb = self.ps.min_blur_sigma
+        ub = self.ps.max_blur_sigma
         ll = dist.Uniform(lb, ub).log_prob(blur_sigma)
 
         return ll
@@ -247,11 +247,11 @@ class CharacterTokenDist(ConceptTokenDist):
 
         # sample image noise
         #epsilon = self.sample_image_noise()
-        epsilon = self.default_ps.min_epsilon
+        epsilon = self.ps.min_epsilon
 
         # sample image blur
         #blur_sigma = self.sample_image_blur()
-        blur_sigma = self.default_ps.min_blur_sigma
+        blur_sigma = self.ps.min_blur_sigma
 
         # create the character token
         ctoken = CharacterToken(

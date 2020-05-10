@@ -26,12 +26,12 @@ class CharacterImageDist(ConceptImageDist):
     """
     def __init__(self, lib):
         super(CharacterImageDist, self).__init__(lib)
-        self.default_ps = Parameters()
+        self.ps = Parameters()
 
     def get_pimg(self, ctoken):
         pimg, _ = rendering.apply_render(
             ctoken.part_tokens, ctoken.affine, ctoken.epsilon,
-            ctoken.blur_sigma, self.default_ps
+            ctoken.blur_sigma, self.ps
         )
 
         return pimg
