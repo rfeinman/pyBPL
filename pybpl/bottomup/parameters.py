@@ -4,7 +4,7 @@ Parameters...
 
 
 
-class defaultps_bottomup(object):
+class ParametersBottomup(object):
     def __init__(self):
         # FOR THE RANDOM WALK MODEL
         self.max_nwalk = 150 # maximum number of random walks we are willing to generate

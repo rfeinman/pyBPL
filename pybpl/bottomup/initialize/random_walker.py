@@ -2,7 +2,7 @@ import numpy as np
 from scipy.special import logsumexp
 import networkx as nx
 
-from ..parameters import defaultps_bottomup
+from ..parameters import ParametersBottomup
 from .walker import Walker
 from .walker_stroke import WalkerStroke
 from .fit_smooth_stk import fit_smooth_stk
@@ -23,12 +23,12 @@ class RandomWalker(Walker):
             the (undirected) graph to walk on
         image : np.ndarray
             (H,W) original image in binary format
-        ps : defaultps_bottomup
+        ps : ParametersBottomup
             parameters for bottom-up methods
         """
         super().__init__(graph, image)
         if ps is None:
-            ps = defaultps_bottomup()
+            ps = ParametersBottomup()
         self.ps = ps
         self.verbose = None
         self.exp_wt_start = None
