@@ -14,7 +14,7 @@ I am thankful to Maxwell Nye, Mark Goldstein and Tuan-Anh Le for their help deve
 
 ## Setup
 
-This code repository requires PyTorch >= 1.0.0. A full list of requirements can be found in `requirements.txt`. 
+This code repository requires Python 3 and PyTorch >= 1.0.0. A full list of requirements can be found in `requirements.txt`. 
 To install, first run the following command to clone the repository into a folder of your choice:
 ```
 git clone https://github.com/rfeinman/pyBPL.git
@@ -45,7 +45,7 @@ from pybpl.library import Library
 from pybpl.model import CharacterModel
 
 # load the hyperparameters of the BPL graphical model (i.e. the "library")
-lib = Library(lib_dir='/path/to/lib_dir', use_hist=True)
+lib = Library(use_hist=True)
 
 # create the BPL graphical model
 model = CharacterModel(lib)
