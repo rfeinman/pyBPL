@@ -70,9 +70,9 @@ class RandomWalker(Walker):
 
     def pen_up_down(self):
         """
-        Place your pen down at an unvisited edge,
+        Place your pen down at an unvisited node,
         inversely proportional to the number of unvisited
-        paths going from it.
+        edges going from it.
         """
         new_pts, degree = self._pts_on_new_edges
         logwts = self.exp_wt_start * np.log(1/degree)
@@ -172,11 +172,12 @@ class RandomWalker(Walker):
         new_nids = []
         for eid in new_eids:
             new_nids.extend([eid[0], eid[1]])
+
+        # degree for each node is the total number of edges minus the
+        # number of 'visited' edges
         degree = np.zeros(len(new_nids))
         for i, nid in enumerate(new_nids):
-            nbr_edges = self.graph.edges(nid)
-            nbr_edges = [eid for eid in nbr_edges if not self.graph.edges[eid]['visited']]
-            degree[i] = len(nbr_edges)
+            degree[i] = self.graph.degree(nid) - self.graph.degree(nid, weight='visited')
         list_pts = [self.graph.nodes(nid)['o'] for nid in new_nids]
 
         return list_pts, degree
