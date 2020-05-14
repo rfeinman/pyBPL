@@ -32,7 +32,6 @@ class Walker(metaclass=ABCMeta):
         Clear the WalkerStroke list and set all nodes & edges as unvisited
         """
         self.list_ws = []
-        nx.set_node_attributes(self.graph, False, name='visited')
         nx.set_edge_attributes(self.graph, False, name='visited')
 
     @property
