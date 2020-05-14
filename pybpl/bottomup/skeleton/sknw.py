@@ -100,15 +100,21 @@ def parse_struc(img, pts, nbs, acc):
                 edge = trace(img, p+dp, nbs, acc, buf)
                 edges.append(edge)
     return nodes, edges
-    
+
+def space_img_to_motor(x):
+    x = x.astype(np.float32)
+    x = np.flip(x, axis=-1)
+    x[...,1] *= -1
+    return x
+
 # use nodes and edges build a networkx graph
 def build_graph(nodes, edges, multi=False):
     graph = nx.MultiGraph() if multi else nx.Graph()
     for i in range(len(nodes)):
-        pts = nodes[i].astype(np.float32)
+        pts = space_img_to_motor(nodes[i])
         graph.add_node(i, pts=pts, o=pts.mean(axis=0))
     for s,e,pts in edges:
-        pts = pts.astype(np.float32)
+        pts = space_img_to_motor(pts)
         l = np.linalg.norm(pts[1:]-pts[:-1], axis=1).sum()
         graph.add_edge(s,e, pts=pts, weight=l)
     return graph
