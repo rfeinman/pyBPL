@@ -21,10 +21,12 @@ def generate_random_parses(image, nwalk_det=5, max_nstroke=100, max_nwalk=150):
         parses.append(walker.det_walk())
 
     # sample random walks until we reach capacity
-    while num_strokes(parses) < max_nstroke and len(parses) < max_nwalk:
-        parses.append(walker.sample())
+    nwalk = len(parses)
+    nstroke = sum([len(parse) for parse in parses])
+    while nstroke < max_nstroke and nwalk < max_nwalk:
+        walk = walker.sample()
+        parses.append(walk)
+        nwalk += 1
+        nstroke += len(walk)
 
     return parses
-
-def num_strokes(parses):
-    raise NotImplementedError
