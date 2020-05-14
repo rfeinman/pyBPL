@@ -64,7 +64,7 @@ class Walker(metaclass=ABCMeta):
 
     def add_singletons(self):
         for ni in nx.isolates(self.graph):
-            stroke = WalkerStroke(self.graph, start_ni=ni)
+            stroke = WalkerStroke(ni)
             self.list_ws.append(stroke)
 
     def get_moves(self):

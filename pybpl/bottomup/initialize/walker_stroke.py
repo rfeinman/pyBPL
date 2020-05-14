@@ -3,9 +3,7 @@ import numpy as np
 
 
 class WalkerStroke:
-    def __init__(self, graph, start_ni):
-        # undirected graph
-        self.graph = graph
+    def __init__(self, start_ni):
         # list of visited nodes
         self.list_ni = [start_ni]
 

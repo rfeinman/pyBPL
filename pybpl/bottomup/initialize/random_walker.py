@@ -79,7 +79,7 @@ class RandomWalker(Walker):
         logwts = logwts - logsumexp(logwts)
         wts = np.exp(logwts)
         rindx = np.random.choice(len(wts), p=wts)
-        stroke = WalkerStroke(self.graph, start_ni=new_ni[rindx])
+        stroke = WalkerStroke(new_ni[rindx])
         self.list_ws.append(stroke)
         if not self.complete:
             self.pen_simple_step()
