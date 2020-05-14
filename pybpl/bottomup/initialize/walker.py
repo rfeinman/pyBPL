@@ -47,22 +47,6 @@ class Walker(metaclass=ABCMeta):
                 for stk in self.list_ws]
 
     @property
-    def visited_edges(self):
-        eid_list = set()
-        for eid in self.graph.edges():
-            if self.graph.edges[eid]['visited']:
-                eid_list.add(eid)
-        return eid_list
-
-    @property
-    def unvisited_edges(self):
-        eid_list = set()
-        for eid in self.graph.edges():
-            if not self.graph.edges[eid]['visited']:
-                eid_list.add(eid)
-        return eid_list
-
-    @property
     def complete(self):
         # is the entire graph drawn?
         is_visited = [edge['visited'] for edge in self.graph.edges.values()]
