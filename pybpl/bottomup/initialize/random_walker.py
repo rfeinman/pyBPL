@@ -30,16 +30,13 @@ class RandomWalker(Walker):
         if ps is None:
             ps = ParametersBottomup()
         self.ps = ps
-        self.verbose = None
-        self.exp_wt_start = None
-        self.lambda_softmax = None
 
     def sample(self):
         """
         Produce a sample from the random walk model
         """
         self.exp_wt_start = np.random.choice(self.ps.int_exp_wt)
-        self.lambda_softmax = np.random.choice(self.ps.int_lambda_soft)
+        self.lmbda = np.random.choice(self.ps.int_lambda_soft)
         myns = float('inf')
         while myns > self.ps.max_len:
             walk = self.make()
@@ -51,7 +48,7 @@ class RandomWalker(Walker):
         Produce a deterministic walk
         """
         self.exp_wt_start = 1000
-        self.lambda_softmax = 1000
+        self.lmbda = 1000
         walk = self.make()
         return walk
 
@@ -59,6 +56,8 @@ class RandomWalker(Walker):
         """
         Make a random walk through the graph
         """
+        assert hasattr(self, 'exp_wt_start')
+        assert hasattr(self, 'lmbda')
         self.clear()
         self.add_singletons()
         if not self.complete:
@@ -74,12 +73,13 @@ class RandomWalker(Walker):
         inversely proportional to the number of unvisited
         edges going from it.
         """
-        new_pts, degree = self._pts_on_new_edges
+        new_ni, degree = self._available_nodes
+        degree = np.asarray(degree, dtype=np.float32)
         logwts = self.exp_wt_start * np.log(1/degree)
         logwts = logwts - logsumexp(logwts)
         wts = np.exp(logwts)
         rindx = np.random.choice(len(wts), p=wts)
-        stroke = WalkerStroke(self.graph, start_pt=new_pts[rindx])
+        stroke = WalkerStroke(self.graph, start_ni=new_ni[rindx])
         self.list_ws.append(stroke)
         if not self.complete:
             self.pen_simple_step()
@@ -89,98 +89,104 @@ class RandomWalker(Walker):
         Angle move: select a step based on the angle
         from the current trajectory.
         """
-        cell_traj, vei = self.get_moves()
-        n = len(vei)
+        curr_ni = self.curr_ni
+        list_ni = self.get_moves()
+        n = len(list_ni)
+
+        # if no available edges, pick up pen
         if n == 0:
             self.pen_up_down()
             return
 
-        # get angles for all edges
-        is_visited = np.array([self.graph.edges[eid]['visited'] for eid in vei])
-        angles = self.ps.faux_angle_repeat * np.ones(n) # default angle for used edges
-        angles[~is_visited] = self._angles_for_moves(cell_traj[~is_visited])
-        angles = np.append(angles, self.ps.faux_angle_lift)
+        # get angles for all move options
+        # default "faux_angle_repeat" is for re-trace moves
+        angles = np.zeros(n+1, dtype=np.float32)
+        for i in range(n):
+            next_ni = list_ni[i]
+            if self.graph.edges[curr_ni, next_ni]['visited']:
+                # use default "faux_angle_repeat" for re-trace moves
+                angles[i] = self.ps.faux_angle_repeat
+            else:
+                # use computed angles for new moves
+                angles[i] = self._angle_for_move(next_ni)
+        # extra move at end indicates "pen lift" option
+        angles[-1] = self.ps.faux_angle_lift
 
         # select move stochastically
         rindx = self._action_via_angle(angles)
-        if rindx == (len(angles)-1):
+        if rindx == n:
             self.pen_up_down()
         else:
-            self.select_moves(rindx)
+            next_ni = list_ni[rindx]
+            self.select_move(next_ni)
 
     def pen_simple_step(self):
         """
         Simple move: select a step uniformly at random
-        from the step of new edges. Do not consider lifting
+        from the set of new edges. Do not consider lifting
         the pen until you run out of new edges.
         """
-        _, vei = self.get_new_moves()
-        n = len(vei)
-        if n == 0:
+        list_ni = self.get_new_moves()
+        if len(list_ni) == 0:
             self.pen_up_down()
             return
-        sel = np.random.randint(n)
-        self.select_new_moves(sel)
+        next_ni = np.random.choice(list_ni)
+        self.select_move(next_ni)
 
     def _action_via_angle(self, angles):
         """
         Given a vector of angles, compute move probabilities proportional
         to exp(-lambda*angle/180) and sample a move index
         """
-        theta = angles / 180
-        netinput = -self.lambda_softmax*theta
-        logpvec = netinput - logsumexp(netinput)
-        pvec = np.exp(logpvec)
-        rindx = np.random.choice(len(pvec), p=pvec)
+        logp = -self.lmbda * angles / 180.
+        logp = logp - logsumexp(logp)
+        p = np.exp(logp)
+        rindx = np.random.choice(len(p), p=p)
         return rindx
 
-    def _angles_for_moves(self, cell_traj):
+    def _angle_for_move(self, next_ni):
         """
         Compute angle for each move.
         """
+        return 20.
+        # get current location (junction point)
         junct_pt = self.curr_pt
-        nt = len(cell_traj)
+        # get ordered node list for the full candidate stroke
+        list_ni = self.list_ws[-1].list_ni + [next_ni]
+        # get stroke trajectory from ordered node list
+        stroke = stroke_from_nodes(self.graph, list_ni)
+        # smooth the stroke
+        stroke = fit_smooth_stk(stroke, self.image, self.ps)
 
-        # for each possible move, list the entire stroke that we
-        # would create if we accepted it
-        last_stk = self.S[-1]
-        cell_prop = [np.concatenate([last_stk, traj[1:]]) for traj in cell_traj]
+        # at the junction, isolate relevant segments of the stroke
+        first_half, second_half = \
+            split_by_junction(junct_pt, stroke, self.ps.rad_junction)
+        angle = compute_angle(second_half, first_half, self.ps)
 
-        # smooth each candidate stroke
-        cell_smooth = [fit_smooth_stk(prop, self.image, self.ps) for prop in cell_prop]
+        # make sure there was no error in the angle calculation
+        assert not np.isnan(angle)
+        assert np.imag(angle) == 0
 
-        # at the junction, isolate the relevant segments of the
-        # smoothed stroke
-        angles = np.zeros(nt)
-        for i in range(nt):
-            first_half, second_half = \
-                split_by_junction(junct_pt, cell_smooth[i], self.ps.rad_junction)
-            angles[i] = compute_angle(second_half, first_half, self.ps)
-
-        if np.any(np.isnan(angles) | (np.imag(angles)!= 0)):
-            raise Exception('error in angle calculation')
-
-        return angles
+        return angle
 
     @property
-    def _pts_on_new_edges(self):
+    def _available_nodes(self):
         """
-        For all new edges in the graph, make a list of their start/end
-        points where we may want to drop our pen. Also, return their degree
+        Replacement for "pts_on_new_edges()" from BPL code.
+        Find all nodes with at least one unvisited edge; return the
+        node IDs and the "unvisited degree" values.
         """
-        new_eids = self.unvisited_edges
-        new_nids = []
-        for eid in new_eids:
-            new_nids.extend([eid[0], eid[1]])
+        list_ni = []
+        list_degree = []
+        for ni in self.graph.nodes():
+            # "unvisited degree" for each node is the total number of edges
+            # minus the number of 'visited' edges
+            degree_ni = self.graph.degree(ni) - self.graph.degree(ni, weight='visited')
+            if degree_ni > 0:
+                list_ni.append(ni)
+                list_degree.append(degree_ni)
 
-        # degree for each node is the total number of edges minus the
-        # number of 'visited' edges
-        degree = np.zeros(len(new_nids))
-        for i, nid in enumerate(new_nids):
-            degree[i] = self.graph.degree(nid) - self.graph.degree(nid, weight='visited')
-        list_pts = [self.graph.nodes(nid)['o'] for nid in new_nids]
-
-        return list_pts, degree
+        return list_ni, list_degree
 
 def split_by_junction(junct_pt, traj, radius):
     """
@@ -193,4 +199,7 @@ def compute_angle(seg_ext, seg_prev, ps):
     """
     Compute the angle between two vectors
     """
+    raise NotImplementedError
+
+def stroke_from_nodes(graph, list_ni):
     raise NotImplementedError

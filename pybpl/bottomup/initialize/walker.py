@@ -74,29 +74,31 @@ class Walker(metaclass=ABCMeta):
     @property
     def curr_pt(self):
         # current point location
-        nid = self.curr_ni
-        return self.graph.nodes[nid]['o']
+        ni = self.curr_ni
+        return self.graph.nodes[ni]['o']
 
     def add_singletons(self):
-        for nid in nx.isolates(self.graph):
-            start_pt = self.graph.nodes[nid]['o']
-            stroke = WalkerStroke(self.graph, start_pt=start_pt)
+        for ni in nx.isolates(self.graph):
+            stroke = WalkerStroke(self.graph, start_ni=ni)
             self.list_ws.append(stroke)
 
     def get_moves(self):
-        return self.list_ws[-1].get_moves()
-
-    def select_moves(self, sel):
-        self.list_ws[-1].select_move(sel)
+        curr_ni = self.list_ws[-1].curr_ni
+        list_ni = []
+        for next_ni in self.graph.neighbors(curr_ni):
+            list_ni.append(next_ni)
+        return list_ni
 
     def get_new_moves(self):
-        cell_traj, vei = self.list_ws[-1].get_moves()
-        is_visited = np.array([self.graph.edges[eid]['visited'] for eid in vei])
-        return cell_traj[~is_visited], vei[~is_visited]
+        curr_ni = self.list_ws[-1].curr_ni
+        list_ni = []
+        for next_ni in self.graph.neighbors(curr_ni):
+            if self.graph.edges[curr_ni,next_ni]['visited']:
+                continue
+            list_ni.append(next_ni)
+        return list_ni
 
-    def select_new_moves(self, sel_new):
-        _, vei = self.list_ws[-1].get_moves()
-        is_visited = np.array([self.graph.edges[eid]['visited'] for eid in vei])
-        findx = np.where(~is_visited)[0]
-        sel = findx[sel_new]
-        self.list_ws[-1].select_mov(sel)
+    def select_move(self, next_ni):
+        curr_ni = self.list_ws[-1].curr_ni
+        self.list_ws[-1].move(next_ni)
+        self.graph.edges[curr_ni, next_ni]['visited'] = True
