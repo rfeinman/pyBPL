@@ -5,7 +5,7 @@ import networkx as nx
 from ..parameters import ParametersBottomup
 from .walker import Walker
 from .walker_stroke import WalkerStroke
-from .fit_smooth_stk import fit_smooth_stk
+from . import util
 
 
 
@@ -149,19 +149,20 @@ class RandomWalker(Walker):
         Compute angle for each move.
         """
         return 20.
+
         # get current location (junction point)
         junct_pt = self.curr_pt
         # get ordered node list for the full candidate stroke
         list_ni = self.list_ws[-1].list_ni + [next_ni]
         # get stroke trajectory from ordered node list
-        stroke = stroke_from_nodes(self.graph, list_ni)
+        stroke = util.stroke_from_nodes(self.graph, list_ni)
         # smooth the stroke
-        stroke = fit_smooth_stk(stroke, self.image, self.ps)
+        stroke = util.fit_smooth_stk(stroke, self.image, self.ps)
 
         # at the junction, isolate relevant segments of the stroke
         first_half, second_half = \
-            split_by_junction(junct_pt, stroke, self.ps.rad_junction)
-        angle = compute_angle(second_half, first_half, self.ps)
+            util.split_by_junction(junct_pt, stroke, self.ps.rad_junction)
+        angle = util.compute_angle(second_half, first_half, self.ps)
 
         # make sure there was no error in the angle calculation
         assert not np.isnan(angle)
@@ -187,19 +188,3 @@ class RandomWalker(Walker):
                 list_degree.append(degree_ni)
 
         return list_ni, list_degree
-
-def split_by_junction(junct_pt, traj, radius):
-    """
-    Get portion of trajectory within the specific radius,
-    and divide it in two based on the closest point to the junction
-    """
-    raise NotImplementedError
-
-def compute_angle(seg_ext, seg_prev, ps):
-    """
-    Compute the angle between two vectors
-    """
-    raise NotImplementedError
-
-def stroke_from_nodes(graph, list_ni):
-    raise NotImplementedError

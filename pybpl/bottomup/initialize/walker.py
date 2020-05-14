@@ -3,6 +3,7 @@ import numpy as np
 import networkx as nx
 
 from .walker_stroke import WalkerStroke
+from . import util
 
 
 
@@ -42,7 +43,8 @@ class Walker(metaclass=ABCMeta):
     @property
     def S(self):
         # full trajectories for each stroke
-        return [elt.stk for elt in self.list_ws]
+        return [util.stroke_from_nodes(self.graph, stk.list_ni) \
+                for stk in self.list_ws]
 
     @property
     def visited_edges(self):
