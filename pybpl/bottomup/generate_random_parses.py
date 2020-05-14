@@ -6,8 +6,8 @@ from .initialize import RandomWalker
 
 
 def generate_random_parses(image, nwalk_det=5, max_nstroke=100, max_nwalk=150):
-    warnings.warn("using incomplete python implementation of "
-                  "'generate_random_walks' function")
+    warnings.warn("using untested python implementation of "
+                  "'generate_random_walks'")
 
     # get character skeleton from the fast bottom-up method
     graph = extract_skeleton(image)

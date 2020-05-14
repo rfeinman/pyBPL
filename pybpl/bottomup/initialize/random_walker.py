@@ -1,4 +1,3 @@
-import warnings
 import numpy as np
 from scipy.special import logsumexp
 import networkx as nx
