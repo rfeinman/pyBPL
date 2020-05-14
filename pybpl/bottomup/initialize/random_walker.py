@@ -1,3 +1,4 @@
+import warnings
 import numpy as np
 from scipy.special import logsumexp
 import networkx as nx
@@ -15,7 +16,7 @@ class RandomWalker(Walker):
     It is presumed the direction and order of the strokes doesn't
     matter, and this will be optimized later.
     """
-    def __init__(self, graph, image, ps=None):
+    def __init__(self, graph, image, ps=None, dummy_angles=True):
         """
         Parameters
         ----------
@@ -29,7 +30,10 @@ class RandomWalker(Walker):
         super().__init__(graph, image)
         if ps is None:
             ps = ParametersBottomup()
+        if not dummy_angles:
+            warnings.warn('Angle computation code not well-tested right now..')
         self.ps = ps
+        self.dummy_angles = dummy_angles
 
     def sample(self):
         """
@@ -148,7 +152,9 @@ class RandomWalker(Walker):
         """
         Compute angle for each move.
         """
-        return 20.
+        # just use a dummy angle
+        if self.dummy_angles:
+            return 20.
 
         # get current location (junction point)
         junct_pt = self.curr_pt
@@ -157,7 +163,7 @@ class RandomWalker(Walker):
         # get stroke trajectory from ordered node list
         stroke = util.stroke_from_nodes(self.graph, list_ni)
         # smooth the stroke
-        stroke = util.fit_smooth_stk(stroke, self.image, self.ps)
+        stroke = util.fit_smooth_stk(stroke)
 
         # at the junction, isolate relevant segments of the stroke
         first_half, second_half = \
