@@ -16,7 +16,7 @@ class RandomWalker(Walker):
     It is presumed the direction and order of the strokes doesn't
     matter, and this will be optimized later.
     """
-    def __init__(self, graph, image, ps=None, dummy_angles=True):
+    def __init__(self, graph, image, ps=None):
         """
         Parameters
         ----------
@@ -30,10 +30,7 @@ class RandomWalker(Walker):
         super().__init__(graph, image)
         if ps is None:
             ps = ParametersBottomup()
-        if not dummy_angles:
-            warnings.warn('Angle computation code not well-tested right now..')
         self.ps = ps
-        self.dummy_angles = dummy_angles
 
     def sample(self):
         """
@@ -153,8 +150,7 @@ class RandomWalker(Walker):
         Compute angle for each move.
         """
         # just use a dummy angle
-        if self.dummy_angles:
-            return 20.
+        #return 20.
 
         # get current location (junction point)
         junct_pt = self.curr_pt
