@@ -221,3 +221,14 @@ def aeq(x, y, tol=2.22e-6):
         r = diff < tol
 
     return r
+
+def nested_map(fn, x, iter_type=list):
+    """
+    A python analogue to BPL "apply_to_nested"
+    https://github.com/brendenlake/BPL/blob/master/stroke_util/apply_to_nested.m
+
+    """
+    if isinstance(x, iter_type):
+        return [nested_map(fn, elt) for elt in x]
+    else:
+        return fn(x)
