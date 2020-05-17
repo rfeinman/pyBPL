@@ -23,14 +23,15 @@ except:
 eng.addpath(os.path.dirname(__file__), nargout=0)
 
 
-def generate_random_parses(I, seed=None):
+def generate_random_parses(I, seed=None, max_ntrials=150, max_nwalk=150,
+                           max_nstroke=100, nwalk_det=5):
     # convert image to matlab format
     I = matlab.logical(I.tolist())
-    # call matlab function
-    if seed is not None:
-        S_walks = eng.generate_random_parses_RF(I,seed)
-    else:
-        S_walks = eng.generate_random_parses_RF(I)
+    # if no rng seed provided, generate one randomly
+    if seed is None:
+        seed = np.random.randint(1,1e6)
+    # call matlab fn
+    S_walks = eng.generate_random_parses_RF(I, seed, max_ntrials, max_nwalk, max_nstroke, nwalk_det)
 
     # post-process
     for i in range(len(S_walks)):
