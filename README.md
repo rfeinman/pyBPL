@@ -76,6 +76,7 @@ Note, however, that log-likelihoods for spatial histograms are not differentiabl
 
 My Python implementations of the bottum-up image parsing algorithms are not yet complete (HELP WANTED! see `pybpl/bottomup` for current status).
 However, I have provided some wrapper functions that call the original matlab code using the [MATLAB Engine API for Python](https://www.mathworks.com/help/matlab/matlab-engine-for-python.html). 
+These functions are located in `pybpl/matlab/bottomup`.
 You must have the MATLAB bindings installed to use this code.
 
 
