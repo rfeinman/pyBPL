@@ -1,1 +1,1 @@
-from .matlab_wrap.generate_random_parses import generate_random_parses
+from .generate_random_parses import generate_random_parses
