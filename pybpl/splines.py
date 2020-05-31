@@ -207,7 +207,7 @@ def get_stk_from_bspline(Y, neval=None):
         stk = bspline_eval(s, Y.detach())
         dist = dist_along_traj(stk)
         # set neval based on stroke size
-        neval = math.ceil(dist/PM.spline_grain)
+        neval = int(math.ceil(dist.item()/PM.spline_grain))
         # threshold
         neval = max(neval, PM.spline_min_neval)
         neval = min(neval, PM.spline_max_neval)

@@ -45,11 +45,11 @@ class Parameters:
         Parameters for creating a trajectory from a spline
         """
         # maxmium number of evaluations
-        self.spline_max_neval = torch.tensor(200, dtype=torch.int)
+        self.spline_max_neval = 200
         # minimum number of evaluations
-        self.spline_min_neval = torch.tensor(10, dtype=torch.int)
+        self.spline_min_neval = 10
         # 1 trajectory point for every this many units pixel distance
-        self.spline_grain = torch.tensor(1.5, dtype=torch.float)
+        self.spline_grain = 1.5
 
     def set_image_model_params(self):
         """
