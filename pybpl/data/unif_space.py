@@ -30,7 +30,7 @@ def unif_space(stroke, dist_int=1.):
 
     # return if stroke is too short
     if len(stroke) == 1:
-        return stroke
+        return torch.from_numpy(stroke).float() if is_tensor else stroke
 
     # compute distance between each point &
     # remove points that are too close to previous
@@ -43,7 +43,7 @@ def unif_space(stroke, dist_int=1.):
 
     # return if stroke is too short
     if len(stroke) == 1:
-        return stroke
+        return torch.from_numpy(stroke).float() if is_tensor else stroke
 
     # cumulative distance
     cumdist = np.cumsum(dist)
