@@ -83,20 +83,12 @@ class Walker(metaclass=ABCMeta):
 
     def get_moves(self):
         curr_ni = self.list_ws[-1].curr_ni
-        list_ni = []
-        for edge in self.edges(curr_ni):
-            list_ni.append(edge[1])
-        return list_ni
+        return list(self.edges(curr_ni))
 
     def get_new_moves(self):
         curr_ni = self.list_ws[-1].curr_ni
-        list_ni = []
-        for edge in filter(self.is_unvisited, self.edges(curr_ni)):
-            list_ni.append(edge[1])
-        return list_ni
+        return list(filter(self.is_unvisited, self.edges(curr_ni)))
 
-    def select_move(self, next_ni):
-        curr_ni = self.list_ws[-1].curr_ni
-        self.list_ws[-1].move(next_ni)
-        edge = (curr_ni, next_ni)
-        self.visit(edge)
+    def select_move(self, next_ei):
+        self.list_ws[-1].move(next_ei)
+        self.visit(next_ei)

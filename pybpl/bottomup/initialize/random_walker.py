@@ -89,36 +89,32 @@ class RandomWalker(Walker):
         Angle move: select a step based on the angle
         from the current trajectory.
         """
-        curr_ni = self.curr_ni
-        list_ni = self.get_moves()
-        n = len(list_ni)
+        list_ei = self.get_moves()
+        num_moves = len(list_ei)
 
         # if no available edges, pick up pen
-        if n == 0:
+        if num_moves == 0:
             self.pen_up_down()
             return
 
         # get angles for all move options
-        # default "faux_angle_repeat" is for re-trace moves
-        angles = np.zeros(n+1, dtype=np.float32)
-        for i, next_ni in enumerate(list_ni):
-            edge = (curr_ni, next_ni)
+        angles = np.zeros(num_moves+1, dtype=np.float32)
+        for i, edge in enumerate(list_ei):
             if self.is_visited(edge):
                 # use default "faux_angle_repeat" for re-trace moves
                 angles[i] = self.ps.faux_angle_repeat
             else:
                 # use computed angles for new moves
-                angles[i] = self._angle_for_move(next_ni)
+                angles[i] = self._angle_for_move(edge)
         # extra move at end indicates "pen lift" option
         angles[-1] = self.ps.faux_angle_lift
 
         # select move stochastically
         rindx = self._action_via_angle(angles)
-        if rindx == n:
+        if rindx == num_moves:
             self.pen_up_down()
         else:
-            next_ni = list_ni[rindx]
-            self.select_move(next_ni)
+            self.select_move(list_ei[rindx])
 
     def pen_simple_step(self):
         """
@@ -126,12 +122,13 @@ class RandomWalker(Walker):
         from the set of new edges. Do not consider lifting
         the pen until you run out of new edges.
         """
-        list_ni = self.get_new_moves()
-        if len(list_ni) == 0:
+        list_ei = self.get_new_moves()
+        if len(list_ei) == 0:
             self.pen_up_down()
             return
-        next_ni = np.random.choice(list_ni)
-        self.select_move(next_ni)
+        rindx = np.random.choice(len(list_ei))
+        next_ei = list_ei[rindx]
+        self.select_move(next_ei)
 
     def _action_via_angle(self, angles):
         """
@@ -144,12 +141,11 @@ class RandomWalker(Walker):
         rindx = np.random.choice(len(p), p=p)
         return rindx
 
-    def _angle_for_move(self, next_ni):
+    def _angle_for_move(self, next_ei):
         """
         Compute angle for each move.
         """
-        # just use a dummy angle
-        #return 20.
+        next_ni = next_ei[1] # next node
 
         # get current location (junction point)
         junct_pt = self.curr_pt
