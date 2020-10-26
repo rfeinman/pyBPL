@@ -34,6 +34,21 @@ class Walker(metaclass=ABCMeta):
         self.list_ws = []
         nx.set_edge_attributes(self.graph, False, name='visited')
 
+    def visit(self, edge):
+        self.graph.edges[edge]['visited'] = True
+
+    def is_visited(self, edge):
+        return self.graph.edges[edge]['visited']
+
+    def is_unvisited(self, edge):
+        return not self.is_visited(edge)
+
+    def edges(self, *args, **kwargs):
+        if isinstance(self.graph, nx.MultiGraph):
+            return self.graph.edges(*args, **kwargs, keys=True)
+        else:
+            return self.graph.edges(*args, **kwargs)
+
     @property
     def ns(self):
         # number of strokes
@@ -42,14 +57,13 @@ class Walker(metaclass=ABCMeta):
     @property
     def S(self):
         # full trajectories for each stroke
-        return [util.stroke_from_nodes(self.graph, stk.list_ni) \
-                for stk in self.list_ws]
+        fn = lambda stk : util.stroke_from_nodes(self.graph, stk.list_ni)
+        return list(map(fn, self.list_ws))
 
     @property
     def complete(self):
         # is the entire graph drawn?
-        is_visited = [edge['visited'] for edge in self.graph.edges.values()]
-        return all(is_visited)
+        return all(map(self.is_visited, self.edges()))
 
     @property
     def curr_ni(self):
@@ -70,20 +84,19 @@ class Walker(metaclass=ABCMeta):
     def get_moves(self):
         curr_ni = self.list_ws[-1].curr_ni
         list_ni = []
-        for next_ni in self.graph.neighbors(curr_ni):
-            list_ni.append(next_ni)
+        for edge in self.edges(curr_ni):
+            list_ni.append(edge[1])
         return list_ni
 
     def get_new_moves(self):
         curr_ni = self.list_ws[-1].curr_ni
         list_ni = []
-        for next_ni in self.graph.neighbors(curr_ni):
-            if self.graph.edges[curr_ni,next_ni]['visited']:
-                continue
-            list_ni.append(next_ni)
+        for edge in filter(self.is_unvisited, self.edges(curr_ni)):
+            list_ni.append(edge[1])
         return list_ni
 
     def select_move(self, next_ni):
         curr_ni = self.list_ws[-1].curr_ni
         self.list_ws[-1].move(next_ni)
-        self.graph.edges[curr_ni, next_ni]['visited'] = True
+        edge = (curr_ni, next_ni)
+        self.visit(edge)

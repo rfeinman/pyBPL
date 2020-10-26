@@ -101,9 +101,9 @@ class RandomWalker(Walker):
         # get angles for all move options
         # default "faux_angle_repeat" is for re-trace moves
         angles = np.zeros(n+1, dtype=np.float32)
-        for i in range(n):
-            next_ni = list_ni[i]
-            if self.graph.edges[curr_ni, next_ni]['visited']:
+        for i, next_ni in enumerate(list_ni):
+            edge = (curr_ni, next_ni)
+            if self.is_visited(edge):
                 # use default "faux_angle_repeat" for re-trace moves
                 angles[i] = self.ps.faux_angle_repeat
             else:
