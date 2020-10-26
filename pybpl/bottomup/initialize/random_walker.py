@@ -151,8 +151,9 @@ class RandomWalker(Walker):
         junct_pt = self.curr_pt
         # get ordered node list for the full candidate stroke
         list_ni = self.list_ws[-1].list_ni + [next_ni]
+        list_ei = self.list_ws[-1].list_ei + [next_ei]
         # get stroke trajectory from ordered node list
-        stroke = util.stroke_from_nodes(self.graph, list_ni)
+        stroke = util.stroke_from_params(self.graph, list_ni, list_ei)
         # smooth the stroke
         stroke = util.fit_smooth_stk(stroke)
 

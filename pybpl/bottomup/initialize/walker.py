@@ -57,7 +57,7 @@ class Walker(metaclass=ABCMeta):
     @property
     def S(self):
         # full trajectories for each stroke
-        fn = lambda stk : util.stroke_from_nodes(self.graph, stk.list_ni)
+        fn = lambda stk : util.stroke_from_params(self.graph, stk.list_ni, stk.list_ei)
         return list(map(fn, self.list_ws))
 
     @property

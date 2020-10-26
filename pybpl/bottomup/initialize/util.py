@@ -6,6 +6,8 @@ from ...util import aeq
 from ...data import unif_space
 from ...splines import fit_bspline_to_traj, get_stk_from_bspline
 
+__all__ = ['fit_smooth_stk', 'split_by_junction', 'compute_angle',
+           'stroke_from_params']
 
 
 def fit_smooth_stk(stroke, loss_threshold=0.3, max_nland=100):
@@ -76,10 +78,10 @@ def compute_angle(seg_ext, seg_prev, ps):
     thetaD = math.degrees(math.acos(val))
     return thetaD
 
-
-def stroke_from_nodes(graph, list_ni):
+def stroke_from_params(graph, list_ni, list_ei):
     """
-    Compute stroke trajectory from a graph and a list of nodes
+    Compute the stroke trajectories for a "WalkerStroke" instance.
+    Parameters include {node list, edge list}.
     """
     num_nodes = len(list_ni)
     if num_nodes == 1:
@@ -90,13 +92,17 @@ def stroke_from_nodes(graph, list_ni):
     for i in range(1, num_nodes):
         curr_ni = list_ni[i-1]
         curr_pt = graph.nodes[curr_ni]['o']
-        next_ni = list_ni[i]
-        traj = graph.edges[curr_ni, next_ni]['pts']
-        d_start = np.linalg.norm(curr_pt - traj[0])
-        d_end = np.linalg.norm(curr_pt - traj[-1])
-        if d_end < d_start: # flip the traj if needed
-            traj = np.flip(traj, 0)
-        traj = np.insert(traj, 0, curr_pt, axis=0)
+        next_ei = list_ei[i-1]
+        traj = graph.edges[next_ei]['pts']
+        traj = _process_traj(traj, curr_pt)
         stroke.append(traj)
     stroke = np.concatenate(stroke)
     return stroke
+
+def _process_traj(traj, curr_pt):
+    d_start = np.linalg.norm(curr_pt - traj[0])
+    d_end = np.linalg.norm(curr_pt - traj[-1])
+    if d_end < d_start: # flip the traj if needed
+        traj = np.flip(traj, 0)
+    traj = np.insert(traj, 0, curr_pt, axis=0)
+    return traj
