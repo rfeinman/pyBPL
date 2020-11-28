@@ -215,24 +215,17 @@ def broaden_and_blur(pimg, blur_sigma, ps):
     for i in range(ps.ink_ncon):
         pimg = imfilter(pimg, H_broaden, mode='conv')
 
-    # store min and maximum pimg values for truncation
-    min_val = torch.tensor(0., dtype=torch.float, device=device)
-    max_val = torch.tensor(1., dtype=torch.float, device=device)
+    # cap values at 1
+    pimg = pimg.clamp(float('-inf'), 1.)
 
-    # truncate
-    pimg = torch.min(pimg, max_val)
-
-    # filter the image to get Gaussian
-    # noise around the area with ink
+    # blur the image with Gaussian filter
     if blur_sigma > 0:
-        H_gaussian = fspecial(ps.fsize, blur_sigma, ftype='gaussian',
-                              device=device)
+        H_gaussian = fspecial(ps.fsize, blur_sigma, ftype='gaussian', device=device)
         pimg = imfilter(pimg, H_gaussian, mode='conv')
         pimg = imfilter(pimg, H_gaussian, mode='conv')
 
-    # final truncation
-    pimg = torch.min(pimg, max_val)
-    pimg = torch.max(pimg, min_val)
+    # clamp to range [0,1]
+    pimg = pimg.clamp(0., 1.)
 
     return pimg
 
