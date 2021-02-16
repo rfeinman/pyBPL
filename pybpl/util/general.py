@@ -49,6 +49,17 @@ def least_squares(a, b, rcond=None):
 
     return x, residuals, rank, s
 
+
+def least_squares_pt(A, B):
+    """Faster lstsq variant that uses PyTorch native QR factorization"""
+    m, n = A.shape
+    _, k = B.shape
+    output, _ = torch.lstsq(B, A)
+    X = output[:n]
+    residuals = output[n:].square().sum(0)
+    return X, residuals
+
+
 def ind2sub(shape, index):
     """
     A PyTorch implementation of MATLAB's "ind2sub" function
