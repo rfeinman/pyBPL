@@ -138,7 +138,7 @@ def get_stk_from_bspline(Y, neval=None, s=None):
         X = get_stk_from_bspline(Y, neval=PM.spline_max_neval)
         dist = dist_along_traj(X)
         neval = (dist / PM.spline_grain).ceil().long()
-        neval = neval.clamp(PM.spline_min_neval, PM.spline_max_neval)
+        neval = neval.clamp(PM.spline_min_neval, PM.spline_max_neval).item()
 
     C = coefficient_mat(nland, neval, s=s, device=Y.device)
     X = torch.matmul(C, Y)  # (neval,2)
