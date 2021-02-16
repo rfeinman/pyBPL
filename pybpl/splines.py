@@ -29,11 +29,12 @@ def s_to_vs(s, nland):
 
 @functools.lru_cache(maxsize=128)
 def vectorized_bspline_coeff(vi, vs):
-    """Compute spline coefficient matrix
+    """Spline coefficients
+
+    from Kristin Branson's "A Practical Review of Uniform B-splines"
 
     Inputs vi and vs are the spline evaluation indices and times (respectively),
     each with shape [neval, nland]. The output matrix has shape [neval,nland].
-    See Kristin Branson's "A Practical Review of Uniform B-splines"
     """
     assert vi.shape == vs.shape
     assert vi.dtype == vs.dtype
@@ -86,6 +87,7 @@ def bspline_gen_s(nland, neval=200, device=None):
 
 @functools.lru_cache(maxsize=128)
 def coefficient_mat(nland, neval, s=None, device=None):
+    """Generate the B-spline coefficient matrix"""
     if s is None:
         s, _, _ = bspline_gen_s(nland, neval, device=device)
     else:
