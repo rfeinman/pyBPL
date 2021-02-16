@@ -94,6 +94,7 @@ def ind2sub(shape, index):
 
     return rows, cols
 
+
 def sub2ind(shape, rows, cols):
     """
     A PyTorch implementation of MATLAB's "sub2ind" function
@@ -125,6 +126,7 @@ def sub2ind(shape, rows, cols):
     index = ind_mat[rows.long(), cols.long()]
 
     return index
+
 
 def imfilter(A, h, mode='conv'):
     """
@@ -162,6 +164,7 @@ def imfilter(A, h, mode='conv'):
     A_filt = A_filt[0,0]
 
     return A_filt
+
 
 def fspecial(hsize, sigma, ftype='gaussian', device=None):
     """
@@ -209,6 +212,7 @@ def fspecial(hsize, sigma, ftype='gaussian', device=None):
 
     return kernel
 
+
 def aeq(x, y, tol=2.22e-6):
     if isinstance(x, list):
         assert isinstance(y, list)
@@ -232,6 +236,7 @@ def aeq(x, y, tol=2.22e-6):
         r = diff < tol
 
     return r
+
 
 def nested_map(fn, x, iter_type=list):
     """
