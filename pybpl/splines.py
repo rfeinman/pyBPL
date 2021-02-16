@@ -5,6 +5,7 @@ http://vision.ucsd.edu/~kbranson/research/bsplines/bsplines.pdf
 """
 import functools
 import torch
+from torch import Tensor
 
 from .parameters import Parameters
 from .util.general import least_squares
@@ -26,21 +27,11 @@ def s_to_vs(s, nland):
 
 @functools.lru_cache(maxsize=128)
 def vectorized_bspline_coeff(vi, vs):
-    """
-    Compute spline coefficient matrix
-    see Kristin Branson's "A Practical Review of Uniform B-splines"
+    """Compute spline coefficient matrix
 
-    Parameters
-    ----------
-    vi : torch.Tensor
-        [neval,nland] spline evaluation indices
-    vs : torch.Tensor
-        [neval,nland] spline evaluation times
-
-    Returns
-    -------
-    C : torch.Tensor
-        [neval,nland] spline coefficient matrix
+    Inputs vi and vs are the spline evaluation indices and times (respectively),
+    each with shape [neval, nland]. The output matrix has shape [neval,nland].
+    See Kristin Branson's "A Practical Review of Uniform B-splines"
     """
     assert vi.shape == vs.shape
     assert vi.dtype == vs.dtype
@@ -74,29 +65,14 @@ def vectorized_bspline_coeff(vi, vs):
 
 @functools.lru_cache(maxsize=128)
 def bspline_gen_s(nland, neval=200, device=None):
-    """
-    Generate time points for evaluating spline.
+    """Generate time points for evaluating spline.
+
     The convex-combination of the endpoints with five control points are 80
     percent of the last cpt and 20 percent of the control point after that.
-
-    Parameters
-    ----------
-    nland : int
-        number of landmarks (control points)
-    neval : int
-        number of eval points
-
-    Returns
-    -------
-    s : torch.Tensor
-        [neval,] time points for spline eval
-    lb : float
-        lower bound
-    ub : float
-        upper bound
+    We return the upper and lower bounds, in addition to the timepoints.
     """
-    lb = 2.
-    ub = float(nland+1)
+    lb = 2
+    ub = nland + 1
     if neval == 1:
         s = torch.tensor([lb], dtype=torch.float, device=device)
     else:
@@ -119,6 +95,12 @@ def coefficient_mat(nland, neval, s=None, device=None):
     return C
 
 
+
+
+# ---------------------------------------------------
+#    Core functions for spline fitting/evaluation
+# ---------------------------------------------------
+
 def _check_input(x):
     assert torch.is_tensor(x)
     assert x.dim() == 2
@@ -129,16 +111,16 @@ def get_stk_from_bspline(Y, neval=None, s=None):
 
     Parameters
     ----------
-    Y : torch.Tensor
+    Y : Tensor
         [nland,2] input spline (control points)
     neval : int
         number of eval points (optional)
-    s : torch.Tensor
+    s : Tensor
         (optional) [neval] time points for spline evaluation
 
     Returns
     -------
-    X : torch.Tensor
+    X : Tensor
         [neval,2] output trajectory
     """
     _check_input(Y)
@@ -161,20 +143,20 @@ def fit_bspline_to_traj(X, nland, s=None, include_resid=False):
 
     Parameters
     ----------
-    X : torch.Tensor
+    X : Tensor
         [neval,2] input trajectory
     nland : int
         number of landmarks (control points)
-    s : torch.Tensor
+    s : Tensor
         (optional) [neval] time points for spline evaluation
     include_resid : bool
         whether to return the residuals of the least-squares problem
 
     Returns
     -------
-    Y : torch.Tensor
+    Y : Tensor
         [neval,2] output spline
-    residuals : torch.Tensor
+    residuals : Tensor
         [2,] residuals of the least-squares problem (optional)
     """
     _check_input(X)
