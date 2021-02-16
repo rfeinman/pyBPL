@@ -20,10 +20,12 @@ def get_vi(neval, nland, device=None):
     vi = vi.unsqueeze(0).repeat(neval,1)
     return vi
 
+
 @functools.lru_cache(maxsize=128)
 def s_to_vs(s, nland):
     vs = s.unsqueeze(1).repeat(1,nland)
     return vs
+
 
 @functools.lru_cache(maxsize=128)
 def vectorized_bspline_coeff(vi, vs):
@@ -63,6 +65,7 @@ def vectorized_bspline_coeff(vi, vs):
 
     return C
 
+
 @functools.lru_cache(maxsize=128)
 def bspline_gen_s(nland, neval=200, device=None):
     """Generate time points for evaluating spline.
@@ -79,6 +82,7 @@ def bspline_gen_s(nland, neval=200, device=None):
         s = torch.linspace(lb, ub, neval, device=device)
 
     return s, lb, ub
+
 
 @functools.lru_cache(maxsize=128)
 def coefficient_mat(nland, neval, s=None, device=None):
@@ -105,6 +109,7 @@ def _check_input(x):
     assert torch.is_tensor(x)
     assert x.dim() == 2
     assert x.size(1) == 2
+
 
 def get_stk_from_bspline(Y, neval=None, s=None):
     """Produce a stroke trajectory by evaluating a B-spline.
@@ -137,6 +142,7 @@ def get_stk_from_bspline(Y, neval=None, s=None):
     X = torch.matmul(C, Y)  # (neval,2)
 
     return X
+
 
 def fit_bspline_to_traj(X, nland, s=None, include_resid=False):
     """Produce a B-spline from a trajectory with least-squares.
