@@ -50,7 +50,7 @@ def least_squares(a, b, rcond=None):
     return x, residuals, rank, s
 
 
-def least_squares_pt(A, B):
+def least_squares_qr(A, B):
     """Faster lstsq variant that uses PyTorch native QR factorization"""
     m, n = A.shape
     _, k = B.shape
