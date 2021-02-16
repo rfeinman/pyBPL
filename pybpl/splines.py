@@ -8,7 +8,7 @@ import torch
 from torch import Tensor
 
 from .parameters import Parameters
-from .util.general import least_squares
+from .util.general import least_squares, least_squares_qr
 from .util.stroke import dist_along_traj
 
 PM = Parameters()
@@ -144,7 +144,7 @@ def get_stk_from_bspline(Y, neval=None, s=None):
     return X
 
 
-def fit_bspline_to_traj(X, nland, s=None, include_resid=False):
+def fit_bspline_to_traj(X, nland, s=None, include_resid=False, lstsq_mode='svd'):
     """Produce a B-spline from a trajectory with least-squares.
 
     Parameters
@@ -157,6 +157,9 @@ def fit_bspline_to_traj(X, nland, s=None, include_resid=False):
         (optional) [neval] time points for spline evaluation
     include_resid : bool
         whether to return the residuals of the least-squares problem
+    lstsq_mode : str
+        algorithm for solving the least-squares problem. Must be either
+        'svd' or 'qr' (default='svd').
 
     Returns
     -------
@@ -169,7 +172,12 @@ def fit_bspline_to_traj(X, nland, s=None, include_resid=False):
     neval = X.size(0)
 
     C = coefficient_mat(nland, neval, s=s, device=X.device)
-    Y, residuals, _, _ = least_squares(C, X) # (nland, 2)
+    if lstsq_mode == 'svd':
+        Y, residuals, _, _ = least_squares(C, X) # (nland, 2)
+    elif lstsq_mode == 'qr':
+        Y, residuals = least_squares_qr(C, X)
+    else:
+        raise ValueError("lstsq_mode must be either 'svd' or 'qr'.")
 
     if include_resid:
         return Y, residuals
