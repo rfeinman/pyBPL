@@ -4,14 +4,11 @@ B-splines utilities. For reference material on B-splines, see Kristin Branson's
 http://vision.ucsd.edu/~kbranson/research/bsplines/bsplines.pdf
 """
 import functools
-import math
 import torch
 
 from .parameters import Parameters
 from .util.general import least_squares
 from .util.stroke import dist_along_traj
-
-
 
 PM = Parameters()
 
@@ -107,82 +104,28 @@ def bspline_gen_s(nland, neval=200, device=None):
 
     return s, lb, ub
 
-def bspline_eval(s, Y):
-    """
-    Produce a trajectory from a B-spline.
-
-    Parameters
-    ----------
-    s : torch.Tensor
-        [neval,] time points for spline eval
-    Y : torch.Tensor
-        [nland,2] input spline (control points)
-
-    Returns
-    -------
-    X : torch.Tensor
-        [neval,2] output trajectory
-    """
-    if s.shape == torch.Size([]):
-        s = s.view(1)
-    assert len(s.shape) == 1
-    assert len(Y.shape) == 2 and Y.shape[1] == 2
-    neval = s.shape[0]
-    nland = Y.shape[0]
-
-    # compute spline coefficients
-    S = s_to_vs(s, nland) # (neval, nland)
-    I = get_vi(neval, nland, device=Y.device) # (neval, nland)
-    A = vectorized_bspline_coeff(I, S) # (neval, nland)
-    Cof = A / torch.sum(A, dim=1, keepdim=True) # (neval, nland)
-
-    X = Cof @ Y # (neval,nland) @ (nland,2) = (neval,2)
-
-    return X
-
-def bspline_fit(s, X, nland, include_resid=False):
-    """
-    Produce a B-spline from a trajectory (via least-squares).
-
-    Parameters
-    ----------
-    s : torch.Tensor
-        [neval,] time points for spline eval
-    X : torch.Tensor
-        [neval,2] input trajectory
-    nland : int
-        number of landmarks (control points) for the spline
-    include_resid : bool
-        whether to return the residuals of the least-squares problem
-
-    Returns
-    -------
-    Y : torch.Tensor
-        [nland,2] output spline
-    residuals : torch.Tensor
-        [2,] residuals of the least-squares problem (optional)
-    """
-    neval = s.size(0)
-    assert X.shape == (neval, 2)
-
-    # compute spline coefficients
-    S = s_to_vs(s, nland) # (neval, nland)
-    I = get_vi(neval, nland, device=X.device) # (neval, nland)
-    A = vectorized_bspline_coeff(I, S) # (neval, nland)
-    Cof = A / torch.sum(A, dim=1, keepdim=True) # (neval, nland)
-
-    # solve least squares problem
-    Y, residuals, _, _ = least_squares(Cof, X) # (nland, 2)
-
-    if include_resid:
-        return Y, residuals
+@functools.lru_cache(maxsize=128)
+def coefficient_mat(nland, neval, s=None, device=None):
+    if s is None:
+        s, _, _ = bspline_gen_s(nland, neval, device=device)
     else:
-        return Y
+        assert s.dim() == 1
+        neval = s.size(0)
+    S = s_to_vs(s, nland) # (neval, nland)
+    I = get_vi(neval, nland, device=device) # (neval, nland)
+    C = vectorized_bspline_coeff(I, S) # (neval, nland)
+    C = C / C.sum(1, keepdim=True)
 
-def get_stk_from_bspline(Y, neval=None):
-    """
-    Produce a trajectory from a B-spline.
-    NOTE: this is a wrapper for bspline_eval (first produces time points)
+    return C
+
+
+def _check_input(x):
+    assert torch.is_tensor(x)
+    assert x.dim() == 2
+    assert x.size(1) == 2
+
+def get_stk_from_bspline(Y, neval=None, s=None):
+    """Produce a stroke trajectory by evaluating a B-spline.
 
     Parameters
     ----------
@@ -190,39 +133,31 @@ def get_stk_from_bspline(Y, neval=None):
         [nland,2] input spline (control points)
     neval : int
         number of eval points (optional)
+    s : torch.Tensor
+        (optional) [neval] time points for spline evaluation
 
     Returns
     -------
     X : torch.Tensor
         [neval,2] output trajectory
     """
-    assert isinstance(Y, torch.Tensor)
-    assert len(Y.shape) == 2 and Y.shape[1] == 2
-    nland = Y.shape[0]
+    _check_input(Y)
+    nland = Y.size(0)
 
     # if `neval` is None, set it adaptively according to stroke size
-    if neval is None:
-        # check the stroke size
-        s, _, _ = bspline_gen_s(nland, PM.spline_max_neval, device=Y.device)
-        stk = bspline_eval(s, Y.detach())
-        dist = dist_along_traj(stk)
-        # set neval based on stroke size
-        neval = int(math.ceil(dist.item()/PM.spline_grain))
-        # threshold
-        neval = max(neval, PM.spline_min_neval)
-        neval = min(neval, PM.spline_max_neval)
+    if neval is None and s is None:
+        X = get_stk_from_bspline(Y, neval=PM.spline_max_neval)
+        dist = dist_along_traj(X)
+        neval = (dist / PM.spline_grain).ceil().long()
+        neval = neval.clamp(PM.spline_min_neval, PM.spline_max_neval)
 
-    # generate time points
-    s, _, _ = bspline_gen_s(nland, neval, device=Y.device)
-    # compute trajectory
-    X = bspline_eval(s, Y)
+    C = coefficient_mat(nland, neval, s=s, device=Y.device)
+    X = torch.matmul(C, Y)  # (neval,2)
 
     return X
 
-def fit_bspline_to_traj(X, nland, include_resid=False):
-    """
-    Produce a B-spline from a trajectory (via least-squares).
-    NOTE: this is a wrapper for bspline_fit (first produces time points)
+def fit_bspline_to_traj(X, nland, s=None, include_resid=False):
+    """Produce a B-spline from a trajectory with least-squares.
 
     Parameters
     ----------
@@ -230,6 +165,8 @@ def fit_bspline_to_traj(X, nland, include_resid=False):
         [neval,2] input trajectory
     nland : int
         number of landmarks (control points)
+    s : torch.Tensor
+        (optional) [neval] time points for spline evaluation
     include_resid : bool
         whether to return the residuals of the least-squares problem
 
@@ -240,15 +177,13 @@ def fit_bspline_to_traj(X, nland, include_resid=False):
     residuals : torch.Tensor
         [2,] residuals of the least-squares problem (optional)
     """
-    assert isinstance(X, torch.Tensor)
-    assert len(X.shape) == 2 and X.shape[1] == 2
+    _check_input(X)
+    neval = X.size(0)
 
-    # generate time points
-    s, _, _ = bspline_gen_s(nland, neval=len(X), device=X.device)
-    # compute spline
+    C = coefficient_mat(nland, neval, s=s, device=X.device)
+    Y, residuals, _, _ = least_squares(C, X) # (nland, 2)
+
     if include_resid:
-        Y, residuals = bspline_fit(s, X, nland, include_resid=True)
         return Y, residuals
-    else:
-        Y = bspline_fit(s, X, nland, include_resid=False)
-        return Y
+
+    return Y
