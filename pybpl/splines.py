@@ -11,20 +11,10 @@ from .parameters import Parameters
 from .util.general import least_squares, least_squares_qr
 from .util.stroke import dist_along_traj
 
+__all__ = ['vectorized_bspline_coeff', 'bspline_gen_s', 'coefficient_mat',
+           'get_stk_from_bspline', 'fit_bspline_to_traj']
+
 PM = Parameters()
-
-
-@functools.lru_cache(maxsize=128)
-def get_vi(neval, nland, device=None):
-    vi = torch.arange(nland, dtype=torch.float, device=device)
-    vi = vi.unsqueeze(0).repeat(neval,1)
-    return vi
-
-
-@functools.lru_cache(maxsize=128)
-def s_to_vs(s, nland):
-    vs = s.unsqueeze(1).repeat(1,nland)
-    return vs
 
 
 @functools.lru_cache(maxsize=128)
@@ -86,16 +76,22 @@ def bspline_gen_s(nland, neval=200, device=None):
 
 
 @functools.lru_cache(maxsize=128)
-def coefficient_mat(nland, neval, s=None, device=None):
+def coefficient_mat(nland, neval=None, s=None, device=None):
     """Generate the B-spline coefficient matrix"""
+
+    # generate time vector
     if s is None:
+        assert neval is not None, 'neval must be provided when s not provided.'
         s, _, _ = bspline_gen_s(nland, neval, device=device)
     else:
         assert s.dim() == 1
-        neval = s.size(0)
-    S = s_to_vs(s, nland) # (neval, nland)
-    I = get_vi(neval, nland, device=device) # (neval, nland)
-    C = vectorized_bspline_coeff(I, S) # (neval, nland)
+
+    # generate index vector
+    i = torch.arange(nland, dtype=torch.float, device=device)
+
+    # generate coefficient matrix and normalize
+    vs, vi = torch.meshgrid(s, i)  # (neval, nland)
+    C = vectorized_bspline_coeff(vi, vs)  # (neval, nland)
     C = C / C.sum(1, keepdim=True)
 
     return C
