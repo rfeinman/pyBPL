@@ -41,7 +41,7 @@ def least_squares(a, b, rcond=None):
     U, s, V = torch.svd(a)
     rank = torch.sum(s > rcond*s[0]).item()
     s_inv = torch.where(s > rcond*s[0], s.reciprocal(), torch.zeros_like(s))
-    x = V @ torch.diag(s_inv) @ U.transpose(0,1) @ b
+    x = torch.matmul(V, s_inv.unsqueeze(1) * torch.matmul(U.T, b))
     if rank < n or m <= n:
         residuals = torch.tensor([])
     else:
