@@ -31,7 +31,7 @@ def vectorized_bspline_coeff(vi, vs):
 
     # step through the conditions
     # NOTE: in the following, * stands in for 'and'
-    C = torch.zeros_like(vi, dtype=torch.float)
+    C = torch.zeros_like(vi)
 
     # sel1
     sel = (vs >= vi)*(vs < vi+1)
@@ -65,10 +65,10 @@ def bspline_gen_s(nland, neval=200, device=None):
     percent of the last cpt and 20 percent of the control point after that.
     We return the upper and lower bounds, in addition to the timepoints.
     """
-    lb = 2
-    ub = nland + 1
+    lb = float(2)
+    ub = float(nland + 1)
     if neval == 1:
-        s = torch.tensor([lb], dtype=torch.float, device=device)
+        s = torch.tensor([lb], device=device)
     else:
         s = torch.linspace(lb, ub, neval, device=device)
 
@@ -87,7 +87,7 @@ def coefficient_mat(nland, neval=None, s=None, device=None):
         assert s.dim() == 1
 
     # generate index vector
-    i = torch.arange(nland, dtype=torch.float, device=device)
+    i = torch.arange(nland, dtype=s.dtype, device=device)
 
     # generate coefficient matrix and normalize
     vs, vi = torch.meshgrid(s, i)  # (neval, nland)
