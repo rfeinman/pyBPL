@@ -196,7 +196,7 @@ def fspecial(hsize, sigma, ftype='gaussian', device=None):
     assert hsize % 2 == 1, 'Image size must be odd'
 
     # create a x, y coordinate grid of shape (kernel_size, kernel_size, 2)
-    x_cord = torch.arange(hsize, dtype=torch.float, device=device)
+    x_cord = torch.arange(hsize, dtype=torch.get_default_dtype(), device=device)
     x_grid = x_cord.repeat(hsize).view(hsize, hsize)
     y_grid = x_grid.t()
     xy_grid = torch.stack([x_grid, y_grid], dim=-1)
