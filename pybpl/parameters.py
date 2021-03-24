@@ -22,17 +22,17 @@ class Parameters:
 
         ## ink-add parameters
         # amount of ink per point
-        self.ink_pp = torch.tensor(2, dtype=torch.float)
+        self.ink_pp = 2.
         # distance between points to which you get full ink
-        self.ink_max_dist = torch.tensor(2, dtype=torch.float)
+        self.ink_max_dist = 2.
 
         ## broadening parameters
         # number of convolutions
-        self.ink_ncon = torch.tensor(2, dtype=torch.int)
+        self.ink_ncon = 2
         # parameter 1
-        self.ink_a = torch.tensor(0.5, dtype=torch.float)
+        self.ink_a = 0.5
         # parameter 2
-        self.ink_b = torch.tensor(6, dtype=torch.float)
+        self.ink_b = 6.
         # broadening version (must be either "Lake" or "Hinton")
         self.broaden_mode = 'Lake'
 
@@ -92,7 +92,7 @@ class Parameters:
         Parameters of search algorithm (part of inference)
         """
         # number of particles to use in search algorithm
-        self.K = torch.tensor(5, dtype=torch.int)
+        self.K = 5
         # scale changes must be less than a factor of 2
         self.max_affine_scale_change = 2
         # shift changes must less than this

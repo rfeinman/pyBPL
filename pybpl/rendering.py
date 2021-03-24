@@ -1,16 +1,11 @@
 """
-All the functions and modules for differentiable rendering go here
+This module contains all of the functions for differentiable rendering
 """
 import torch
 
 from .util.general import sub2ind, fspecial, imfilter
 from .parameters import Parameters
 
-
-
-# ----
-# render the image
-# ----
 
 def check_bounds(myt, imsize):
     """
@@ -36,6 +31,7 @@ def check_bounds(myt, imsize):
     out = x_out | y_out
 
     return out
+
 
 def seqadd(D, lind_x, lind_y, inkval):
     """
@@ -81,6 +77,7 @@ def seqadd(D, lind_x, lind_y, inkval):
 
     return D
 
+
 def space_motor_to_img(pt):
     """
     Translate all control points from spline space to image space.
@@ -101,6 +98,7 @@ def space_motor_to_img(pt):
     new_pt = torch.flip(pt, dims=[-1]) * space_flip
 
     return new_pt
+
 
 def add_stroke(pimg, stk, ps):
     """
@@ -123,8 +121,6 @@ def add_stroke(pimg, stk, ps):
         boolean indicating whether the ink went off the page
     """
     device = stk.device
-    ink = ps.ink_pp.to(device)
-    max_dist = ps.ink_max_dist.to(device)
     ink_off_page = False
 
     # convert stroke to image coordinate space
@@ -140,30 +136,29 @@ def add_stroke(pimg, stk, ps):
 
     # compute distance between each trajectory point and the next one
     if stk.shape[0] == 1:
-        myink = ink
+        myink = torch.tensor([ps.ink_pp], dtype=torch.float, device=device)
     else:
         dist = torch.norm(stk[1:] - stk[:-1], dim=-1)
-        dist = torch.min(dist, max_dist)
+        dist.clamp_(None, ps.ink_max_dist)
         dist = torch.cat([dist[:1], dist])
-        myink = (ink/max_dist)*dist # shape (k,)
+        myink = ps.ink_pp * dist / ps.ink_max_dist  # shape (k,)
 
     # make sure we have the minimum amount of ink, if a particular
     # trajectory is very small
     sumink = torch.sum(myink)
     if sumink < 2.22e-6:
-        nink = myink.shape[0]
-        myink = (ink/nink)*torch.ones_like(myink)
-    elif sumink < ink:
-        myink = (ink/sumink)*myink
-    assert torch.sum(myink) > (ink-1e-4)
+        myink.fill_(ps.ink_pp / myink.size(0))
+    elif sumink < ps.ink_pp:
+        myink.mul_(ps.ink_pp / sumink)
+    assert torch.sum(myink) > ps.ink_pp - 1e-4
 
     # share ink with the neighboring 4 pixels
     x = stk[:,0]
     y = stk[:,1]
-    xfloor = torch.floor(x).detach()
-    yfloor = torch.floor(y).detach()
-    xceil = torch.ceil(x).detach()
-    yceil = torch.ceil(y).detach()
+    xfloor = torch.floor(x)
+    yfloor = torch.floor(y)
+    xceil = torch.ceil(x)
+    yceil = torch.ceil(y)
     x_c_ratio = x - xfloor
     y_c_ratio = y - yfloor
     x_f_ratio = 1 - x_c_ratio
@@ -176,6 +171,7 @@ def add_stroke(pimg, stk, ps):
     pimg = seqadd(pimg, xceil, yceil, myink*x_c_ratio*y_c_ratio)
 
     return pimg, ink_off_page
+
 
 def broaden_and_blur(pimg, blur_sigma, ps):
     """
@@ -207,16 +203,18 @@ def broaden_and_blur(pimg, blur_sigma, ps):
     else:
         raise Exception("'broaden_mode' must be either 'Lake' or 'Hinton'")
 
-    H_broaden = h_scale*torch.tensor(
-        [[a/12, a/6, a/12],[a/6, 1-a, a/6],[a/12, a/6, a/12]],
+    H_broaden = h_scale * torch.tensor(
+        [[a/12, a/6, a/12],
+         [a/6,  1-a, a/6],
+         [a/12, a/6, a/12]],
         dtype=torch.float,
         device=device
     )
     for i in range(ps.ink_ncon):
         pimg = imfilter(pimg, H_broaden, mode='conv')
 
-    # cap values at 1
-    pimg = pimg.clamp(float('-inf'), 1.)
+    # cap values at 1. TODO: why no minimum here?
+    pimg.clamp_(None, 1)
 
     # blur the image with Gaussian filter
     if blur_sigma > 0:
@@ -225,9 +223,10 @@ def broaden_and_blur(pimg, blur_sigma, ps):
         pimg = imfilter(pimg, H_gaussian, mode='conv')
 
     # clamp to range [0,1]
-    pimg = pimg.clamp(0., 1.)
+    pimg.clamp_(0, 1)
 
     return pimg
+
 
 def render_image(strokes, epsilon, blur_sigma, ps=None):
     """
