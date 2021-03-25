@@ -90,7 +90,7 @@ def ind2sub(shape, index):
         raise NotImplementedError('only implemented for 2D case.')
     # compute inds
     cols = index % shape[0]
-    rows = index / shape[0]
+    rows = index // shape[0]
 
     return rows, cols
 
