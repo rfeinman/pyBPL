@@ -397,7 +397,7 @@ class StrokeTokenDist(PartTokenDist):
         ll = scales_dist.log_prob(invscales_token)
 
         # correction for positive only invscales
-        p_below = scales_dist.cdf(0.)
+        p_below = scales_dist.cdf(torch.zeros_like(invscales_token))
         p_above = 1. - p_below
         ll = ll - torch.log(p_above)
 
