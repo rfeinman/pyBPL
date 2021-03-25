@@ -325,7 +325,7 @@ class StrokeTokenDist(PartTokenDist):
         shapes_token : (ncpt, 2, nsub) tensor
             sampled shapes token
         """
-        shapes_dist = dist.normal.Normal(shapes_type, self.sigma_shape)
+        shapes_dist = dist.Normal(shapes_type, self.sigma_shape)
         # sample shapes token
         shapes_token = shapes_dist.sample()
 
@@ -347,7 +347,7 @@ class StrokeTokenDist(PartTokenDist):
         ll : (nsub,) tensor
             vector of log-likelihood scores
         """
-        shapes_dist = dist.normal.Normal(shapes_type, self.sigma_shape)
+        shapes_dist = dist.Normal(shapes_type, self.sigma_shape)
         # compute scores for every element in shapes_token
         ll = shapes_dist.log_prob(shapes_token)
 
@@ -367,7 +367,7 @@ class StrokeTokenDist(PartTokenDist):
         invscales_token : (nsub,) tensor
             sampled invscales token
         """
-        scales_dist = dist.normal.Normal(invscales_type, self.sigma_invscale)
+        scales_dist = dist.Normal(invscales_type, self.sigma_invscale)
         while True:
             invscales_token = scales_dist.sample()
             ll = self.score_invscales_token(invscales_type, invscales_token)
@@ -392,7 +392,7 @@ class StrokeTokenDist(PartTokenDist):
         ll : (nsub,) tensor
             vector of log-likelihood scores
         """
-        scales_dist = dist.normal.Normal(invscales_type, self.sigma_invscale)
+        scales_dist = dist.Normal(invscales_type, self.sigma_invscale)
         # compute scores for every element in invscales_token
         ll = scales_dist.log_prob(invscales_token)
 
