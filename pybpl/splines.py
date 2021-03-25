@@ -84,6 +84,8 @@ def coefficient_mat(nland, neval=None, s=None, device=None):
         assert neval is not None, 'neval must be provided when s not provided.'
         s, _, _ = bspline_gen_s(nland, neval, device=device)
     else:
+        if s.dim() == 0:
+            s = s.view(1)
         assert s.dim() == 1
 
     # generate index vector

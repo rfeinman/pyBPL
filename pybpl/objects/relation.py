@@ -6,7 +6,7 @@ from abc import ABCMeta, abstractmethod
 import torch
 
 from .part import PartToken
-from ..splines import bspline_eval, bspline_gen_s
+from ..splines import bspline_gen_s, get_stk_from_bspline
 
 categories_allowed = ['unihist', 'start', 'end', 'mid']
 
@@ -60,7 +60,7 @@ class RelationToken(object):
             else:
                 assert self.rtype.category == 'mid'
                 bspline = prev.motor_spline[:, :, self.rtype.attach_subix]
-                loc = bspline_eval(self.eval_spot_token, bspline)
+                loc = get_stk_from_bspline(bspline, s=self.eval_spot_token)
                 # convert (1,2) tensor -> (2,) tensor
                 loc = torch.squeeze(loc, dim=0)
 
