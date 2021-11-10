@@ -194,21 +194,17 @@ def fspecial(hsize, sigma, ftype='gaussian', device=None):
     if not ftype == 'gaussian':
         raise NotImplementedError("Only Gaussain kernel implemented.")
     assert hsize % 2 == 1, 'Image size must be odd'
+    mu = hsize // 2  # the gaussian mean
 
     # create a x, y coordinate grid of shape (kernel_size, kernel_size, 2)
-    x_cord = torch.arange(hsize, dtype=torch.get_default_dtype(), device=device)
-    x_grid = x_cord.repeat(hsize).view(hsize, hsize)
-    y_grid = x_grid.t()
-    xy_grid = torch.stack([x_grid, y_grid], dim=-1)
-    # store the mean
-    mean = (hsize-1)//2
+    coord = torch.arange(hsize, dtype=torch.get_default_dtype(), device=device)
+    y, x = torch.meshgrid(coord, coord)
+    xy = torch.stack([x, y], dim=-1)
+
     # compute the kernel
-    kernel = torch.exp(
-        -torch.sum((xy_grid - mean)**2., dim=-1) / (2*sigma**2)
-    )
-    kernel = kernel / (2.*np.pi*sigma**2)
-    # Make sure sum of values in gaussian kernel equals 1.
-    kernel = kernel / torch.sum(kernel)
+    delta = (xy - mu) / sigma
+    kernel = torch.exp(-0.5 * delta.pow(2).sum(-1))
+    kernel = kernel / kernel.sum()
 
     return kernel
 
