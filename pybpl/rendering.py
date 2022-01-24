@@ -3,7 +3,7 @@ This module contains all of the functions for differentiable rendering
 """
 import torch
 
-from .util.general import sub2ind, fspecial, imfilter
+from .util.general import fspecial, imfilter
 from .parameters import Parameters
 
 
@@ -31,51 +31,6 @@ def check_bounds(myt, imsize):
     out = x_out | y_out
 
     return out
-
-
-def seqadd(D, lind_x, lind_y, inkval):
-    """
-    Add ink to an image at the indicated locations
-
-    Parameters
-    ----------
-    D : torch.Tensor
-        (H,W) image that we'll be adding to
-    lind_x : torch.Tensor
-        (k,) x-coordinate for each adding point
-    lind_y : torch.Tensor
-        (k,) y-coordinate for each adding point
-    inkval : torch.Tensor
-        (k,) amount of ink to add for each adding point
-
-    Returns
-    -------
-    D : torch.Tensor
-        (H,W) image with ink added to it
-    """
-    assert len(lind_x) == len(lind_y) == len(inkval)
-    imsize = D.shape
-
-    # keep only the adding points that are in bounds
-    lind_stack = torch.stack([lind_x, lind_y], dim=-1)
-    out = check_bounds(lind_stack, imsize=imsize)
-    lind_x = lind_x[~out].long()
-    lind_y = lind_y[~out].long()
-    inkval = inkval[~out]
-
-    # return D if all adding points are out of bounds
-    if len(lind_x) == 0:
-        return D
-
-    # flatten x-y indices
-    lind = sub2ind(imsize, lind_x, lind_y).to(inkval.device)
-
-    # add to image
-    D = D.view(-1)
-    D = D.scatter_add(0, lind, inkval)
-    D = D.view(imsize)
-
-    return D
 
 
 def space_motor_to_img(pt):
@@ -155,20 +110,19 @@ def add_stroke(pimg, stk, ps):
     # share ink with the neighboring 4 pixels
     x = stk[:,0]
     y = stk[:,1]
-    xfloor = torch.floor(x)
-    yfloor = torch.floor(y)
-    xceil = torch.ceil(x)
-    yceil = torch.ceil(y)
+    xfloor = torch.floor(x).long()
+    yfloor = torch.floor(y).long()
+    xceil = torch.ceil(x).long()
+    yceil = torch.ceil(y).long()
     x_c_ratio = x - xfloor
     y_c_ratio = y - yfloor
     x_f_ratio = 1 - x_c_ratio
     y_f_ratio = 1 - y_c_ratio
 
-    # paint the image
-    pimg = seqadd(pimg, xfloor, yfloor, myink*x_f_ratio*y_f_ratio)
-    pimg = seqadd(pimg, xceil, yfloor, myink*x_c_ratio*y_f_ratio)
-    pimg = seqadd(pimg, xfloor, yceil, myink*x_f_ratio*y_c_ratio)
-    pimg = seqadd(pimg, xceil, yceil, myink*x_c_ratio*y_c_ratio)
+    pimg = pimg.index_put((xfloor, yfloor), myink*x_f_ratio*y_f_ratio, accumulate=True)
+    pimg = pimg.index_put((xceil, yfloor), myink*x_c_ratio*y_f_ratio, accumulate=True)
+    pimg = pimg.index_put((xfloor, yceil), myink*x_f_ratio*y_c_ratio, accumulate=True)
+    pimg = pimg.index_put((xceil, yceil), myink*x_c_ratio*y_c_ratio, accumulate=True)
 
     return pimg, ink_off_page
 
