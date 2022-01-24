@@ -1,6 +1,5 @@
 import numpy as np
 import torch
-from scipy.interpolate import interp1d
 
 
 def unif_space(stroke, dist_int=1.):
@@ -47,17 +46,12 @@ def unif_space(stroke, dist_int=1.):
 
     # cumulative distance
     cumdist = np.cumsum(dist)
-    total_dist = cumdist[-1]
-    nint = int(round(total_dist/dist_int))
+    nint = int(round(cumdist[-1] / dist_int))
     nint = max(nint, 2)
-    fx = interp1d(cumdist, stroke[:,0])
-    fy = interp1d(cumdist, stroke[:,1])
-
-    # new stroke
-    query_points = np.linspace(0, total_dist, nint)
-    new_stroke = np.zeros((nint,2))
-    new_stroke[:,0] = fx(query_points)
-    new_stroke[:,1] = fy(query_points)
+    query_dist = np.linspace(0, cumdist[-1], nint)
+    new_stroke = np.zeros((nint, 2))
+    new_stroke[:,0] = np.interp(query_dist, cumdist, stroke[:,0])
+    new_stroke[:,1] = np.interp(query_dist, cumdist, stroke[:,1])
 
     if is_tensor:
         new_stroke = torch.from_numpy(new_stroke).float()
