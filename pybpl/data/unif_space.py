@@ -20,29 +20,30 @@ def unif_space(stroke, dist_int=1.):
     new_stroke : np.ndarray
         (m,2) interpolated stroke
     """
-    is_tensor = False
+    num_steps = len(stroke)
+    if num_steps == 1:
+        # quick return if stroke is too short
+        return stroke
+
     if torch.is_tensor(stroke):
         stroke = stroke.numpy()
-        is_tensor = True
-
-    num_steps = len(stroke)
-
-    # return if stroke is too short
-    if len(stroke) == 1:
-        return torch.from_numpy(stroke).float() if is_tensor else stroke
+        format_output = lambda u: torch.from_numpy(u).float()
+    else:
+        stroke = np.asarray(stroke)
+        format_output = lambda u: u
 
     # compute distance between each point &
     # remove points that are too close to previous
     dist = np.zeros(num_steps)
     dist[1:] = np.linalg.norm(stroke[1:] - stroke[:-1], axis=-1)
-    remove = np.zeros(num_steps, dtype=bool)
-    remove[1:] = dist[1:] < 1e-4
-    stroke = stroke[~remove]
-    dist = dist[~remove]
+    keep = dist >= 1e-4
+    keep[0] = 1
+    stroke = stroke[keep]
+    dist = dist[keep]
 
-    # return if stroke is too short
     if len(stroke) == 1:
-        return torch.from_numpy(stroke).float() if is_tensor else stroke
+        # return if filtered stroke is too short
+        return format_output(stroke)
 
     # cumulative distance
     cumdist = np.cumsum(dist)
@@ -53,7 +54,4 @@ def unif_space(stroke, dist_int=1.):
     new_stroke[:,0] = np.interp(query_dist, cumdist, stroke[:,0])
     new_stroke[:,1] = np.interp(query_dist, cumdist, stroke[:,1])
 
-    if is_tensor:
-        new_stroke = torch.from_numpy(new_stroke).float()
-
-    return new_stroke
+    return format_output(new_stroke)
