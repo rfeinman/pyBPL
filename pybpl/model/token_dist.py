@@ -566,6 +566,7 @@ def score_eval_spot_token(eval_spot_token, eval_spot_dist, ncpt):
     else:
         ll = eval_spot_dist.log_prob(eval_spot_token)
         # correction for bounds
+        lb, ub = torch.as_tensor(lb), torch.as_tensor(ub)
         p_within = eval_spot_dist.cdf(ub) - eval_spot_dist.cdf(lb)
         ll = ll - torch.log(p_within)
 
