@@ -32,25 +32,28 @@ def unif_space(stroke, dist_int=1.):
         stroke = np.asarray(stroke)
         format_output = lambda u: u
 
+    # store data type for future ops
+    dtype = stroke.dtype
+
     # compute distance between each point &
     # remove points that are too close to previous
-    dist = np.zeros(num_steps)
-    dist[1:] = np.linalg.norm(stroke[1:] - stroke[:-1], axis=-1)
-    keep = dist >= 1e-4
-    keep[0] = 1
-    stroke = stroke[keep]
-    dist = dist[keep]
-
-    if len(stroke) == 1:
+    dist = np.empty(num_steps, dtype=dtype)
+    dist[0] = 1
+    dist[1:] = np.linalg.norm(np.diff(stroke, axis=0), axis=1)
+    keep = np.where(dist >= 1e-4)[0]
+    if keep.shape[0] == 1:
         # return if filtered stroke is too short
         return format_output(stroke)
+
+    stroke = stroke[keep]
+    dist = dist[keep]
 
     # cumulative distance
     cumdist = np.cumsum(dist)
     nint = int(round(cumdist[-1] / dist_int))
     nint = max(nint, 2)
-    query_dist = np.linspace(0, cumdist[-1], nint)
-    new_stroke = np.zeros((nint, 2))
+    query_dist = np.linspace(0, cumdist[-1], nint, dtype=dtype)
+    new_stroke = np.empty((nint, 2), dtype=dtype)
     new_stroke[:,0] = np.interp(query_dist, cumdist, stroke[:,0])
     new_stroke[:,1] = np.interp(query_dist, cumdist, stroke[:,1])
 
