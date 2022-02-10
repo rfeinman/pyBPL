@@ -66,10 +66,7 @@ def bspline_gen_s(nland, neval=200, device=None):
     """
     lb = float(2)
     ub = float(nland + 1)
-    if neval == 1:
-        s = torch.tensor([lb], device=device)
-    else:
-        s = torch.linspace(lb, ub, neval, device=device)
+    s = torch.linspace(lb, ub, neval, device=device)
 
     return s, lb, ub
 
