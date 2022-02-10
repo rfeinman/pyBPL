@@ -28,32 +28,31 @@ def vectorized_bspline_coeff(vi, vs):
     assert vi.shape == vs.shape
     assert vi.dtype == vs.dtype
 
-    # step through the conditions
-    # NOTE: in the following, * stands in for 'and'
+    def poly(x, expn, wt):
+        expn = torch.tensor(expn, dtype=C.dtype, device=C.device)
+        wt = torch.tensor(wt, dtype=C.dtype, device=C.device)
+        return x.unsqueeze(-1).pow(expn) @ wt
+
     C = torch.zeros_like(vi)
 
     # sel1
-    sel = (vs >= vi)*(vs < vi+1)
+    sel = vs.ge(vi) & vs.lt(vi+1)
     diff = vs[sel] - vi[sel]
-    val = torch.pow(diff, 3)
-    C[sel] = val/6.
+    C[sel] = diff.pow(3)
     # sel2
-    sel = (vs >= vi+1)*(vs < vi+2)
+    sel = vs.ge(vi+1) & vs.lt(vi+2)
     diff = vs[sel] - vi[sel] - 1
-    val = -3*torch.pow(diff, 3) + 3*torch.pow(diff, 2) + 3*diff + 1
-    C[sel] = val/6.
+    C[sel] = poly(diff, expn=(3,2,1,0), wt=(-3,3,3,1))
     # sel3
-    sel = (vs >= vi+2)*(vs < vi+3)
+    sel = vs.ge(vi+2) & vs.lt(vi+3)
     diff = vs[sel] - vi[sel] - 2
-    val = 3*torch.pow(diff, 3) - 6*torch.pow(diff, 2) + 4
-    C[sel] = val/6.
+    C[sel] = poly(diff, expn=(3,2,0), wt=(3,-6,4))
     # sel4
-    sel = (vs >= vi+3)*(vs < vi+4)
+    sel = vs.ge(vi+3) & vs.lt(vi+4)
     diff = vs[sel] - vi[sel] - 3
-    val = torch.pow(1-diff, 3)
-    C[sel] = val/6.
+    C[sel] = (1 - diff).pow(3)
 
-    return C
+    return C.div_(6.)
 
 
 @functools.lru_cache(maxsize=128)
