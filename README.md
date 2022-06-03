@@ -112,14 +112,11 @@ python examples/optimize_type.py
 Optionally, you may add the integer parameter `--ns=<int>` to specify how many strokes you would like the generated character type to have.
 
 #### 3. bottom-up parsing
-You can produce bottom-up parses using the skeleton extraction + random walks algorithm with the following example script. Note that you must have the MATLAB Engine API for Python installed to use this code, and you must have the BPL matlab repository added to your matlab path (or have BPL_PATH set as an environment variable by: 
+To use the bottom-up parsing code, you must meet the following prerequisites:
+- You must have an active MATLAB installation and must have installed the [MATLAB Engine API for Python](https://www.mathworks.com/help/matlab/matlab-engine-for-python.html).
+- You must download the [BPL matlab repository](https://github.com/brendenlake/BPL) and all of its prerequisites, including the Lightspeed toolbox. The BPL repo must be added to your matlab path (alternatively, you may set a BPL_PATH environment variable as `export BPL_PATH="/path/to/BPL"`).
 
-```
-export BPL_PATH="/path/to/BPL"
-```
-). 
-
-Then run the following command:
+With these prerequisites met, you can produce bottom-up parses using the skeleton extraction + random walks algorithm with the following example script:
 ```
 python examples/parse_image.py
 ```
