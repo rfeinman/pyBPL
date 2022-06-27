@@ -16,7 +16,6 @@ __all__ = ['vectorized_bspline_coeff', 'bspline_gen_s', 'coefficient_mat',
 PM = Parameters()
 
 
-@functools.lru_cache(maxsize=128)
 def vectorized_bspline_coeff(vi, vs):
     """Spline coefficients
 
@@ -87,7 +86,7 @@ def coefficient_mat(nland, neval=None, s=None, device=None):
     i = torch.arange(nland, dtype=s.dtype, device=device)
 
     # generate coefficient matrix and normalize
-    vs, vi = torch.meshgrid(s, i)  # (neval, nland)
+    vs, vi = torch.meshgrid(s, i, indexing='ij')  # (neval, nland)
     C = vectorized_bspline_coeff(vi, vs)  # (neval, nland)
     C = C / C.sum(1, keepdim=True)
 
